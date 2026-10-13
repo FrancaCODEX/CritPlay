@@ -17,7 +17,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-    "spring.datasource.url=jdbc:h2:mem:tests;DB_CLOSE_DELAY=-1", "ggdeals.api-key=",
+    "spring.datasource.url=jdbc:h2:mem:tests;DB_CLOSE_DELAY=-1", "ggdeals.api-key=", "psprices.api-key=",
     "app.security.rate-limit-enabled=false", "app.admin.username=test_admin", "app.admin.password=AdminTestPassword42!"
 })
 class ApiIntegrationTest {
@@ -329,6 +329,72 @@ class ApiIntegrationTest {
         assertEquals(400,anonymous.send("POST","/api/auth/reset-password",mapper.writeValueAsString(Map.of("token",token,"newPassword","NewPasswordTest42!"))).statusCode());
         assertFalse(anonymous.json("/api/auth/recovery-status").path("enabled").asBoolean());
         assertEquals(503,anonymous.send("POST","/api/auth/forgot-password","{\"username\":\"some_user\",\"email\":\"user@example.test\"}").statusCode());
+    }
+
+    String privacy(String visibility,boolean discoverable) {return "{\"visibility\":\""+visibility+"\",\"discoverable\":"+discoverable+"}";}
+    @Test void followingDoesNotUnlockFriendsProfileAndOnlyRecipientCanAccept() throws Exception {
+        var owner=user();var reader=user();var outsider=user();String target=accountName(owner),viewer=accountName(reader);
+        assertEquals(200,owner.send("PUT","/api/profile/privacy",privacy("FRIENDS",true)).statusCode());
+        assertEquals(200,owner.send("PUT","/api/diary/1","{\"status\":\"COMPLETED\",\"rating\":5,\"review\":\"Minha resenha reservada.\",\"favorite\":true,\"wishlist\":true}").statusCode());
+        assertFalse(reader.json("/api/people/"+target).path("visible").asBoolean());
+        assertEquals(200,reader.send("PUT","/api/people/"+target+"/follow",null).statusCode());
+        assertEquals(200,reader.send("PUT","/api/people/"+target+"/follow",null).statusCode());
+        assertFalse(reader.json("/api/people/"+target).path("visible").asBoolean());
+        assertEquals(200,reader.send("PUT","/api/people/"+target+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
+        assertEquals(400,reader.send("PUT","/api/people/"+target+"/friendship","{\"action\":\"ACCEPT\"}").statusCode());
+        assertEquals(400,outsider.send("PUT","/api/people/"+target+"/friendship","{\"action\":\"ACCEPT\"}").statusCode());
+        assertEquals(1,owner.json("/api/social").path("incoming").size());
+        assertEquals(200,owner.send("PUT","/api/people/"+viewer+"/friendship","{\"action\":\"ACCEPT\"}").statusCode());
+        assertEquals(target,reader.json("/api/social").path("friends").get(0).path("username").asText());
+        var profile=reader.json("/api/people/"+target);assertTrue(profile.path("visible").asBoolean());
+        assertEquals("Minha resenha reservada.",profile.path("reviews").get(0).path("review").asText());
+        assertFalse(profile.path("user").has("email"));assertFalse(profile.path("user").has("passwordHash"));assertFalse(profile.path("reviews").get(0).has("entry"));
+        assertEquals(200,reader.send("PUT","/api/people/"+target+"/friendship","{\"action\":\"REMOVE\"}").statusCode());
+        assertFalse(reader.json("/api/people/"+target).path("visible").asBoolean());
+        assertEquals(1,owner.json("/api/social").path("followers").size());
+        assertEquals(viewer,owner.json("/api/social").path("followers").get(0).path("username").asText());
+    }
+    @Test void privacySearchAndPublicSharingNeverExposeEmail() throws Exception {
+        var owner=user();var reader=user();String target=accountName(owner);
+        assertEquals(200,owner.send("PUT","/api/profile",profileJson("Pessoa pública",target+"@example.test","UserTestPassword42!",null)).statusCode());
+        assertEquals(200,owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true)).statusCode());
+        var anonymous=new Session();var profile=anonymous.json("/api/people/"+target);assertTrue(profile.path("visible").asBoolean());
+        assertFalse(profile.toString().contains("@example.test"));
+        assertEquals(1,reader.json("/api/people?q="+target).size());
+        assertEquals(200,owner.send("PUT","/api/profile/privacy",privacy("PRIVATE",false)).statusCode());
+        assertEquals(0,reader.json("/api/people?q="+target).size());
+        assertEquals(404,reader.send("GET","/api/people/"+target,null).statusCode());
+        assertEquals(404,anonymous.send("GET","/api/people/"+target,null).statusCode());
+        assertEquals(401,anonymous.send("GET","/api/people?q=pe",null).statusCode());
+        assertEquals(403,owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true),false,"application/json").statusCode());
+    }
+    @Test void friendshipCancellationRejectionAndSelfRequestsAreControlled() throws Exception {
+        var first=user();var second=user();String a=accountName(first),b=accountName(second);
+        assertEquals(400,first.send("PUT","/api/people/"+a+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
+        assertEquals(200,first.send("PUT","/api/people/"+b+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
+        assertEquals(400,second.send("PUT","/api/people/"+a+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
+        assertEquals(200,second.send("PUT","/api/people/"+a+"/friendship","{\"action\":\"REJECT\"}").statusCode());
+        assertEquals(0,first.json("/api/social").path("outgoing").size());
+        assertEquals(200,first.send("PUT","/api/people/"+b+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
+        assertEquals(200,first.send("PUT","/api/people/"+b+"/friendship","{\"action\":\"CANCEL\"}").statusCode());
+        assertEquals(0,second.json("/api/social").path("incoming").size());
+        assertEquals(200,first.send("PUT","/api/people/"+b+"/follow",null).statusCode());
+        assertEquals(200,second.send("PUT","/api/profile/privacy",privacy("PRIVATE",false)).statusCode());
+        assertEquals(200,first.send("DELETE","/api/people/"+b+"/follow",null).statusCode());
+    }
+    @Test void platformPricesRespectCatalogAndSourcesAreAdminOnly() throws Exception {
+        var gamer=user();var administrator=admin();
+        var quotes=gamer.json("/api/games/1/prices/platforms");assertEquals(3,quotes.size());
+        assertEquals("PC",quotes.get(0).path("platform").asText());
+        assertEquals("NOT_CONFIGURED",quotes.get(1).path("status").asText());
+        assertEquals("NOT_CONFIGURED",quotes.get(2).path("status").asText());
+        assertEquals(403,gamer.send("GET","/api/admin/games/1/price-sources",null).statusCode());
+        assertEquals(200,administrator.send("PUT","/api/admin/games/1/price-sources","{\"sources\":{\"PLAYSTATION\":1234}}").statusCode());
+        assertEquals(1234,administrator.json("/api/admin/games/1/price-sources").path("sources").path("PLAYSTATION").asLong());
+        assertEquals(400,administrator.send("PUT","/api/admin/games/1/price-sources","{\"sources\":{\"NINTENDO\":42}}").statusCode());
+        assertEquals(400,administrator.send("PUT","/api/admin/games/1/price-sources","{\"sources\":{\"PC\":42}}").statusCode());
+        assertEquals(400,administrator.send("PUT","/api/admin/games/1/price-sources","{\"sources\":{\"XBOX\":-1}}").statusCode());
+        assertEquals(503,administrator.send("GET","/api/admin/console-search?q=elden&platform=PLAYSTATION",null).statusCode());
     }
 
 }

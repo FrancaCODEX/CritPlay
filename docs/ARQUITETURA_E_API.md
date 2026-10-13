@@ -1,4 +1,4 @@
-# Arquitetura e API — v0.3
+# Arquitetura e API — v0.4
 
 Monólito modular: interface estática e API REST no mesmo processo Java. Controller recebe HTTP; Service implementa regras; Repository usa JPA; Flyway versiona o banco. O frontend nunca decide permissões sozinho.
 
@@ -124,3 +124,23 @@ PUT `/api/profile` aceita `displayName`, `bio`, `email`, `avatarUrl`, `currentPa
 O principal da sessão inclui `sessionVersion`. Trocar/resetar senha incrementa essa versão no banco; um filtro invalida as sessões antigas na próxima requisição. Não se envia token de sessão para JavaScript nem se grava senha no navegador.
 
 V3 migra o H2 existente com perfil, wishlist, imagens, listas e tokens. PostgreSQL tem um esquema inicial próprio em `db/postgresql` e é um banco separado; não recebe os dados H2 automaticamente. Migrações já aplicadas V1/V2 permanecem inalteradas.
+
+## Social e preços por plataforma na v0.4
+
+| Método | Rota | Acesso e função |
+| --- | --- | --- |
+| GET | `/api/people?q=nome` | Autenticado; busca literal, mínimo 2 caracteres, até 30 perfis descobríveis |
+| GET | `/api/people/{username}` | Visitante ou autenticado; aplica descoberta/visibilidade; nunca retorna e-mail |
+| GET | `/api/social` | Conexões e pedidos da conta atual |
+| PUT | `/api/profile/privacy` | Própria conta; `{visibility:PUBLIC/FRIENDS/PRIVATE,discoverable:true/false}` |
+| PUT / DELETE | `/api/people/{username}/follow` | Seguir/deixar de seguir, idempotente |
+| PUT | `/api/people/{username}/friendship` | `{action:REQUEST/ACCEPT/REJECT/CANCEL/REMOVE}` |
+| GET | `/api/games/{id}/prices/platforms` | Autenticado; array de cotações para plataformas presentes no catálogo |
+| GET / PUT | `/api/admin/games/{id}/price-sources` | ADMIN; consulta/configura `{sources:{PLAYSTATION:123,XBOX:456}}` |
+| GET | `/api/admin/console-search?q=titulo&platform=XBOX` | ADMIN; busca edições no PSprices |
+
+O endpoint anterior `/api/games/{id}/prices` continua retornando apenas a cotação PC para compatibilidade. Os preços de console acrescentam `region`, `originalPrice`, `discountPercent`, `edition` e `storeUrl`; `NOT_MAPPED` indica chave configurada sem uma edição associada. Preços não são persistidos no banco.
+
+H2: V4. PostgreSQL: V2, sem alterar migrações já aplicadas. Novas tabelas `user_follows`, `friendships`, `game_console_sources`. O par de amizade tem IDs ordenados e chave única; operações sociais travam os dois usuários em ordem consistente para evitar pedidos duplicados/recíprocos concorrentes. Seguir é independente da amizade. Privacidade é avaliada em cada consulta, sem cache de perfis.
+
+Perfis autorizados retornam bio, estatísticas e resenhas sanitizadas, sem a entidade completa do usuário/diário. Pedidos só podem ser aceitos/recusados pelo destinatário. Não há compartilhamento de listas personalizadas nesta versão. IDs de fontes são validados quanto à plataforma cadastrada; a resposta do provedor é validada novamente antes de exibir o preço.

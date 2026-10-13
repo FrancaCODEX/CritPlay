@@ -16,6 +16,9 @@ public class AppUser {
     @Column(unique = true, length = 254) private String email;
     private String avatarUrl;
     @Column(nullable = false) private int sessionVersion;
+    @Enumerated(EnumType.STRING) @Column(nullable=false, length=20)
+    private br.com.gameshelf.social.ProfileVisibility visibility = br.com.gameshelf.social.ProfileVisibility.PRIVATE;
+    @Column(nullable=false) private boolean discoverable = true;
     protected AppUser() {}
     public AppUser(String username, String displayName, String passwordHash, Role role) {
         this.username = username; this.displayName = displayName;
@@ -31,6 +34,11 @@ public class AppUser {
     public String getAvatarUrl() { return avatarUrl; }
     public Instant getCreatedAt() { return createdAt; }
     public int getSessionVersion() { return sessionVersion; }
+    public br.com.gameshelf.social.ProfileVisibility getVisibility() {return visibility;}
+    public boolean isDiscoverable() {return discoverable;}
+    public void updatePrivacy(br.com.gameshelf.social.ProfileVisibility visibility, boolean discoverable) {
+        this.visibility=visibility;this.discoverable=discoverable;
+    }
     public void updateProfile(String displayName, String bio, String email, String avatarUrl) {
         this.displayName = displayName; this.bio = bio; this.email = email; this.avatarUrl = avatarUrl;
     }

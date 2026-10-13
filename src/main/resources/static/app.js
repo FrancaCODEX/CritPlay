@@ -47,11 +47,11 @@ async function loadGames() {
   }
 }
 function render() {
-  const personal=['profile','lists'].includes(state.view);
+  const personal=['profile','lists','people'].includes(state.view);
   $('.workspace:not(.personal-workspace)').hidden=personal;
   $('.hero').hidden=personal;$('.journey').hidden=personal;
-  $('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
-  if(personal) {refreshWorkspace(state.view);return;}
+  $('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
+  if(personal) {if(state.view==='people')refreshPeople();else refreshWorkspace(state.view);return;}
   const games = state.games.filter(game => state.view === 'catalog' ||
     (state.view === 'library' ? state.diary.has(game.id) : state.view==='wishlist'?state.diary.get(game.id)?.wishlist:state.diary.get(game.id)?.favorite));
   $('#section-title').textContent = { catalog: 'Explore o catálogo', library: 'Sua biblioteca de jogos', favorites: 'Seus jogos favoritos', wishlist:'Sua lista de desejos' }[state.view];
@@ -79,7 +79,7 @@ function setView(view) {
   ++state.workspaceSequence;
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
-  render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game) {
   if (state.saving) return;
@@ -89,9 +89,9 @@ async function openDetail(game) {
   $('#detail-title').textContent = game.title;
   $('#detail-meta').textContent = `${game.genre} · ${game.releaseYear} · ${game.platforms}`;
   $('#detail-description').textContent = game.description;
-  $('#detail-cover').style.backgroundImage = game.coverUrl?`linear-gradient(0deg,#101114,transparent),url("${game.coverUrl}")`:game.steamAppId
-    ? `linear-gradient(0deg,#101114,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
-    : 'linear-gradient(135deg,#314329,#242731)';
+  $('#detail-cover').style.backgroundImage = game.coverUrl?`linear-gradient(0deg,#120f1c,transparent),url("${game.coverUrl}")`:game.steamAppId
+    ? `linear-gradient(0deg,#120f1c,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
+    : 'linear-gradient(135deg,#492b69,#242731)';
   $('#diary-form').hidden = !state.user;
   $('#diary-login-hint').hidden = !!state.user;
   $('#play-status').value = entry?.status || 'WANT_TO_PLAY';
@@ -99,7 +99,7 @@ async function openDetail(game) {
   $('#review').value = entry?.review || '';
   $('#favorite').checked = !!entry?.favorite;
   $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
-  $('#edit-game').hidden=state.user?.role!=='ADMIN';
+  $('#edit-game').hidden=state.user?.role!=='ADMIN';$('#configure-console-prices').hidden=state.user?.role!=='ADMIN';
   $('#game-list-controls').hidden=!state.user;
   updateListPicker();renderConsoleLinks(game);
   $('#remove-entry').hidden = !entry;
@@ -109,26 +109,32 @@ async function openDetail(game) {
   if (!$('#detail').open) $('#detail').showModal();
   if (!state.user) { $('#prices').textContent = 'Entre na sua conta para consultar os preços.'; return; }
   try {
-    const quote = await api(`/api/games/${game.id}/prices`);
+    const quote = await api(`/api/games/${game.id}/prices/platforms`);
     if (sequence !== state.detailSequence || !$('#detail').open) return;
     renderPrices(quote);
   } catch (error) {
     if (sequence === state.detailSequence) $('#prices').textContent = error.message;
   }
 }
-function renderPrices(quote) {
-  const container = $('#prices'); container.replaceChildren();
-  $('#price-source').href = quote.sourceUrl;
-  if (quote.status !== 'LIVE') { container.append(el('p', 'muted', quote.message)); return; }
-  const money = value => value == null ? 'Sem oferta' : new Intl.NumberFormat('pt-BR', {
-    style: 'currency', currency: quote.currency
-  }).format(value);
-  const rows = [ ['Lojas oficiais · menor preço', quote.currentRetail], ['Keyshops · menor preço', quote.currentKeyshops],
-    ['Mínimo histórico · oficiais', quote.historicalRetail], ['Mínimo histórico · keyshops', quote.historicalKeyshops] ];
-  rows.forEach(([label, value]) => {
-    const row = el('div', 'price-row'); row.append(el('span', null, label), el('strong', null, money(value))); container.append(row);
-  });
-  container.append(el('p', 'price-note', `Dados por GG.deals · Consultados em ${new Date(quote.fetchedAt).toLocaleString('pt-BR')}. Cache de até 1 hora.`));
+function renderPrices(quotes) {
+  const container=$('#prices');container.replaceChildren();
+  for(const quote of quotes) {
+    const section=el('section','price-platform');section.append(el('h4',null,quote.platform));
+    if(quote.status!=='LIVE')section.append(el('p','muted',quote.message));
+    else {
+      const money=value=>value==null?'Sem oferta':new Intl.NumberFormat('pt-BR',{style:'currency',currency:quote.currency}).format(value);
+      const rows=quote.platform==='PC'?[['Lojas oficiais · menor preço',quote.currentRetail],['Keyshops · menor preço',quote.currentKeyshops],['Mínimo histórico · oficiais',quote.historicalRetail],['Mínimo histórico · keyshops',quote.historicalKeyshops]]:[['Preço atual da edição',quote.currentRetail],...(quote.originalPrice!=null?[['Antes da promoção',quote.originalPrice]]:[])];
+      for(const [label,value] of rows){const row=el('div','price-row');row.append(el('span',null,label),el('strong',null,money(value)));section.append(row);}
+      if(quote.region)section.append(el('p','price-note','Região: '+quote.region.toUpperCase()));
+      if(quote.edition)section.append(el('p','price-note','Edição: '+quote.edition));
+      if(quote.discountPercent!=null)section.append(el('p','personal-rating',quote.discountPercent+'% de desconto'));
+      section.append(el('p','price-note',`Consultado em ${new Date(quote.fetchedAt).toLocaleString('pt-BR')} · Cache de até 1 hora.`));
+    }
+    if(quote.storeUrl){const link=el('a','source-link','Ver na loja oficial ↗');link.href=quote.storeUrl;link.target='_blank';link.rel='noopener noreferrer';section.append(link);}
+    if(quote.platform!=='PC'&&quote.status==='LIVE'){const source=el('a','source-link','Powered by PSprices ↗');source.href=quote.sourceUrl;source.target='_blank';source.rel='noopener noreferrer';section.append(source);}
+    container.append(section);
+  }
+  if(!quotes.length)container.append(el('p','muted','Nenhuma plataforma cadastrada para este jogo.'));
 }
 let toastTimeout;
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false;
@@ -182,6 +188,7 @@ function updateAccountUi() {
 function resetAccount() {
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
   state.profile=null;state.profileDirty=false;state.lists=[];++state.workspaceSequence;
+  resetSocial();
   $('#profile-form').reset();$('#change-password-form').reset();$('#profile-reviews').replaceChildren();$('#profile-summary').replaceChildren();$('#profile-stats').replaceChildren();$('#lists-content').replaceChildren();
   ++state.detailSequence;
   $('#review').value = ''; $('#rating').value = ''; $('#favorite').checked = false;

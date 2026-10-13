@@ -7,15 +7,15 @@ import org.springframework.http.ResponseEntity;
 import java.net.URI;
 import java.security.Principal;
 import br.com.gameshelf.users.UserService;
-import br.com.gameshelf.prices.PriceService;
+import br.com.gameshelf.prices.PlatformPriceService;
 import jakarta.validation.constraints.*;
 
 @RestController
 @RequestMapping("/api/games")
 public class CatalogController {
     private final CatalogService service;
-    private final UserService users;private final PriceService prices;
-    public CatalogController(CatalogService service,UserService users,PriceService prices) { this.service = service;this.users=users;this.prices=prices; }
+    private final UserService users;private final PlatformPriceService prices;
+    public CatalogController(CatalogService service,UserService users,PlatformPriceService prices) { this.service = service;this.users=users;this.prices=prices; }
     @GetMapping
     public List<Game> list(@RequestParam(defaultValue = "") String q,
                           @RequestParam(defaultValue = "") String genre,

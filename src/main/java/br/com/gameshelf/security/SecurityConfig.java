@@ -29,13 +29,15 @@ public class SecurityConfig {
         @Value("${app.security.rate-limit-enabled}") boolean rateLimit) throws Exception {
         // CSRF permanece ligado. O frontend obtém um token de sessão antes das escritas.
         http.authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/error", "/favicon.ico").permitAll()
+            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/error", "/favicon.ico").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/games", "/api/games/*", "/api/auth/csrf", "/api/auth/me").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/people/*").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/auth/recovery-status", "/media/*").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/games", "/api/games/import").hasRole("ADMIN")
             .requestMatchers(HttpMethod.PUT, "/api/games/*").hasRole("ADMIN")
-            .requestMatchers("/api/diary/**", "/api/games/*/prices", "/api/profile/**", "/api/profile", "/api/lists/**", "/api/lists", "/api/images").authenticated()
+            .requestMatchers("/api/people", "/api/people/**", "/api/social", "/api/diary/**", "/api/games/*/prices", "/api/games/*/prices/platforms", "/api/profile/**", "/api/profile", "/api/lists/**", "/api/lists", "/api/images").authenticated()
             .anyRequest().denyAll())
             .requestCache(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)

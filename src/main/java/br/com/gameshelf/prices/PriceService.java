@@ -17,7 +17,7 @@ public class PriceService {
     public PriceQuote get(Long gameId) {
         var game = catalog.find(gameId);
         if (game.getSteamAppId() == null) return PriceQuote.unavailable("UNSUPPORTED",
-            "Consulta de preços de console ainda não implementada.", "https://gg.deals/");
+            "Este jogo não tem um Steam App ID para consultar preços de PC.", "https://gg.deals/");
         // compute serializa consultas simultâneas do mesmo jogo; jogos diferentes não se bloqueiam.
         return cache.compute(gameId, (id, previous) -> {
             if (previous != null && Instant.now().isBefore(previous.expiresAt())) return previous;

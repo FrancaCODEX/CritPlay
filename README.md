@@ -2,7 +2,7 @@
 
 Catálogo e diário de jogos em Java, com interface inspirada em serviços de streaming. Um projeto para aprender construindo, organizado por funcionalidades.
 
-## Versão 0.3
+## Versão 0.4
 
 - Catálogo inicial de 12 jogos, busca e filtros por gênero/plataforma.
 - Cadastro de jogos pela interface, restrito a administradores também na API.
@@ -18,7 +18,11 @@ Catálogo e diário de jogos em Java, com interface inspirada em serviços de st
 - Edição administrativa de jogos e importação JSON de até 50 jogos por lote.
 - Upload de avatar e capas próprias, validado e reencodificado pelo servidor.
 - Troca de senha com revogação das sessões; recuperação por e-mail com token único/expirável.
-- Links de lojas oficiais para consoles; sem anunciar preços automáticos inexistentes.
+- Tema roxo, com layout responsivo.
+- Comunidade: busca de usuários, seguir, pedidos de amizade, aceitar/recusar/cancelar/desfazer.
+- Perfis compartilháveis, com privacidade público/só amigos/privado e controle de descoberta.
+- Painel de preços separado por PC, PlayStation, Xbox e Nintendo, conforme o catálogo.
+- Adaptador PSprices B2B opcional para preços de consoles; exige chave/plano próprios e associação da edição pelo administrador.
 - Profile PostgreSQL e Compose opcionais.
 - Maven Wrapper e CI com testes HTTP, PostgreSQL real e navegação no navegador.
 
@@ -87,7 +91,7 @@ O cadastro de novos jogos usa IDs automáticos a partir de 1000, mantendo os IDs
 
 Gere a chave em https://gg.deals/api/ e preencha `GGDEALS_API_KEY`. A chave nunca é enviada para o navegador nem registrada nos logs do cliente. Para reduzir consultas, os preços ficam em cache em memória por 1 hora; falhas por 1 minuto. A consulta de preços exige login.
 
-O endpoint utilizado, `https://api.gg.deals/v1/prices/by-steam-app-id/`, com `region=br`, retorna menores preços de **PC** por categoria de loja, valores históricos, moeda e link para o GG.deals. Não fornece uma lista de cada loja nem comparação de preços de consoles. O catálogo mostra plataformas disponíveis, enquanto o painel de preços permanece específico para PC. O link leva à comparação detalhada no provedor.
+O endpoint utilizado, `https://api.gg.deals/v1/prices/by-steam-app-id/`, com `region=br`, retorna menores preços de **PC** por categoria de loja, valores históricos, moeda e link para o GG.deals. Não fornece uma lista de cada loja nem comparação de preços de consoles. O painel separa plataformas disponíveis no catálogo; a seção de PC usa o GG.deals. O link leva à comparação detalhada no provedor.
 
 Sem chave ou sem resposta válida, a interface mostra a indisponibilidade. Não há preços fictícios. Steam App ID é opcional para jogos sem versão Steam; nesses casos, o card mostra o título e o painel não tenta consultar esse endpoint.
 
@@ -99,7 +103,7 @@ Fontes: https://gg.deals/api/ e https://gg.deals/api/prices/.
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/gameshelf-0.3.0.jar
+java -jar target/gameshelf-0.4.0.jar
 ```
 
 No Linux, use `./mvnw`. Testes usam banco em memória e credenciais fictícias exclusivas de teste. Não fazem chamadas ao GG.deals e não modificam seu banco pessoal. Detalhes da verificação estão em `docs/VALIDACAO.md`.
@@ -129,9 +133,9 @@ Veja `docs/PRIMEIROS_PASSOS.md` para aprender o fluxo e `docs/ARQUITETURA_E_API.
 
 Siga `docs/GITHUB.md` para enviar ao repositório `FrancaCODEX/gameshelf`. Não envie `.env`, `data/` ou `target/`. O workflow testa e empacota; não publica um site. Apenas criar o repositório não coloca o Java em um servidor.
 
-## Atualizar da v0.2 pelo IntelliJ
+## Atualizar da v0.2/v0.3 pelo IntelliJ
 
-Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. A migração V3 acrescenta os dados novos sem apagar contas, jogos ou resenhas.
+Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. As migrações V3/V4 acrescentam os dados novos sem apagar contas, jogos ou resenhas. Contas existentes permanecem privadas e fora da busca até seu dono ativar essas opções.
 
 As funcionalidades de perfil/listas/troca de senha funcionam com seu `.env` atual. Campos novos de SMTP e PostgreSQL são opcionais. Não substitua seu arquivo de credenciais por `.env.example` ao atualizar.
 
@@ -142,10 +146,10 @@ As funcionalidades de perfil/listas/troca de senha funcionam com seu `.env` atua
 - **Listas:** crie coleções e adicione jogos no painel de detalhes. Cada conta só vê/edita suas listas; excluir uma lista não apaga notas ou resenhas.
 - **Editar jogo:** ADMIN abre o detalhe e clica em Editar jogo. O ID é preservado, mantendo as referências dos diários/listas. Steam App IDs repetidos são recusados.
 - **Importar:** ADMIN seleciona um JSON no formato de `docs/examples/catalogo.json`; de 1 a 50 jogos. O lote inteiro é validado e qualquer conflito cancela a gravação de todos. Não é importação automática de uma API externa.
-- **Imagens:** PNG/JPEG até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; perfis e resenhas continuam privados nesta versão.
-- **Consoles:** o administrador pode preencher links HTTPS de PlayStation, Xbox/Microsoft e Nintendo para o jogo. Eles abrem as lojas oficiais. A comparação automática do GG.deals permanece de PC.
+- **Imagens:** PNG/JPEG até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; a visibilidade do perfil/resenhas segue sua configuração de privacidade.
+- **Consoles:** links oficiais continuam disponíveis. A consulta de preços exige configurar o PSprices e associar a edição correta; veja abaixo.
 
-Não há exclusão de contas/jogos nem elevação de papéis pela interface. Também não há perfis públicos/sociais; **Perfil** é a página particular da conta atual.
+Não há exclusão de contas/jogos nem elevação de papéis pela interface. **Perfil** continua sendo sua área de edição; **Comunidade** permite encontrar e abrir perfis compartilhados.
 
 ## Senhas e recuperação
 
@@ -186,6 +190,33 @@ Rodar a aplicação não requer Node. O teste opcional `tests/browser-smoke.cjs`
 
 ## Próximas etapas
 
-Perfis públicos com controles de privacidade, importação por API externa de metadados, remoção/limpeza de imagens sem uso, gerenciamento de contas/papéis e fonte licenciada/documentada para preços de consoles. Para hospedar: preparar HTTPS, `SESSION_COOKIE_SECURE=true`, banco, segredos, IP confiável, limites compartilhados, backups e operação. Não houve deploy desta aplicação Java; GitHub guarda o código.
+Importação por API externa de metadados, remoção/limpeza de imagens sem uso e gerenciamento de contas/papéis. A parte social e o adaptador documentado para consoles entraram na v0.4; preços ao vivo de consoles dependem da contratação/configuração do provedor. Para hospedar: preparar HTTPS, `SESSION_COOKIE_SECURE=true`, banco, segredos, IP confiável, limites compartilhados, backups e operação. Não houve deploy desta aplicação Java; GitHub guarda o código.
 
 O catálogo inicial é editorial; não é uma importação automática. Capas vêm do CDN da Steam e fontes tipográficas de serviço externo, com alternativas locais. Não redistribuímos as imagens no repositório. A interface tem testes de navegação e verificação de overflow no viewport de celular. A revisão visual no seu IntelliJ/navegador continua sendo útil para ajustar preferências de layout.
+
+## Comunidade e privacidade
+
+Em **Perfil → Privacidade e segurança**, escolha **Somente eu**, **Amigos aceitos** ou **Todos, inclusive visitantes**. Ative **Aparecer na busca de usuários** para que seu nome, @usuário e foto apareçam na Comunidade. Contas novas aparecem na busca por padrão, mas começam com resenhas privadas. Contas migradas continuam privadas e fora da busca. E-mail e dados de segurança nunca aparecem no perfil compartilhado; listas personalizadas continuam particulares.
+
+**Seguir** é unilateral e não libera um perfil restrito a amigos. **Adicionar amigo** envia um pedido; só o destinatário pode aceitar ou recusar. O remetente pode cancelar e qualquer amigo pode desfazer a amizade. A aba Comunidade reúne os pedidos e suas conexões. Perfis públicos podem ser compartilhados pelo link `/#profile=nome_de_usuario`. Desativar a busca impede visitantes e desconhecidos de abrir o perfil; amigos aceitos continuam podendo acessá-lo conforme a visibilidade.
+
+## Preços de consoles: PSprices B2B
+
+Documentação oficial: https://psprices.com/b2b/docs/ e condições/planos: https://psprices.com/b2b/.
+
+A chave do GG.deals é exclusiva daquela integração; ela não autentica no PSprices. A integração B2B do PSprices requer um plano próprio, com acesso à região escolhida. Não é necessário contratar para usar a parte social e o restante do projeto. Nenhuma compra ou assinatura foi feita durante o desenvolvimento.
+
+Para habilitar, acrescente ao seu `.env` local e reinicie o Java:
+
+```properties
+PSPRICES_API_KEY=sua_chave_psprices_b2b
+PSPRICES_REGION=br
+```
+
+Com ADMIN, abra um jogo salvo e clique em **Associar preços de consoles**. Escolha a plataforma, busque pelo título e selecione a edição correspondente, conferindo geração/conteúdo. O servidor guarda o ID regional do produto e consulta `/api/b2b/games/verify/`, enviando a chave em `X-API-Key`. Não escolhe automaticamente o primeiro resultado por título. A chave fica no servidor.
+
+São exibidos preço atual, moeda, edição, desconto e preço anterior quando o provedor os fornece, com atribuição **Powered by PSprices** e link oficial. O adaptador valida plataforma, região e compra direta; produtos incompatíveis, condicionados a outra compra ou sem preço não viram uma oferta válida. Cache de preços válidos: até 1 hora; falhas: 1 minuto. Sem chave ou sem associação, o painel informa a situação e mantém links de lojas preenchidos pelo administrador. Somente plataformas cadastradas no jogo aparecem.
+
+Não há scraping, conversão cambial nem garantia de menor preço entre lojas de consoles. A oferta de console corresponde à edição associada e à região configurada. PC mantém menores preços por categoria e históricos do GG.deals. PSprices documenta PS5/PS4/PS3/PSVita/PSP, Xbox One/360, Switch/Switch 2/Wii U/3DS; a disponibilidade de uma edição depende do catálogo regional do provedor. Se o catálogo não separar uma versão de geração mais nova, revise a compatibilidade na loja.
+
+Respeite limites, atribuição e condições do provedor, inclusive restrições de revenda dos dados e de serviços concorrentes. As consultas reais do PSprices ainda não foram verificadas com uma chave licenciada; os testes usam respostas fictícias conforme o contrato documentado.

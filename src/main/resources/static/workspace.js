@@ -14,7 +14,7 @@ async function refreshWorkspace(view) {
     if(view==='profile') {
       const profile=await api('/api/profile');
       if(sequence!==state.workspaceSequence||state.view!==view)return;
-      state.profile=profile;renderProfile(profile);
+      state.profile=profile;renderProfile(profile);renderPrivacy(profile.user);
     } else {
       const lists=await api('/api/lists');
       if(sequence!==state.workspaceSequence||state.view!==view)return;

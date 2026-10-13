@@ -6,9 +6,9 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port(){const s=net.createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 (async()=>{
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'gameshelf-browser-'));const serverPort=await port();const base=`http://127.0.0.1:${serverPort}`;
-  const jar=path.resolve(__dirname,'../target/gameshelf-0.3.0.jar');
+  const jar=path.resolve(__dirname,'../target/gameshelf-0.4.0.jar');
   const app=spawn('java',['-jar',jar,`--server.port=${serverPort}`,'--app.admin.username=ui_admin','--app.admin.password=BrowserAdminPassword42!',
-    '--ggdeals.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
+    '--ggdeals.api-key=','--psprices.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
   let browser;
   try {
@@ -49,12 +49,43 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.setViewportSize({width:390,height:844});await page.locator('[data-view=profile]').click();await page.locator('#profile-summary h2').waitFor();
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Perfil possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'profile-mobile.png'),fullPage:true});
+    await page.locator('#profile-visibility').selectOption('FRIENDS');await page.locator('#profile-discoverable').check();
+    await page.locator('#privacy-form button[type=submit]').click();await page.getByText('Privacidade atualizada.',{exact:true}).waitFor();
+    await page.setViewportSize({width:1440,height:1000});await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
+    await page.locator('#prices .price-platform').first().waitFor();assert.equal(await page.locator('#prices .price-platform').count(),3);
+    assert.deepEqual(await page.locator('#prices h4').allTextContents(),['PC','PlayStation','Xbox']);
+    if(qa)await page.screenshot({path:path.join(qa,'platform-prices.png'),fullPage:true});
+    await page.locator('#configure-console-prices').click();await page.getByText('Configure PSPRICES_API_KEY no .env para consultar esta fonte.',{exact:true}).waitFor();
+    await page.locator('#close-console-source').click();
     await page.locator('#account-logout').click();await page.locator('#account-login').waitFor();
     await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());
     await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);
     await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
+    await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();
+    await page.locator('#people-results').getByText('@ui_admin',{exact:true}).waitFor();await page.locator('#people-results button').click();
+    await page.getByText('As resenhas e estatísticas estão disponíveis apenas para amigos aceitos.',{exact:true}).waitFor();
+    await page.getByRole('button',{name:'Seguir',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Deixar de seguir',exact:true}).waitFor();
+    assert.equal(await page.locator('#public-profile-content .review-card').count(),0);
+    await page.getByRole('button',{name:'Adicionar amigo',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Cancelar pedido',exact:true}).waitFor();await page.locator('#close-public-profile').click();
+    const secondContext=await browser.newContext({viewport:{width:1440,height:1000}});
+    await secondContext.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+    const adminPage=await secondContext.newPage();adminPage.on('pageerror',error=>errors.push(error.message));await adminPage.goto(base);
+    await adminPage.locator('#account-login').click();await adminPage.locator('#username').fill('ui_admin');await adminPage.locator('#password').fill('BrowserAdminPassword42!');await adminPage.locator('#auth-submit').click();await adminPage.locator('#add-game').waitFor();
+    assert.equal(await page.evaluate(async()=>(await(await fetch('/api/auth/me')).json()).user.username),'browser_user','Contextos de navegador compartilham cookies');
+    await adminPage.locator('[data-view=people]').click();await adminPage.getByRole('button',{name:'Aceitar',exact:true}).click();await adminPage.getByText('Amigos · 1',{exact:true}).waitFor();
+    await page.locator('#people-results button').click();await page.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
+    await page.locator('#close-public-profile').click();await page.locator('#people-search-form button').click();await page.getByText('Amigos · 1',{exact:true}).waitFor();
+    const connections=await page.evaluate(async()=>await(await fetch('/api/social')).json());assert.equal(connections.friends[0].username,'ui_admin');assert.equal(connections.following[0].username,'ui_admin');
+    if(qa)await page.screenshot({path:path.join(qa,'community-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Comunidade possui overflow horizontal no celular');
+    if(qa)await page.screenshot({path:path.join(qa,'community-mobile.png'),fullPage:true});
+    await adminPage.locator('[data-view=profile]').click();await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
+    const visitor=await browser.newContext();await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+    const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
+    await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
+    await visitor.close();await secondContext.close();
     assert.deepEqual(errors,[],'Erros JavaScript no navegador');
-    console.log('Browser smoke aprovado: login, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa, celular e isolamento entre contas.');
+    console.log('Browser smoke aprovado: login, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa, celular, preços por plataforma, privacidade, busca de usuários, seguir, amizade aceita e perfil público compartilhado.');
   } finally {if(browser)await browser.close();app.kill('SIGTERM');await Promise.race([new Promise(r=>app.once('exit',r)),pause(10000)]);if(app.exitCode===null)app.kill('SIGKILL');}
 })().catch(error=>{console.error(error);process.exitCode=1;});

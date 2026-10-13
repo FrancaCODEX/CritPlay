@@ -20,6 +20,8 @@ class PostgresSmokeTest {
     @Autowired UserService users;
     @Autowired CatalogService catalog;
     @Autowired ListService lists;
+    @Autowired br.com.gameshelf.social.SocialService social;
+    @Autowired br.com.gameshelf.prices.PlatformPriceService prices;
     @Test void migratesRealPostgresAndPersistsRelations() {
         assertTrue(jdbc.queryForObject("select version()",String.class).startsWith("PostgreSQL"));
         var user=users.register(new RegisterRequest("postgres_test","Teste PostgreSQL","PostgresTestPassword42!"));
@@ -29,5 +31,14 @@ class PostgresSmokeTest {
         long id=((Number)list.get("id")).longValue();
         lists.add(user.id(),id,game.getId());
         assertEquals(1,((java.util.List<?>)lists.get(user.id(),id).get("games")).size());
+        var friend=users.register(new RegisterRequest("postgres_friend","Amigo PostgreSQL","PostgresTestPassword42!"));
+        social.privacy(user.username(),br.com.gameshelf.social.ProfileVisibility.FRIENDS,true);
+        social.follow(friend.username(),user.username(),true);
+        social.friendship(friend.username(),user.username(),"REQUEST");
+        assertFalse((Boolean)social.profile(friend.username(),user.username()).get("visible"));
+        social.friendship(user.username(),friend.username(),"ACCEPT");
+        assertTrue((Boolean)social.profile(friend.username(),user.username()).get("visible"));
+        assertEquals(1,((java.util.List<?>)social.connections(user.username()).get("friends")).size());
+        assertEquals(1,prices.prices(game.getId()).size());
     }
 }
