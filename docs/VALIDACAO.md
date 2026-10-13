@@ -11,4 +11,4 @@
 - Desktop e celular de 390 px inspecionados; sem overflow horizontal ou erros JavaScript. Imagens/fontes externas bloqueadas; nenhuma conta real nem e-mail externo usado.
 - `node --check` e `git diff --check` aprovados.
 
-O CI executa também PostgreSQL 17 real, incluindo importação, gestão de estado de conta, trava da limpeza e relações sociais. Não houve execução em Windows/IntelliJ, envio SMTP real, consulta RAWG com chave pessoal nem deploy. Veja README e OPERACAO.md.
+Os 42 testes passaram no GitHub Actions, incluindo PostgreSQL 17 real, importação, gestão de estado de conta, trava da limpeza e relações sociais. A navegação em Chromium também foi aprovada: https://github.com/FrancaCODEX/gameshelf/actions/runs/38450871002. Não houve execução em Windows/IntelliJ, envio SMTP real, consulta RAWG com chave pessoal nem deploy. Veja README e OPERACAO.md.

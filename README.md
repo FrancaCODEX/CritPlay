@@ -137,7 +137,7 @@ Siga `docs/GITHUB.md` para enviar ao repositório `FrancaCODEX/gameshelf`. Não 
 
 ## Atualizar das versões anteriores pelo IntelliJ
 
-Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. As migrações até V5 acrescentam os dados novos sem apagar contas, jogos ou resenhas. Contas existentes permanecem privadas e fora da busca até seu dono ativar essas opções.
+Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. As migrações até V5 acrescentam os dados novos sem apagar contas, jogos ou resenhas. A migração V4 definiu perfis anteriores como privados e fora da busca. Atualizações seguintes preservam as preferências escolhidas pelo dono.
 
 As funcionalidades de perfil/listas/troca de senha funcionam com seu `.env` atual. Campos novos de SMTP e PostgreSQL são opcionais. Não substitua seu arquivo de credenciais por `.env.example` ao atualizar.
 
@@ -198,7 +198,7 @@ O catálogo inicial é editorial; não é uma importação automática. Capas v�
 
 ## Comunidade e privacidade
 
-Em **Perfil → Privacidade e segurança**, escolha **Somente eu**, **Amigos aceitos** ou **Todos, inclusive visitantes**. Ative **Aparecer na busca de usuários** para que seu nome, @usuário e foto apareçam na Comunidade. Contas novas aparecem na busca por padrão, mas começam com resenhas privadas. Contas migradas continuam privadas e fora da busca. E-mail e dados de segurança nunca aparecem no perfil compartilhado; listas personalizadas continuam particulares.
+Em **Perfil → Privacidade e segurança**, escolha **Somente eu**, **Amigos aceitos** ou **Todos, inclusive visitantes**. Ative **Aparecer na busca de usuários** para que seu nome, @usuário e foto apareçam na Comunidade. Contas novas aparecem na busca por padrão, mas começam com resenhas privadas. Contas anteriores à v0.4 migraram privadas e fora da busca; atualizações seguintes preservam suas preferências. E-mail e dados de segurança nunca aparecem no perfil compartilhado; listas personalizadas continuam particulares.
 
 **Seguir** é unilateral e não libera um perfil restrito a amigos. **Adicionar amigo** envia um pedido; só o destinatário pode aceitar ou recusar. O remetente pode cancelar e qualquer amigo pode desfazer a amizade. A aba Comunidade reúne os pedidos e suas conexões. Perfis públicos podem ser compartilhados pelo link `/#profile=nome_de_usuario`. Desativar a busca impede visitantes e desconhecidos de abrir o perfil; amigos aceitos continuam podendo acessá-lo conforme a visibilidade.
 
