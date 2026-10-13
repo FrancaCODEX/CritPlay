@@ -2,7 +2,7 @@
 
 Catálogo e diário de jogos em Java, com interface inspirada em serviços de streaming. Um projeto para aprender construindo, organizado por funcionalidades.
 
-## Versão 0.5 — CritPlay
+## Versão 0.5.1 — CritPlay
 
 - Catálogo inicial de 12 jogos, busca e filtros por gênero/plataforma.
 - Cadastro de jogos pela interface, restrito a administradores também na API.
@@ -105,7 +105,7 @@ Fontes: https://gg.deals/api/ e https://gg.deals/api/prices/.
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/critplay-0.5.0.jar
+java -jar target/critplay-0.5.1.jar
 ```
 
 No Linux, use `./mvnw`. Testes usam banco em memória e credenciais fictícias exclusivas de teste. Não fazem chamadas ao GG.deals e não modificam seu banco pessoal. Detalhes da verificação estão em `docs/VALIDACAO.md`.
@@ -230,3 +230,25 @@ Nome/gênero/ano/descrição/plataformas são importados; a imagem externa é us
 **Administração → Imagens sem uso:** examine a prévia e confirme a exclusão. Só nomes de uploads gerados pelo servidor, arquivos regulares sem referência em avatar/capa e com mais de 24 horas podem ser removidos. Arquivos recentes, vinculados, desconhecidos e links simbólicos são preservados. A execução recalcula as referências sob uma trava de banco compartilhada com as gravações de capas/avatares; uma imagem vinculada depois da prévia não é excluída. Até 1.000 imagens por execução. Nenhuma limpeza ocorre automaticamente.
 
 As entidades de usuário e jogo usam versionamento otimista para rejeitar atualizações concorrentes que poderiam sobrescrever alterações de papel ou metadados. Os dados H2/PostgreSQL e `data/uploads` precisam continuar incluídos em backups. Veja [Operação](docs/OPERACAO.md) para a preparação de hospedagem; esta entrega não fez deploy.
+
+## Ampliação da v0.5 — v0.5.1
+
+### Lotes de 500 ou mais jogos
+
+Em Administração, escolha 500, 1.000 ou 2.000 jogos e inicie a importação. É preciso configurar `RAWG_API_KEY`. Nenhum catálogo real é baixado sem essa chave. O processamento ocorre no servidor, em uma única instância, com progresso salvo por jogo; sair da página não interrompe o lote. Ao reiniciar o servidor, lotes ativos ficam pausados para retomada manual. Somente uma importação pode estar ativa.
+
+Os lotes procuram jogos populares nas famílias PC, PlayStation, Xbox e Nintendo, excluindo adições quando a fonte suporta esse filtro. Um ID RAWG existente não é importado de novo. Um título/ano com correspondência única em jogo editorial sem RAWG pode receber a associação sem sobrescrever seus textos, Steam ID, capa própria, resenhas ou listas. Novos registros têm gêneros mapeados para PT-BR; nomes oficiais são preservados e descrições permanecem no idioma da fonte, com aviso na interface. Não existe tradução automática paga ou inventada. Registros sem título, ano ou plataforma compatível são ignorados; descrições ausentes recebem texto neutro identificado como importação.
+
+O alvo é o número de jogos novos. Duplicatas/incompletos aparecem em contadores próprios; o lote pode terminar antes do alvo se a fonte acabar ou se atingir três vezes o alvo em verificações. Erros de quota/conexão pausam o processo, preservando os jogos gravados. As consultas são espaçadas; o operador deve acompanhar a cota mensal da chave. Os IDs do lote são verificados a cada retomada, pois a ordem do catálogo externo pode mudar. Steam App IDs continuam manuais, necessários para consultar preços de PC.
+
+### Bloqueios, denúncias e datas
+
+No perfil de outra pessoa, **Bloquear** remove amizades/pedidos/seguidores entre os dois e impede busca, leitura autenticada do perfil e novas conexões em ambas as direções. A Comunidade lista seus bloqueados para desbloquear. Desbloquear não restaura conexões. Perfis configurados como públicos ainda podem ser lidos por visitantes sem identificação; bloqueio não torna um perfil público privado.
+
+Use **Denunciar perfil** ou **Denunciar resenha** para explicar o motivo. Administração reúne as denúncias e permite resolver/descartar ou ocultar/restaurar uma resenha. Uma resenha oculta permanece no diário do autor, mas sai do perfil compartilhado; editar não remove a decisão de moderação. Suspensão de conta continua disponível na gestão de contas.
+
+No diário, **Comecei em** e **Terminei em** são opcionais. Fim exige início, não pode antecedê-lo e datas futuras são recusadas. Registros anteriores permanecem sem datas até você preenchê-las.
+
+### Banco e hospedagem
+
+A ferramenta local de migração e o Dockerfile estão preparados. Consulte [Migração H2 → PostgreSQL](docs/MIGRACAO_POSTGRES.md), [Hospedagem e custos](docs/HOSPEDAGEM.md) e [Operação](docs/OPERACAO.md). O serviço continua local; não foi contratado plano nem feito deploy. A importação em lote está preparada para uma instância do Java, não para várias réplicas concorrentes.

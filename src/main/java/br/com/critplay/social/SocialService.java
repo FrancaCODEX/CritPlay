@@ -10,10 +10,11 @@ import java.util.*;
 
 @Service
 public class SocialService {
+    private final BlockService blocks;
     private final UserService users; private final UserRepository repository;
     private final JdbcTemplate db; private final ProfileService profiles;
-    public SocialService(UserService users, UserRepository repository, JdbcTemplate db, ProfileService profiles) {
-        this.users=users;this.repository=repository;this.db=db;this.profiles=profiles;
+    public SocialService(UserService users, UserRepository repository, JdbcTemplate db, ProfileService profiles,BlockService blocks) {
+        this.users=users;this.repository=repository;this.db=db;this.profiles=profiles;this.blocks=blocks;
     }
     public Map<String,Object> identity(AppUser user) {
         var value=new LinkedHashMap<String,Object>();
@@ -21,16 +22,17 @@ public class SocialService {
         value.put("avatarUrl",user.getAvatarUrl());value.put("visibility",user.getVisibility());return value;
     }
     public List<Map<String,Object>> search(String viewer, String query) {
-        users.require(viewer);String q=query.strip().toLowerCase(Locale.ROOT);
+        var viewerAccount=users.require(viewer);String q=query.strip().toLowerCase(Locale.ROOT);
         if(q.length()<2)return List.of();
         if(q.length()>80)throw new BadRequestException("Busque por até 80 caracteres.");
         // Escapa os curingas para a pesquisa representar o texto digitado.
         String term="%"+q.replace("!","!!").replace("%","!%").replace("_","!_")+"%";
         return db.query("SELECT id FROM app_users WHERE enabled=TRUE AND discoverable=TRUE AND (LOWER(username) LIKE ? ESCAPE '!' OR LOWER(display_name) LIKE ? ESCAPE '!') ORDER BY username LIMIT 30",
-            (rs,row)->identity(repository.findById(rs.getLong(1)).orElseThrow()),term,term);
+            (rs,row)->identity(repository.findById(rs.getLong(1)).orElseThrow()),term,term).stream().filter(card->!blocks.blocked(viewerAccount.getId(),((Number)card.get("id")).longValue())).toList();
     }
     public Map<String,Object> profile(String viewer, String targetName) {
         var target=users.require(targetName);var actor=viewer==null?null:users.require(viewer);
+        if(actor!=null&&blocks.blocked(actor.getId(),target.getId()))throw new NotFoundException("Perfil não encontrado.");
         if(!target.isEnabled())throw new NotFoundException("Perfil não encontrado.");
         boolean own=actor!=null&&actor.getId().equals(target.getId());
         boolean friend=actor!=null&&friends(actor.getId(),target.getId());
@@ -44,11 +46,11 @@ public class SocialService {
             // Apenas texto/nota das resenhas. Preferências privadas do diário nunca saem neste endpoint.
             var reviews=new ArrayList<Map<String,Object>>();
             for(var raw:(List<?>)details.get("reviews")) {
-                var row=(Map<?,?>)raw;var entry=(br.com.critplay.diary.DiaryEntry)row.get("entry");
+                var row=(Map<?,?>)raw;var entry=(br.com.critplay.diary.DiaryEntry)row.get("entry");if(entry.isReviewHidden())continue;
                 var review=new LinkedHashMap<String,Object>();review.put("game",row.get("game"));review.put("review",entry.getReview());
                 review.put("rating",entry.getRating());review.put("updatedAt",entry.getUpdatedAt());reviews.add(review);
             }
-            result.put("reviews",reviews);
+            result.put("reviews",reviews);var sharedStats=new LinkedHashMap<>((Map<String,Object>)details.get("stats"));sharedStats.put("reviews",reviews.size());result.put("stats",sharedStats);
             result.put("social",Map.of("followers",count("SELECT COUNT(*) FROM user_follows WHERE followed_id=?",target.getId()),
                 "following",count("SELECT COUNT(*) FROM user_follows WHERE follower_id=?",target.getId()),
                 "friends",count("SELECT COUNT(*) FROM friendships WHERE status='ACCEPTED' AND (first_id=? OR second_id=?)",target.getId(),target.getId())));
@@ -86,6 +88,7 @@ public class SocialService {
         if(actor.getId().equals(target.getId()))throw new BadRequestException("Escolha outra pessoa.");
         long a=actor.getId(),b=target.getId();
         db.queryForList("SELECT id FROM app_users WHERE id IN (?,?) ORDER BY id FOR UPDATE",Math.min(a,b),Math.max(a,b));
+        if(blocks.blocked(actor.getId(),target.getId()))throw new NotFoundException("Perfil não encontrado.");
         if(!target.isDiscoverable()&&!friends(a,b)&&count("SELECT COUNT(*) FROM user_follows WHERE (follower_id=? AND followed_id=?) OR (follower_id=? AND followed_id=?)",a,b,b,a)==0&&count("SELECT COUNT(*) FROM friendships WHERE first_id=? AND second_id=?",Math.min(a,b),Math.max(a,b))==0)
             throw new NotFoundException("Perfil não encontrado.");
         return new long[]{a,b};

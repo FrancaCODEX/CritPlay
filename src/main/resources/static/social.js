@@ -37,7 +37,7 @@ async function refreshPeople(){
 }
 $('#people-search-form').addEventListener('submit',event=>{event.preventDefault();refreshPeople();});
 async function refreshConnections(sequence=state.workspaceSequence){
-  const social=await api('/api/social');if(sequence!==state.workspaceSequence||state.view!=='people')return;
+  const social=await api('/api/social');const blocked=await api('/api/blocks');if(sequence!==state.workspaceSequence||state.view!=='people')return;
   const groups={incoming:'Pedidos recebidos',outgoing:'Pedidos enviados',friends:'Amigos',following:'Seguindo',followers:'Seguidores'};
   $('#social-connections').replaceChildren(...Object.entries(groups).map(([key,label])=>{
     const section=el('section','social-group');section.append(el('h3',null,`${label} · ${social[key].length}`));const grid=el('div','people-grid');
@@ -50,6 +50,7 @@ async function refreshConnections(sequence=state.workspaceSequence){
       card.append(actions);grid.append(card);
     }section.append(grid);if(!social[key].length)section.append(el('p','muted','Nenhuma conexão aqui ainda.'));return section;
   }));
+  const blockSection=el('section','social-group');blockSection.append(el('h3',null,'Usuários bloqueados'));for(const user of blocked){const row=el('div','surface');row.append(el('p',null,user.displayName+' · @'+user.username),button('Desbloquear','text-button',async()=>{try{await api('/api/blocks/'+encodeURIComponent(user.username),{method:'DELETE'});await refreshPeople();}catch(error){toast(error.message);}}));blockSection.append(row);}$('#social-connections').append(blockSection);
 }
 async function socialAction(username,action,following){
   if(socialBusy)return;if(action==='REMOVE'&&!confirm('Desfazer esta amizade?'))return;socialBusy=true;
@@ -72,6 +73,7 @@ async function openPublicProfile(username){
     }else content.append(el('p','privacy-note',user.visibility==='FRIENDS'?'As resenhas e estatísticas estão disponíveis apenas para amigos aceitos.':'Este perfil mantém bio, resenhas e estatísticas privadas.'));
     const actions=el('div','social-actions');
     if(state.user&&state.user.username!==username){
+      actions.append(button('Bloquear','text-button',async()=>{if(!confirm('Bloquear esta pessoa e remover suas conexões com ela?'))return;try{await api('/api/blocks/'+encodeURIComponent(username),{method:'PUT'});$('#public-profile-dialog').close();if(state.view==='people')await refreshPeople();toast('Usuário bloqueado.');}catch(error){toast(error.message);}}),button('Denunciar perfil','text-button',()=>sendReport(username,null)));
       const relationship=profile.relationship;actions.append(button(relationship.following?'Deixar de seguir':'Seguir','secondary',()=>socialAction(username,null,!relationship.following)));
       if(relationship.friendship==='NONE')actions.append(button('Adicionar amigo','primary',()=>socialAction(username,'REQUEST')));
       if(relationship.friendship==='OUTGOING')actions.append(button('Cancelar pedido','secondary',()=>socialAction(username,'CANCEL')));
@@ -81,7 +83,7 @@ async function openPublicProfile(username){
     const share=el('input');share.readOnly=true;share.value=location.origin+'/#profile='+encodeURIComponent(username);share.setAttribute('aria-label','Link deste perfil');
     actions.append(share);content.append(actions);
     if(profile.visible){const reviews=el('div','review-grid');content.append(el('h3',null,'Resenhas'));
-      for(const review of profile.reviews){const card=el('article','surface review-card');card.append(compactGame(review.game));if(review.rating)card.append(el('p','personal-rating','★'.repeat(review.rating)));card.append(el('p','review-text',review.review));reviews.append(card);}content.append(reviews);
+      for(const review of profile.reviews){const card=el('article','surface review-card');card.append(compactGame(review.game));if(review.rating)card.append(el('p','personal-rating','★'.repeat(review.rating)));card.append(el('p','review-text',review.review));if(state.user&&state.user.username!==username)card.append(button('Denunciar resenha','text-button',()=>sendReport(username,review.game.id)));reviews.append(card);}content.append(reviews);
       if(!profile.reviews.length)content.append(el('p','muted','Nenhuma resenha publicada ainda.'));
     }
     $('#public-profile-message').textContent='';

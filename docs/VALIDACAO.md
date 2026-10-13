@@ -12,3 +12,14 @@
 - `node --check` e `git diff --check` aprovados.
 
 Os 42 testes passaram no GitHub Actions, incluindo PostgreSQL 17 real, importação, gestão de estado de conta, trava da limpeza e relações sociais. A navegação em Chromium também foi aprovada: https://github.com/FrancaCODEX/gameshelf/actions/runs/38450871002. Não houve execução em Windows/IntelliJ, envio SMTP real, consulta RAWG com chave pessoal nem deploy. Veja README e OPERACAO.md.
+
+## Ampliação v0.5.1
+
+- Suíte ampliada para 48 casos, incluindo PostgreSQL e transferência real H2 → PostgreSQL no CI. Os 46 casos locais disponíveis passaram.
+- Importação de 500 jogos verificada com fixtures num banco de teste: progresso, pausa/retomada, duplicatas, registros ausentes e gêneros PT-BR. Nenhum jogo real foi importado sem a chave RAWG.
+- Datas do diário: persistência, fim sem início, ordem inválida e datas futuras.
+- Bloqueios: invisibilidade nos dois sentidos para usuários autenticados, remoção de amizades/seguidores e desbloqueio sem restauração automática.
+- Denúncias: restrição de administrador, rejeição de denúncia aberta duplicada, ocultação/restauração e edição do autor sem contornar moderação.
+- Navegador: datas, importação sem chave com mensagem controlada, denúncia/bloqueio/desbloqueio e decisão de moderação pela interface, além dos fluxos anteriores.
+- Migração usa base H2 de teste e esquema PostgreSQL separado: IDs/hash de senha/datas/listas preservados, sequências ajustadas e destino ocupado recusado sem apagar registros.
+- Dockerfile/configuração/guia de hospedagem preparados; Docker e deploy ainda não executados neste ambiente.

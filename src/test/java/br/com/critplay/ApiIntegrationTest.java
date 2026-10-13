@@ -25,6 +25,7 @@ class ApiIntegrationTest {
     @Autowired UserRepository users;
     @Autowired PasswordEncoder encoder;
     @Autowired PasswordResetRepository resets;
+    @Autowired br.com.critplay.metadata.ImportJobStore jobs;
     @MockitoBean ResetMailer mail;
     @MockitoBean br.com.critplay.metadata.RawgClient rawg;
     static final java.nio.file.Path MEDIA=tempMedia();
@@ -95,6 +96,7 @@ class ApiIntegrationTest {
     @Test void homeAndCatalogArePublic() throws Exception {
         var session=new Session();
         assertEquals(200,session.send("GET","/",null).statusCode());
+        assertEquals("UP",session.json("/api/health").path("status").asText());
         assertTrue(session.json("/api/games").size()>=12);
         assertFalse(session.json("/api/auth/me").path("authenticated").asBoolean());
     }
@@ -447,6 +449,56 @@ class ApiIntegrationTest {
         assertEquals("Resenha preservada na importação.",member.json("/api/diary").get(0).path("review").asText());
         assertEquals("Importação revisada",member.json("/api/games/"+id).path("title").asText());
         assertEquals(403,administrator.send("POST","/api/admin/metadata/import",update,false,"application/json").statusCode());
+    }
+
+    @Test void diaryDatesArePersistedAndInvalidOrderOrFutureAreRejected() throws Exception {
+        var member=user();String body="{\"status\":\"COMPLETED\",\"startDate\":\"2026-01-01\",\"finishDate\":\"2026-02-01\"}";
+        assertEquals(200,member.send("PUT","/api/diary/1",body).statusCode());assertEquals("2026-02-01",member.json("/api/diary").get(0).path("finishDate").asText());
+        assertEquals(400,member.send("PUT","/api/diary/1",body.replace("2026-02-01","2025-12-01")).statusCode());
+        assertEquals(400,member.send("PUT","/api/diary/1","{\"status\":\"COMPLETED\",\"finishDate\":\"2026-02-01\"}").statusCode());
+        assertEquals(400,member.send("PUT","/api/diary/1",body.replace("2026-02-01",java.time.LocalDate.now().plusDays(2).toString())).statusCode());
+    }
+    @Test void blockingHidesBothProfilesAndSearchAndRemovesConnections() throws Exception {
+        var first=user();var second=user();String a=accountName(first),b=accountName(second);
+        assertEquals(200,first.send("PUT","/api/people/"+b+"/follow",null).statusCode());
+        assertEquals(200,first.send("PUT","/api/people/"+b+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
+        assertEquals(200,second.send("PUT","/api/people/"+a+"/friendship","{\"action\":\"ACCEPT\"}").statusCode());
+        assertEquals(200,first.send("PUT","/api/blocks/"+b,null).statusCode());
+        assertEquals(404,first.send("GET","/api/people/"+b,null).statusCode());assertEquals(404,second.send("GET","/api/people/"+a,null).statusCode());
+        assertEquals(0,second.json("/api/people?q="+a).size());assertEquals(0,first.json("/api/social").path("friends").size());assertEquals(0,second.json("/api/social").path("followers").size());
+        assertEquals(404,second.send("PUT","/api/people/"+a+"/follow",null).statusCode());assertEquals(1,first.json("/api/blocks").size());
+        assertEquals(200,first.send("DELETE","/api/blocks/"+b,null).statusCode());assertEquals(1,second.json("/api/people?q="+a).size());assertEquals(0,first.json("/api/social").path("friends").size());
+    }
+    @Test void moderationHidesPublicReviewAndAuthorCannotBypassItByEditing() throws Exception {
+        var owner=user();var reporter=user();var administrator=admin();String username=accountName(owner);
+        owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true));owner.send("PUT","/api/diary/1","{\"status\":\"PLAYING\",\"review\":\"Conteúdo fictício denunciado para teste.\"}");
+        String report=mapper.writeValueAsString(Map.of("username",username,"gameId",1,"reason","Denúncia fictícia para testar moderação."));
+        assertEquals(200,reporter.send("POST","/api/reports",report).statusCode());assertEquals(409,reporter.send("POST","/api/reports",report).statusCode());
+        assertEquals(403,reporter.send("GET","/api/admin/reports",null).statusCode());
+        long id=administrator.json("/api/admin/reports").get(0).path("id").asLong();
+        assertEquals(200,administrator.send("PUT","/api/admin/reports/"+id,"{\"status\":\"RESOLVED\",\"hideReview\":true}").statusCode());
+        assertEquals(0,new Session().json("/api/people/"+username).path("reviews").size());
+        owner.send("PUT","/api/diary/1","{\"status\":\"PLAYING\",\"review\":\"Uma edição continua aguardando revisão.\"}");
+        assertTrue(owner.json("/api/diary").get(0).path("reviewHidden").asBoolean());
+        owner.send("DELETE","/api/diary/1",null);owner.send("PUT","/api/diary/1","{\"status\":\"PLAYING\",\"review\":\"Recriar também não contorna a moderação.\"}");
+        assertTrue(owner.json("/api/diary").get(0).path("reviewHidden").asBoolean());
+        assertEquals(200,administrator.send("PUT","/api/admin/reports/"+id,"{\"status\":\"RESOLVED\",\"hideReview\":false}").statusCode());
+        assertEquals(1,new Session().json("/api/people/"+username).path("reviews").size());
+    }
+    @Test void bulkImportPersistsFiveHundredGamesAndResumeDoesNotDuplicate() throws Exception {
+        long owner=users.findByUsername("test_admin").orElseThrow().getId();var job=jobs.create(owner,500);
+        var first=new br.com.critplay.metadata.MetadataGame(900001L,"bulk-fixture-1","Bulk fixture 1","Adventure",Set.of(br.com.critplay.catalog.Platform.PC),2026,"Descrição fictícia para verificar importação em lote.",null);
+        jobs.consume(job,first,40);jobs.consume(jobs.get(job.id()),first,40);jobs.consume(jobs.get(job.id()),null,40);
+        jobs.pause(job.id(),"Pausa de teste");int saved=jobs.get(job.id()).processed();jobs.consume(jobs.get(job.id()),first,40);assertEquals(saved,jobs.get(job.id()).processed());jobs.resume(job.id(),owner);
+        for(int i=2;i<=500;i++)jobs.consume(jobs.get(job.id()),new br.com.critplay.metadata.MetadataGame(900000L+i,"bulk-fixture-"+i,"Bulk fixture "+i,"Adventure",Set.of(br.com.critplay.catalog.Platform.PC),2026,"Descrição fictícia para verificar importação em lote.",null),40);
+        var result=jobs.get(job.id());assertEquals(500,result.added());assertEquals(1,result.existing());assertEquals(1,result.skipped());assertEquals("COMPLETED",result.status());
+        assertEquals(500,new Session().json("/api/games?q=Bulk%20fixture&genre=Aventura").size());
+    }
+    @Test void importJobsRequireAdminAndConfiguredKey() throws Exception {
+        var administrator=admin();var member=user();
+        assertEquals(403,member.send("POST","/api/admin/import-jobs","{\"count\":500}").statusCode());
+        assertEquals(503,administrator.send("POST","/api/admin/import-jobs","{\"count\":500}").statusCode());
+        assertEquals(400,administrator.send("POST","/api/admin/import-jobs","{\"count\":100}").statusCode());
     }
 
 }

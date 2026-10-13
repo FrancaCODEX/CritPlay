@@ -26,6 +26,8 @@ class PostgresSmokeTest {
     @Autowired br.com.critplay.admin.AccountAdminService management;
     @Autowired br.com.critplay.metadata.MetadataService metadata;
     @Autowired br.com.critplay.media.ImageCleanupService cleanup;
+    @Autowired br.com.critplay.social.BlockService blocks;
+    @Autowired br.com.critplay.metadata.ImportJobStore imports;
     @org.springframework.test.context.bean.override.mockito.MockitoBean br.com.critplay.metadata.RawgClient rawg;
     @Test void migratesRealPostgresAndPersistsRelations() {
         assertTrue(jdbc.queryForObject("select version()",String.class).startsWith("PostgreSQL"));
@@ -54,5 +56,10 @@ class PostgresSmokeTest {
         assertEquals(88L,catalog.find(game.getId()).getRawgId());
         assertEquals(1,((java.util.List<?>)lists.get(user.id(),id).get("games")).size());
         assertNotNull(cleanup.preview().get("count"));
+        blocks.change(user.username(),friend.username(),true);assertTrue(blocks.blocked(user.id(),friend.id()));
+        assertFalse(social.friends(user.id(),friend.id()));blocks.change(user.username(),friend.username(),false);
+        var job=imports.create(accounts.findByUsername("pg_admin").orElseThrow().getId(),500);
+        imports.consume(job,new br.com.critplay.metadata.MetadataGame(8899L,"pg-bulk","Importação PG","Adventure",Set.of(Platform.PC),2026,"Descrição fictícia de lote PostgreSQL.",null),40);
+        assertEquals(1,imports.get(job.id()).added());imports.pause(job.id(),"Teste concluído");
     }
 }

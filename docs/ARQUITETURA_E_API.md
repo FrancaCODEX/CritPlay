@@ -147,3 +147,27 @@ Preços permanecem em GET `/api/games/{id}/prices` para PC. As rotas de preços 
 `AccountAdminService` trava a operação administrativa até o commit, preserva um administrador ativo, impede auto-rebaixamento/suspensão e incrementa `sessionVersion`. `AccountPrincipal` respeita `enabled` no login; `AccountSessionFilter` verifica estado/versão nas sessões existentes. A recuperação de senha também recusa contas suspensas. `@Version` em usuários/jogos evita sobrescritas concorrentes.
 
 Limpeza de imagens mantém a trava `media` até o commit; criação/edição de jogos e atualização de perfis obtêm a mesma trava antes de alterar referências. A prévia não decide exclusões: referências e idade são verificadas novamente na execução. Uploads recentes ficam protegidos por 24 horas.
+
+## Ampliação v0.5.1
+
+V6 H2 / V4 PostgreSQL: datas e estado de moderação no diário, `user_blocks`, `content_reports`, `import_jobs` e trava `imports`. Migrações já aplicadas permanecem intactas.
+
+| Método | Rota | Acesso |
+| --- | --- | --- |
+| GET | `/api/health` | Público, verifica conexão com o banco |
+| GET | `/api/blocks` | Bloqueados da conta atual |
+| PUT / DELETE | `/api/blocks/{username}` | Bloquear/desbloquear; CSRF |
+| POST | `/api/reports` | `{username,gameId:null/ouID,reason}`; CSRF |
+| GET | `/api/admin/reports` | ADMIN; últimas 100 denúncias |
+| PUT | `/api/admin/reports/{id}` | ADMIN; `{status:RESOLVED/DISMISSED,hideReview:null/true/false}` |
+| GET / POST | `/api/admin/import-jobs` | ADMIN; histórico/iniciar `{count:500..2000}` |
+| POST | `/api/admin/import-jobs/{id}/pause` | ADMIN |
+| POST | `/api/admin/import-jobs/{id}/resume` | ADMIN; exige chave RAWG |
+
+Datas: `DiaryRequest` acrescenta `startDate` e `finishDate` no formato ISO yyyy-MM-dd. `reviewHidden` é somente leitura para o autor; mudanças só pela moderação. Diário usa versão otimista para impedir uma edição concorrente de sobrescrever moderação.
+
+Bloqueios travam o par de usuários como amizades e removem relações existentes. A busca e leitura autenticada verificam bloqueio nos dois sentidos; visitante anônimo continua sujeito à visibilidade pública, sem identificar a pessoa bloqueada. Denunciar uma resenha exige poder lê-la no momento da denúncia. A moderação não apaga o texto do diário.
+
+Lotes usam um executor único e estado persistido no banco. Consultas de rede ocorrem fora da transação de consumo; jogo/associação/cursor/contadores são gravados juntos. Fonte sem preço ou sem Steam ID não muda a integração de preços de PC. Interrupções e falhas pausam o processo; reinício exige retomada. Não há leasing distribuído para múltiplas réplicas.
+
+Migração é um comando local `--migrate-h2-to-postgres`, não uma rota. Abre H2 existente em modo leitura e grava o destino novo/vazio em uma transação, verifica contagens/colunas e ajusta sequências. Flyway configura o esquema PostgreSQL; tokens de recuperação não são copiados.

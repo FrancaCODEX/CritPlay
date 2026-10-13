@@ -6,7 +6,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port(){const s=net.createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 (async()=>{
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'critplay-browser-'));const serverPort=await port();const base=`http://127.0.0.1:${serverPort}`;
-  const jar=path.resolve(__dirname,'../target/critplay-0.5.0.jar');
+  const jar=path.resolve(__dirname,'../target/critplay-0.5.1.jar');
   const app=spawn('java',['-jar',jar,`--server.port=${serverPort}`,'--app.admin.username=ui_admin','--app.admin.password=BrowserAdminPassword42!',
     '--ggdeals.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
@@ -24,6 +24,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('[data-view=lists]').click();await page.locator('#create-list').click();await page.locator('#list-name').fill('Cooperativos');await page.locator('#list-description').fill('Para jogar com amigos');
     await page.locator('#list-form button[type=submit]').click();await page.locator('#list-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Cooperativos',exact:true}).waitFor();
     await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
+    await page.locator('#start-date').fill('2026-01-01');await page.locator('#finish-date').fill('2026-02-01');
     await page.locator('#play-status').selectOption('COMPLETED');await page.locator('#rating').selectOption('5');await page.locator('#review').fill('Uma jornada que valeu cada descoberta.');
     await page.locator('#favorite').check();await page.locator('#diary-wishlist').check();await page.locator('#diary-form button[type=submit]').click();
     await page.waitForFunction(()=>document.querySelector('#form-message').textContent.includes('salva'));
@@ -44,6 +45,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('[data-view=admin]').click();await page.locator('.account-card').first().waitFor();
     await page.locator('#preview-cleanup').click();await page.waitForFunction(()=>document.querySelector('#cleanup-message').textContent.includes('24 horas'));assert(await page.locator('#run-cleanup').isDisabled());
     const saveAccount=page.locator('.account-card').filter({hasText:'@ui_admin'}).getByRole('button',{name:'Salvar permissões'});assert(await saveAccount.isDisabled());
+    page.once('dialog',dialog=>dialog.accept());await page.locator('#bulk-form button').click();await page.getByText('Configure RAWG_API_KEY antes de iniciar a importação.',{exact:true}).waitFor();
     await page.locator('#metadata-import').click();await page.getByText('Configure RAWG_API_KEY no seu .env e reinicie. A chave é gratuita para projetos pessoais.',{exact:true}).waitFor();await page.locator('#close-metadata').click();
     const metadataFixture={id:9901,slug:'fixture-import',title:'Jogo RAWG de teste',genre:'Aventura',platforms:['PC'],releaseYear:2026,description:'Descrição de teste trazida pela importação de metadados.',coverUrl:null};
     await page.route('**/api/admin/metadata/search?*',route=>route.fulfill({json:[metadataFixture]}));await page.route('**/api/admin/metadata/9901',route=>route.fulfill({json:metadataFixture}));
@@ -101,13 +103,17 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
     await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     await visitor.close();
-    await adminPage.locator('[data-view=admin]').click();const managedCard=adminPage.locator('.account-card').filter({hasText:'@browser_user'});await managedCard.waitFor();
+    await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();await page.locator('#people-results button').click();
+    page.once('dialog',dialog=>dialog.accept('Uma denúncia fictícia de perfil para validar o fluxo.'));await page.getByRole('button',{name:'Denunciar perfil',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia enviada'));
+    page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Bloquear',exact:true}).click();await page.locator('#public-profile-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Usuários bloqueados',exact:true}).waitFor();await page.getByRole('button',{name:'Desbloquear',exact:true}).waitFor();
+    assert.equal(await page.locator('#people-results button').count(),0);await page.getByRole('button',{name:'Desbloquear',exact:true}).click();await page.locator('#people-results button').waitFor();
+    await adminPage.locator('[data-view=admin]').click();await adminPage.getByText('Uma denúncia fictícia de perfil para validar o fluxo.',{exact:true}).waitFor();adminPage.once('dialog',dialog=>dialog.accept());await adminPage.getByRole('button',{name:'Resolver',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia analisada'));const managedCard=adminPage.locator('.account-card').filter({hasText:'@browser_user'});await managedCard.waitFor();
     await managedCard.locator('select').selectOption('ADMIN');adminPage.once('dialog',dialog=>dialog.accept());await managedCard.getByRole('button',{name:'Salvar permissões',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Permissões atualizadas'));
     await page.locator('[data-view=profile]').click();await page.locator('#account-login').waitFor();
     await page.locator('#account-login').click();await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();await page.locator('#admin-nav').waitFor();
     if(qa)await adminPage.screenshot({path:path.join(qa,'administration-desktop.png'),fullPage:true});
     await secondContext.close();
     assert.deepEqual(errors,[],'Erros JavaScript no navegador');
-    console.log('Browser smoke aprovado: login, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa, celular, administração, prévia de limpeza, importação de metadados, privacidade, busca de usuários, seguir, amizade aceita e perfil público compartilhado.');
+    console.log('Browser smoke aprovado: login, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa, celular, administração, prévia de limpeza, importação de metadados/lotes, datas, denúncias/bloqueios, privacidade, busca de usuários, seguir, amizade aceita e perfil público compartilhado.');
   } finally {if(browser)await browser.close();app.kill('SIGTERM');await Promise.race([new Promise(r=>app.once('exit',r)),pause(10000)]);if(app.exitCode===null)app.kill('SIGKILL');}
 })().catch(error=>{console.error(error);process.exitCode=1;});

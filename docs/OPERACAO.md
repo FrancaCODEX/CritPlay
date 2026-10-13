@@ -24,3 +24,7 @@ Faça backups periódicos do PostgreSQL (por exemplo `pg_dump`), uploads e confi
 Execute Java com usuário sem privilégios, reinício controlado (systemd ou equivalente), logs com rotação, monitoração de espaço/erros e alertas. Teste login/logout, migrações, recuperação por SMTP, upload e restauração. A limpeza de imagens é manual pela Administração e não substitui backups.
 
 Uma implantação real ainda depende do domínio, provedor de hospedagem, certificado, configuração de proxy/IP, limites compartilhados e rotina de operação escolhidos pelo responsável.
+
+## Artefatos preparados na v0.5.1
+
+Dockerfile e `.env.production.example` foram acrescentados, com processo sem privilégios, profile PostgreSQL e diretório persistente de uploads. `/api/health` verifica o banco. A construção da imagem e a configuração de proxy/IP/limites devem ser verificadas no provedor escolhido. Veja HOSPEDAGEM.md e MIGRACAO_POSTGRES.md. Importações usam somente uma instância do Java; não configure várias réplicas para o worker atual.

@@ -1,8 +1,8 @@
-# Evoluir o CritPlay juntos — v0.5
+# Evoluir o CritPlay juntos — v0.5.1
 
 ## Atualizar no IntelliJ
 
-Pare o Java, copie `data/` como backup e preserve `.env`. Atualize main em Git → Pull. Rode `CritPlayApplication` ou `.\mvnw.cmd spring-boot:run`. A migração V5 é automática; não apague o banco para ver as novidades.
+Pare o Java, copie `data/` como backup e preserve `.env`. Atualize main em Git → Pull. Rode `CritPlayApplication` ou `.\mvnw.cmd spring-boot:run`. A migração V6 é automática; não apague o banco para ver as novidades.
 
 ## Exercício de uso
 
@@ -39,7 +39,7 @@ As responsabilidades correspondem a camadas que você já conhece do Laravel: co
 
 ## Seu próximo exercício sugerido
 
-Acrescentar data de início e fim à experiência de um jogo. Primeiro pense em como um usuário edita isso, depois crie uma migração V6, campos no DTO/entidade, validação (fim não pode anteceder início), formulário e um teste que preserve a data após atualização. Podemos revisar etapa por etapa.
+Acrescentar data de início e fim à experiência de um jogo. Primeiro pense em como um usuário edita isso, depois crie uma migração V7, campos no DTO/entidade, validação (fim não pode anteceder início), formulário e um teste que preserve a data após atualização. Podemos revisar etapa por etapa.
 
 ## Novidades para experimentar
 
@@ -51,3 +51,9 @@ Acrescentar data de início e fim à experiência de um jogo. Primeiro pense em 
 ## Depois
 
 Moderação/bloqueios, datas do diário e migração dos dados H2 para PostgreSQL. Recuperação por e-mail depende do SMTP configurado. Preços automáticos são só de PC. Consulte OPERACAO.md antes de hospedar.
+
+## Lote e comunidade
+
+Em Administração, inicie um lote de 500 jogos com sua chave RAWG, acompanhe os contadores e experimente Pausar/Retomar. No diário, preencha as datas de início/fim. Com duas contas fictícias, envie uma denúncia, oculte a resenha como ADMIN e confira que o autor ainda a vê no próprio diário; editar não a torna pública. Bloqueie/desbloqueie um perfil e confira a remoção das conexões.
+
+Para PostgreSQL, siga MIGRACAO_POSTGRES.md em uma base de teste antes de migrar os dados reais. Compare os planos em HOSPEDAGEM.md antes de contratar.

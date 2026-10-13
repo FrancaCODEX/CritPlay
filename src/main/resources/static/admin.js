@@ -2,6 +2,7 @@
 let metadataSelectedId=null,metadataSequence=0,metadataCatalogue=[],adminBusy=false,cleanupPreview=null;
 function resetAdmin(){metadataSelectedId=null;++metadataSequence;metadataCatalogue=[];cleanupPreview=null;$('#metadata-dialog').close();$('#metadata-results').replaceChildren();$('#metadata-preview').replaceChildren();$('#accounts-results').replaceChildren();$('#accounts-search-form').reset();$('#run-cleanup').disabled=true;$('#cleanup-message').textContent='';$('#accounts-message').textContent='';}
 async function refreshAdmin(){
+  loadJobs();loadReports();
   const sequence=++state.workspaceSequence;$('#accounts-message').textContent='Carregando contas…';
   try{const accounts=await api('/api/admin/accounts?q='+encodeURIComponent($('#accounts-search').value));if(sequence!==state.workspaceSequence||state.view!=='admin')return;
     $('#accounts-message').textContent=accounts.length?`${accounts.length} conta(s)`:'Nenhuma conta encontrada.';

@@ -40,6 +40,12 @@ public class RawgClient {
         }
         return games;
     }
+    public List<MetadataGame> page(int page){
+        if(page<1)throw new BadRequestException("Página inválida.");
+        var games=new ArrayList<MetadataGame>();
+        for(var item:request("","&page_size=40&page="+page+"&ordering=-added&exclude_additions=true&parent_platforms=1,2,3,7").path("results")){var game=parse(item);if(game.id()>0)games.add(game);}
+        return games;
+    }
     public MetadataGame detail(long id){
         if(id<=0)throw new BadRequestException("ID RAWG inválido.");
         if(!configured())throw new ServiceUnavailableException("Configure RAWG_API_KEY para importar metadados.");

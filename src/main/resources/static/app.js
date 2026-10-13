@@ -92,7 +92,7 @@ async function openDetail(game) {
   $('#detail-meta').textContent = `${game.genre} · ${game.releaseYear} · ${game.platforms}`;
   $('#detail-description').textContent = game.description;
   const detailImage=game.coverUrl||game.metadataCoverUrl;
-  $('#detail-metadata-source').hidden=!game.metadataSourceUrl;$('#detail-metadata-source').href=game.metadataSourceUrl||'https://rawg.io/';
+  $('#source-language-note').hidden=!game.metadataSourceUrl;$('#detail-metadata-source').hidden=!game.metadataSourceUrl;$('#detail-metadata-source').href=game.metadataSourceUrl||'https://rawg.io/';
   $('#detail-cover').style.backgroundImage = detailImage?`linear-gradient(0deg,#120f1c,transparent),url("${detailImage}")`:game.steamAppId
     ? `linear-gradient(0deg,#120f1c,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
     : 'linear-gradient(135deg,#492b69,#242731)';
@@ -100,7 +100,7 @@ async function openDetail(game) {
   $('#diary-login-hint').hidden = !!state.user;
   $('#play-status').value = entry?.status || 'WANT_TO_PLAY';
   $('#rating').value = entry?.rating || '';
-  $('#review').value = entry?.review || '';
+  $('#review').value = entry?.review || '';$('#start-date').value=entry?.startDate||'';$('#finish-date').value=entry?.finishDate||'';$('#start-date').max=new Date().toLocaleDateString('en-CA');$('#finish-date').max=$('#start-date').max;
   $('#favorite').checked = !!entry?.favorite;
   $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
   $('#edit-game').hidden=state.user?.role!=='ADMIN';
@@ -142,7 +142,7 @@ $('#diary-form').addEventListener('submit', async event => {
   if (!state.user) { openAuth(); return; }
   const gameId = state.selected.id;
   const body = { status: $('#play-status').value, rating: $('#rating').value ? Number($('#rating').value) : null,
-    review: $('#review').value, favorite: $('#favorite').checked, wishlist:$('#diary-wishlist').checked };
+    review: $('#review').value, favorite: $('#favorite').checked, wishlist:$('#diary-wishlist').checked,startDate:$('#start-date').value||null,finishDate:$('#finish-date').value||null };
   lockForm(true);
   try {
     const entry = await api(`/api/diary/${gameId}`, { method: 'PUT', body: JSON.stringify(body) });
@@ -181,7 +181,7 @@ function updateAccountUi() {
 function resetAccount() {
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
   state.profile=null;state.profileDirty=false;state.lists=[];++state.workspaceSequence;
-  resetSocial();resetAdmin();
+  resetSocial();resetAdmin();resetBulk();
   $('#profile-form').reset();$('#change-password-form').reset();$('#profile-reviews').replaceChildren();$('#profile-summary').replaceChildren();$('#profile-stats').replaceChildren();$('#lists-content').replaceChildren();
   ++state.detailSequence;
   $('#review').value = ''; $('#rating').value = ''; $('#favorite').checked = false;

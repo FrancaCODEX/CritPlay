@@ -16,6 +16,10 @@ public class DiaryEntry {
     private boolean favorite;
     @Column(nullable=false) private boolean wishlist;
     private Instant updatedAt;
+    private java.time.LocalDate startDate;
+    private java.time.LocalDate finishDate;
+    @Column(nullable=false) private boolean reviewHidden;
+    @Version @Column(nullable=false) private long rowVersion;
     protected DiaryEntry() {}
     public DiaryEntry(Long userId, Long gameId, DiaryRequest request) {
         this.userId = userId; this.gameId = gameId; update(request);
@@ -24,8 +28,13 @@ public class DiaryEntry {
         this.status = request.status(); this.rating = request.rating();
         this.review = request.review() == null ? "" : request.review().strip();
         this.favorite = request.favorite(); this.updatedAt = Instant.now();
+        this.startDate=request.startDate();this.finishDate=request.finishDate();
         this.wishlist=request.wishlist()!=null?request.wishlist():request.status()==PlayStatus.WANT_TO_PLAY;
     }
+    public java.time.LocalDate getStartDate(){return startDate;}
+    public java.time.LocalDate getFinishDate(){return finishDate;}
+    public boolean isReviewHidden(){return reviewHidden;}
+    public void moderate(boolean hidden){reviewHidden=hidden;}
     public void assignOwner(Long userId) { this.userId = userId; }
     @JsonIgnore public Long getUserId() { return userId; }
     public Long getGameId() { return gameId; }

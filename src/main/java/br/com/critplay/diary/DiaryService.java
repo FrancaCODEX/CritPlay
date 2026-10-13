@@ -9,8 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiaryService {
     private final DiaryRepository repository;
     private final CatalogService catalog;
-    public DiaryService(DiaryRepository repository, CatalogService catalog) {
-        this.repository = repository; this.catalog = catalog;
+    private final org.springframework.jdbc.core.JdbcTemplate db;
+    public DiaryService(DiaryRepository repository, CatalogService catalog,org.springframework.jdbc.core.JdbcTemplate db) {
+        this.repository = repository; this.catalog = catalog;this.db=db;
     }
     public List<DiaryEntry> list(Long userId) { return repository.findByUserId(userId); }
     @Transactional public DiaryEntry save(Long userId, Long gameId, DiaryRequest request) {
@@ -18,6 +19,8 @@ public class DiaryService {
         var entry = repository.findByUserIdAndGameId(userId, gameId)
             .orElseGet(() -> new DiaryEntry(userId, gameId, request));
         entry.update(request);
+        var decisions=db.queryForList("SELECT hide_review FROM content_reports WHERE target_id=? AND game_id=? AND hide_review IS NOT NULL ORDER BY resolved_at DESC,id DESC LIMIT 1",Boolean.class,userId,gameId);
+        if(!decisions.isEmpty())entry.moderate(decisions.get(0));
         return repository.save(entry);
     }
     @Transactional public void delete(Long userId, Long gameId) {
