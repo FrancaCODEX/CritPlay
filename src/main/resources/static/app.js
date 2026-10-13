@@ -119,6 +119,7 @@ async function openDetail(game) {
 function renderPrices(quotes) {
   const container=$('#prices');container.replaceChildren();
   for(const quote of quotes) {
+    if(quote.platform==='PC')$('#price-source').href=quote.sourceUrl;
     const section=el('section','price-platform');section.append(el('h4',null,quote.platform));
     if(quote.status!=='LIVE')section.append(el('p','muted',quote.message));
     else {

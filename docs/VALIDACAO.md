@@ -9,6 +9,8 @@
 - Parser PSprices testado com fixtures: preço zero, moeda/região, edição, desconto, produto ausente, plataforma errada, links não confiáveis e compra condicionada. Não houve consulta real com chave licenciada PSprices.
 - Migração real v0.3 → v0.4 usando a aplicação anterior e H2 em arquivo: conta/senha, diário, nota, resenha, favorito, desejos e lista preservados; perfil antigo permaneceu privado e fora da busca.
 - Navegador: login, listas, diário, perfil/avatar, edição de jogos, preços separados, privacidade, busca, seguir, pedido/aceite de amizade, leitura por amigo e perfil público aberto por visitante.
+- Rascunhos de perfil/privacidade preservados ao salvar uma resenha; formulário de privacidade aguarda seus dados antes de permitir edição.
+- Preços exibidos com fixtures também verificam moeda, edição, desconto, atribuição PSprices e preservação dos parâmetros dos links GG.deals.
 - Verificação de sessões independentes em contextos separados do navegador. Desktop e celular (390 px); telas roxas e comunidade inspecionadas, sem overflow horizontal.
 - Imagens/fontes externas bloqueadas no teste de interface; imagens próprias servidas pelo Java. Nenhuma conta real nem e-mail externo foi usado.
 - JavaScript: `node --check`; alterações: `git diff --check`.

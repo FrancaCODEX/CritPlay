@@ -1,4 +1,5 @@
 'use strict';
+let privacyDirty=false;
 let publicUsername=null,publicSequence=0,socialBusy=false,consoleSources={},consoleGameId=null,consoleSequence=0;
 const visibilityLabels={PUBLIC:'Público',FRIENDS:'Só amigos',PRIVATE:'Privado'};
 function identityCard(user) {
@@ -7,16 +8,17 @@ function identityCard(user) {
   const info=el('div');info.append(el('strong',null,user.displayName),el('p','muted','@'+user.username),el('p','price-note',visibilityLabels[user.visibility]));card.append(avatar,info);return card;
 }
 function resetSocial() {
-  ++publicSequence;++consoleSequence;publicUsername=null;consoleGameId=null;consoleSources={};
+  privacyDirty=false;++publicSequence;++consoleSequence;publicUsername=null;consoleGameId=null;consoleSources={};
   $('#public-profile-dialog').close();$('#console-source-dialog').close();
   for(const id of ['people-results','social-connections','public-profile-content','console-candidates'])$('#'+id).replaceChildren();
   $('#people-search-form').reset();$('#privacy-form').reset();$('#privacy-message').textContent='';$('#people-message').textContent='';
 }
-function renderPrivacy(user){$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;}
+function renderPrivacy(user){if(privacyDirty)return;$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;}
+$('#privacy-form').addEventListener('input',()=>privacyDirty=true);
 $('#privacy-form').addEventListener('submit',async event=>{
   event.preventDefault();if(socialBusy)return;socialBusy=true;busy($('#privacy-form'),true);
   try{const value=await api('/api/profile/privacy',{method:'PUT',body:JSON.stringify({visibility:$('#profile-visibility').value,discoverable:$('#profile-discoverable').checked})});
-    if(state.profile)Object.assign(state.profile.user,value);$('#privacy-message').textContent='Privacidade atualizada.';
+    if(state.profile)Object.assign(state.profile.user,value);privacyDirty=false;renderPrivacy(value);$('#privacy-message').textContent='Privacidade atualizada.';
   }catch(error){$('#privacy-message').textContent=error.message;}finally{socialBusy=false;busy($('#privacy-form'),false);}
 });
 $('#preview-profile').addEventListener('click',()=>openPublicProfile(state.user.username));

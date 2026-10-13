@@ -50,6 +50,10 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Perfil possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'profile-mobile.png'),fullPage:true});
     await page.locator('#profile-visibility').selectOption('FRIENDS');await page.locator('#profile-discoverable').check();
+    await page.locator('.review-head .text-button').click();
+    const privacyDraftRefresh=page.waitForResponse(response=>response.url().endsWith('/api/profile')&&response.status()===200);
+    await page.locator('#diary-form button[type=submit]').click();await privacyDraftRefresh;await page.waitForFunction(()=>!document.querySelector('#profile-visibility').disabled);
+    await page.locator('#close-detail').click();assert.equal(await page.locator('#profile-visibility').inputValue(),'FRIENDS');assert(await page.locator('#profile-discoverable').isChecked(),'Atualizar resenha apagou o rascunho de privacidade');
     await page.locator('#privacy-form button[type=submit]').click();await page.getByText('Privacidade atualizada.',{exact:true}).waitFor();
     await page.setViewportSize({width:1440,height:1000});await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
     await page.locator('#prices .price-platform').first().waitFor();assert.equal(await page.locator('#prices .price-platform').count(),3);
@@ -57,6 +61,15 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     if(qa)await page.screenshot({path:path.join(qa,'platform-prices.png'),fullPage:true});
     await page.locator('#configure-console-prices').click();await page.getByText('Configure PSPRICES_API_KEY no .env para consultar esta fonte.',{exact:true}).waitFor();
     await page.locator('#close-console-source').click();
+    const fixtureUrl='https://gg.deals/steam/app/1245620/?ref=gameshelf-test';
+    await page.route('**/api/games/1/prices/platforms',route=>route.fulfill({json:[
+      {platform:'PC',status:'LIVE',currency:'BRL',currentRetail:99.90,currentKeyshops:79.90,historicalRetail:89.90,historicalKeyshops:69.90,sourceUrl:fixtureUrl,fetchedAt:'2026-10-13T00:00:00Z'},
+      {platform:'PlayStation',status:'LIVE',currency:'BRL',region:'br',currentRetail:119.90,originalPrice:239.80,discountPercent:50,edition:'Standard de teste',storeUrl:'https://store.playstation.com/product/test',sourceUrl:'https://psprices.com/region-br/game/42/test',fetchedAt:'2026-10-13T00:00:00Z'}
+    ]}));
+    await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();await page.getByText('Edição: Standard de teste',{exact:true}).waitFor();
+    assert.equal(await page.locator('#price-source').getAttribute('href'),fixtureUrl);await page.getByText('50% de desconto',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('link',{name:'Powered by PSprices ↗',exact:true}).getAttribute('href'),'https://psprices.com/region-br/game/42/test');
+    await page.locator('#close-detail').click();await page.unroute('**/api/games/1/prices/platforms');
     await page.locator('#account-logout').click();await page.locator('#account-login').waitFor();
     await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());
@@ -80,7 +93,8 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     if(qa)await page.screenshot({path:path.join(qa,'community-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Comunidade possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'community-mobile.png'),fullPage:true});
-    await adminPage.locator('[data-view=profile]').click();await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
+    await adminPage.locator('[data-view=profile]').click();await adminPage.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Jogador de teste');await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
+    const sharedSettings=await adminPage.evaluate(async()=>(await(await fetch('/api/profile')).json()).user);assert.equal(sharedSettings.visibility,'PUBLIC');assert.equal(sharedSettings.discoverable,true);
     const visitor=await browser.newContext();await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
     await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();

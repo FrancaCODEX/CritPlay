@@ -12,9 +12,10 @@ async function refreshWorkspace(view) {
   const sequence=++state.workspaceSequence;
   try {
     if(view==='profile') {
+      busy($('#privacy-form'),true);
       const profile=await api('/api/profile');
       if(sequence!==state.workspaceSequence||state.view!==view)return;
-      state.profile=profile;renderProfile(profile);renderPrivacy(profile.user);
+      state.profile=profile;renderProfile(profile);renderPrivacy(profile.user);busy($('#privacy-form'),false);
     } else {
       const lists=await api('/api/lists');
       if(sequence!==state.workspaceSequence||state.view!==view)return;
