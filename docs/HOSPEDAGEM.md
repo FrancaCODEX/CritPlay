@@ -31,3 +31,21 @@ Use o Dockerfile do repositório, profile postgres, banco privado, volume de upl
 Antes da abertura pública, configure identificação de IP confiável no proxy escolhido e revise limites de tentativas. Hoje o limiter usa o IP da conexão e armazenamento em memória; limites compartilhados e uma configuração específica do proxy ainda dependem da infraestrutura escolhida. Configure backups e restauração e confira SMTP se ativar recuperação de senha. Veja OPERACAO.md.
 
 Docker não foi executado neste ambiente; o JAR e os fluxos Java são verificados localmente e no CI. A imagem precisa ser construída e validada no provedor antes do deploy.
+
+## Alternativas gratuitas
+
+Pesquisa de 13/10/2026. “Gratuito” significa permanecer nos limites e recursos elegíveis, não garantia de disponibilidade ou operação sem manutenção.
+
+| Opção | Uso no CritPlay | Limitações |
+| --- | --- | --- |
+| Oracle Cloud Always Free / Ampere A1 | VM ARM com até 2 OCPUs e 12 GB totais, e até 200 GB de volumes gratuitos na região principal; Java, PostgreSQL e uploads podem ficar no servidor. | Capacidade pode estar indisponível; instâncias ociosas podem ser recuperadas. Você administra HTTPS, atualizações, banco e backups. Conferir elegibilidade e quotas no painel; não confundir com créditos temporários do trial. |
+| Render Free | Demonstração da aplicação Java em container, usando PostgreSQL externo. | Dorme após 15 minutos; disco temporário perde H2/uploads; banco gratuito do próprio Render expira após 30 dias. SMTP nas portas 25/465/587 bloqueado. |
+
+Para tentar custo zero preservando as funções atuais, a VM Oracle é a opção mais completa, desde que haja capacidade e aceitação do cadastro. Use PostgreSQL instalado na VM; o banco Oracle gratuito não substitui o PostgreSQL do projeto. Construção ARM e deploy precisam de validação; ainda não foram executados.
+
+Render com banco externo gratuito pode servir para demonstração, mas o projeto precisaria de armazenamento externo de imagens para preservar uploads. Não hospede o H2 no disco temporário. A importação longa deve ser acompanhada: reinícios pausam lotes para retomada manual.
+
+Fontes oficiais:
+- https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
+- https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm
+- https://render.com/docs/free

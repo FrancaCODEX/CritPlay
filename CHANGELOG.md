@@ -1,0 +1,52 @@
+# Changelog
+
+Histórico das entregas do CritPlay. O [README](README.md) descreve a instalação e as funcionalidades atuais; detalhes de uso ficam em [Funcionalidades](docs/FUNCIONALIDADES.md).
+
+## Não lançado
+
+### Documentação
+
+- README reorganizado em apresentação, funções atuais, configuração, execução e links de documentação.
+- Guia de funcionalidades separado e histórico concentrado neste changelog.
+- Pesquisa ampliada para hospedagem gratuita, com limitações de persistência e operação.
+
+## 0.5.1
+
+- Importação RAWG em lotes de 500, 1.000 e 2.000 novos jogos, com progresso persistido, pausa/retomada, duplicatas e gêneros PT-BR.
+- Bloqueios entre usuários, remoção de conexões e controles na Comunidade.
+- Denúncias de perfis/resenhas e moderação administrativa; edição ou recriação não contorna ocultação.
+- Datas de início/fim no diário, com validação de ordem e datas futuras.
+- Ferramenta local H2 → PostgreSQL, preservando IDs, contas, hashes, diários, listas e relações; destino ocupado é recusado.
+- Dockerfile, configuração de produção, health check e guias de migração/hospedagem.
+- 48 testes aprovados no CI, incluindo PostgreSQL real e migração, além do teste de navegador.
+
+A importação de 500 registros foi validada com fixtures. Isso não significa que 500 jogos reais estejam incluídos no repositório. A importação real depende da chave e da execução no banco do operador. Não houve deploy.
+
+## 0.5
+
+- Nome alterado de GameShelf para CritPlay, incluindo pacote Java e artefato Maven, mantendo compatibilidade com dados e variáveis anteriores.
+- Importação RAWG individual com prévia, revisão e atualização preservando IDs.
+- Administração de contas e papéis, suspensão/reativação e revogação de sessões.
+- Limpeza de uploads sem uso, com prévia, confirmação e preservação de arquivos vinculados/recentes.
+- Remoção do adaptador pago de preços de consoles; catálogo e links oficiais mantidos.
+
+## 0.4
+
+- Tema roxo e comunidade com busca de usuários, seguir e pedidos de amizade.
+- Perfis compartilháveis com privacidade público/amigos/privado e controle de descoberta.
+- Fontes por plataforma e adaptador documentado para consoles, posteriormente removido na 0.5.
+
+## 0.3
+
+- Perfil editável, resenhas no perfil, favoritos, desejos e listas personalizadas.
+- Edição administrativa de jogos, importação JSON e upload de avatar/capas próprias.
+- Troca/recuperação de senha, proteção de contas e suporte opcional a PostgreSQL.
+
+## Entregas iniciais
+
+- Catálogo editorial, busca, filtros e interface inspirada em streaming.
+- Integração de preços PC via GG.deals e diário de jogos.
+- Contas, sessões, BCrypt, CSRF e cadastro de jogos exclusivo de administradores.
+- Banco H2 persistente, migrações e testes automatizados.
+
+As entregas iniciais foram agrupadas para não atribuir mudanças a versões sem registro confirmado. Novas alterações entram em “Não lançado” e são agrupadas na versão correspondente quando entregues.
