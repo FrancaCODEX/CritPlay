@@ -77,6 +77,7 @@ function render() {
 function setView(view) {
   if (view !== 'catalog' && !state.user) { openAuth(); toast('Entre para acessar sua biblioteca.'); return; }
   if(view==='admin'&&state.user?.role!=='ADMIN')return;
+  if(state.view==='admin'&&view!=='admin')resetSteam();
   state.view = view;
   ++state.workspaceSequence;
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;

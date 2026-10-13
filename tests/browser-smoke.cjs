@@ -6,7 +6,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port(){const s=net.createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 (async()=>{
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'critplay-browser-'));const serverPort=await port();const base=`http://127.0.0.1:${serverPort}`;
-  const jar=path.resolve(__dirname,'../target/critplay-0.5.1.jar');
+  const jar=path.resolve(__dirname,'../target/critplay-0.5.2.jar');
   const app=spawn('java',['-jar',jar,`--server.port=${serverPort}`,'--app.admin.username=ui_admin','--app.admin.password=BrowserAdminPassword42!',
     '--ggdeals.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
@@ -17,6 +17,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     assert(ready,'Java não iniciou');
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+    await context.route('**/api/admin/steam/resolve',route=>route.fulfill({json:{status:'FOUND',appId:777456,message:'Steam App ID encontrado.'}}));
     const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base);await page.locator('.card').first().waitFor();
     await page.locator('#account-login').click();await page.locator('#username').fill('ui_admin');await page.locator('#password').fill('BrowserAdminPassword42!');await page.locator('#auth-submit').click();
@@ -57,11 +58,16 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     });
     await page.locator('#metadata-import').click();await page.locator('#metadata-search').fill('Jogo RAWG');await page.locator('#metadata-search-form button').click();await page.getByRole('button',{name:'Jogo RAWG de teste · 2026',exact:true}).click();
     await page.getByRole('button',{name:'Revisar no editor',exact:true}).click();assert.equal(await page.locator('#game-title').inputValue(),'Jogo RAWG de teste');assert.equal(await page.locator('#game-description').inputValue(),metadataFixture.description);
-    await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo RAWG de teste',exact:true}).waitFor();assert.equal(importedBody.rawgId,9901);
+    await page.waitForFunction(()=>document.querySelector('#game-steam-id').value==='777456');
+    await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo RAWG de teste',exact:true}).waitFor();assert.equal(importedBody.rawgId,9901);assert.equal(importedBody.game.steamAppId,777456);
     await page.unroute('**/api/admin/metadata/import');await page.unroute('**/api/admin/metadata/search?*');await page.unroute('**/api/admin/metadata/9901');
     await page.locator('[data-view=lists]').click();await page.locator('.list-game-row').first().waitFor();assert.equal(await page.locator('.list-game-row').count(),1);
     await page.locator('#add-game').click();await page.locator('#game-title').fill('Jogo criado no navegador');await page.locator('#game-genre').fill('Aventura');await page.locator('#game-description').fill('Um jogo cadastrado pelo administrador através da interface.');
     await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).waitFor();
+    await page.locator('[data-view=admin]').click();
+    await page.route('**/api/admin/steam/games/*',route=>route.fulfill({json:{status:'UNAVAILABLE',appId:null,message:'Steam indisponível.'}}));
+    page.once('dialog',dialog=>dialog.accept());await page.locator('#backfill-steam').click();await page.waitForFunction(()=>document.querySelector('#backfill-message').textContent.includes('Busca interrompida'));await page.unroute('**/api/admin/steam/games/*');
+    await page.locator('[data-view=catalog]').click();
     await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).click();await page.locator('#edit-game').click();await page.locator('#game-title').fill('Jogo editado no navegador');await page.locator('#game-submit').click();
     await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo editado no navegador',exact:true}).waitFor();
     await page.setViewportSize({width:390,height:844});await page.locator('[data-view=profile]').click();await page.locator('#profile-summary h2').waitFor();

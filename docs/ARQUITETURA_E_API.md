@@ -171,3 +171,7 @@ Bloqueios travam o par de usuários como amizades e removem relações existente
 Lotes usam um executor único e estado persistido no banco. Consultas de rede ocorrem fora da transação de consumo; jogo/associação/cursor/contadores são gravados juntos. Fonte sem preço ou sem Steam ID não muda a integração de preços de PC. Interrupções e falhas pausam o processo; reinício exige retomada. Não há leasing distribuído para múltiplas réplicas.
 
 Migração é um comando local `--migrate-h2-to-postgres`, não uma rota. Abre H2 existente em modo leitura e grava o destino novo/vazio em uma transação, verifica contagens/colunas e ajusta sequências. Flyway configura o esquema PostgreSQL; tokens de recuperação não são copiados.
+
+## Steam App ID — v0.5.2
+
+ADMIN e CSRF obrigatórios. `POST /api/admin/steam/resolve` com `{ "title": "Hades" }` retorna `status`, `appId` opcional e `message`, sem gravar. `POST /api/admin/steam/games/{id}` consulta e associa somente se o jogo ainda não tem ID e está em PC. Estados: FOUND, PRESERVED, NOT_FOUND, AMBIGUOUS, CONFLICT, UNAVAILABLE. Falha da fonte não inventa IDs. Não há chave adicional; endpoints públicos da loja podem mudar sem aviso.

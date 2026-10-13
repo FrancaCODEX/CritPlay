@@ -59,7 +59,7 @@ chmod +x mvnw
 
 ## Importar jogos
 
-Configure `RAWG_API_KEY`, reinicie e entre como administrador. Em **Administração → Importação em lote**, escolha o tamanho e inicie. Progresso fica salvo; há pausa/retomada e prevenção de duplicatas. Gêneros são mapeados para PT-BR; descrições mantêm o idioma da fonte. Steam App ID para preços continua manual.
+Configure `RAWG_API_KEY`, reinicie e entre como administrador. Em **Administração → Importação em lote**, escolha o tamanho e inicie. Progresso fica salvo; há pausa/retomada e prevenção de duplicatas. Gêneros são mapeados para PT-BR; descrições mantêm o idioma da fonte. Steam App ID é buscado automaticamente nos novos lotes. Na importação individual, aparece no editor para revisão; jogos já cadastrados podem ser associados em Administração → Buscar IDs do catálogo. Correspondências incertas ficam sem ID; preenchimento manual continua disponível.
 
 ## Atualizar sem perder dados
 
@@ -71,7 +71,7 @@ O H2 permanece em `data/gameshelf.mv.db`, e uploads em `data/uploads/`. O nome a
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/critplay-0.5.1.jar
+java -jar target/critplay-0.5.2.jar
 ```
 
 No Linux, use `./mvnw`. Testes locais usam dados fictícios; o CI também verifica PostgreSQL e navegação. Servidor local escuta em `127.0.0.1`; configuração de hospedagem está no guia abaixo.

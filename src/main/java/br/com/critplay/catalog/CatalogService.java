@@ -18,11 +18,13 @@ public class CatalogService {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("Jogo não encontrado."));
     }
     @Transactional public Game create(CreateGameRequest request,Long owner) {
+        images.lockReferences();
         if(request.steamAppId()!=null&&repository.existsBySteamAppId(request.steamAppId())) throw new ConflictException("Este Steam App ID já está no catálogo.");
         var game=new Game(null,request.title(),request.genre(),"",request.releaseYear(),request.steamAppId(),request.description());
         apply(game,request,owner);return repository.save(game);
     }
     @Transactional public Game update(Long id,CreateGameRequest request,Long owner) {
+        images.lockReferences();
         var game=find(id);
         if(request.steamAppId()!=null&&repository.existsBySteamAppIdAndIdNot(request.steamAppId(),id)) throw new ConflictException("Este Steam App ID já está no catálogo.");
         apply(game,request,owner);return repository.save(game);

@@ -62,7 +62,7 @@ RAWG_API_KEY=sua_chave_rawg
 
 Como ADMIN, clique em **Buscar na RAWG**, busque o título, abra a prévia e escolha **Criar um novo jogo** ou **Atualizar** um existente. Clique em **Revisar no editor**, confira título, gênero, plataformas, ano e descrição, preencha dados ausentes e salve. Nada é persistido só por abrir a prévia. Atualizar mantém ID, diários e listas; o editor preserva capa própria, Steam App ID e links existentes. Um ID RAWG só pode pertencer a um jogo; uma associação existente a outro ID não é substituída silenciosamente.
 
-Nome/gênero/ano/descrição/plataformas são importados; a imagem externa é usada como alternativa à capa própria. Imagens externas são limitadas ao domínio HTTPS `media.rawg.io`, não são baixadas nem redistribuídas pelo repositório. A interface mostra links de atribuição RAWG. Os dados podem estar em inglês; revise e traduza se desejar. Steam App ID continua opcional e manual, sem consulta a endpoints de lojas de planos comerciais. Sem chave, a importação informa a configuração pendente; o restante do CritPlay continua funcionando.
+Nome/gênero/ano/descrição/plataformas são importados; a imagem externa é usada como alternativa à capa própria. Imagens externas são limitadas ao domínio HTTPS `media.rawg.io`, não são baixadas nem redistribuídas pelo repositório. A interface mostra links de atribuição RAWG. Os dados podem estar em inglês; revise e traduza se desejar. Steam App ID continua opcional, com busca gratuita na Steam e revisão no editor. Sem chave, a importação informa a configuração pendente; o restante do CritPlay continua funcionando.
 
 ## Administrar contas e imagens
 
@@ -79,7 +79,7 @@ Em Administração, escolha 500, 1.000 ou 2.000 jogos e inicie a importação. �
 
 Os lotes procuram jogos populares nas famílias PC, PlayStation, Xbox e Nintendo, excluindo adições quando a fonte suporta esse filtro. Um ID RAWG existente não é importado de novo. Um título/ano com correspondência única em jogo editorial sem RAWG pode receber a associação sem sobrescrever seus textos, Steam ID, capa própria, resenhas ou listas. Novos registros têm gêneros mapeados para PT-BR; nomes oficiais são preservados e descrições permanecem no idioma da fonte, com aviso na interface. Não existe tradução automática paga ou inventada. Registros sem título, ano ou plataforma compatível são ignorados; descrições ausentes recebem texto neutro identificado como importação.
 
-O alvo é o número de jogos novos. Duplicatas/incompletos aparecem em contadores próprios; o lote pode terminar antes do alvo se a fonte acabar ou se atingir três vezes o alvo em verificações. Erros de quota/conexão pausam o processo, preservando os jogos gravados. As consultas são espaçadas; o operador deve acompanhar a cota mensal da chave. Os IDs do lote são verificados a cada retomada, pois a ordem do catálogo externo pode mudar. Steam App IDs continuam manuais, necessários para consultar preços de PC.
+O alvo é o número de jogos novos. Duplicatas/incompletos aparecem em contadores próprios; o lote pode terminar antes do alvo se a fonte acabar ou se atingir três vezes o alvo em verificações. Erros de quota/conexão pausam o processo, preservando os jogos gravados. As consultas são espaçadas; o operador deve acompanhar a cota mensal da chave. Os IDs do lote são verificados a cada retomada, pois a ordem do catálogo externo pode mudar. Steam App IDs são procurados automaticamente nos novos jogos de PC; IDs existentes são preservados. Associações incertas continuam sem ID.
 
 ### Bloqueios, denúncias e datas
 
@@ -89,3 +89,14 @@ Use **Denunciar perfil** ou **Denunciar resenha** para explicar o motivo. Admini
 
 No diário, **Comecei em** e **Terminei em** são opcionais. Fim exige início, não pode antecedê-lo e datas futuras são recusadas. Registros anteriores permanecem sem datas até você preenchê-las.
 
+
+## Steam App ID automático
+
+- **Novo lote RAWG:** procura o mesmo título na Steam antes de salvar cada jogo de PC. Indisponibilidade ou falta de correspondência não impede cadastrar o jogo sem ID.
+- **Importação individual:** ao revisar no editor, o campo vazio é preenchido quando houver resultado confirmado; salve para aplicar.
+- **Cadastro/edição manual:** botão **Buscar Steam App ID**, sem substituir valores já informados.
+- **Catálogo existente:** Administração → **Buscar IDs do catálogo**. Verifica sequencialmente jogos de PC sem ID e salva cada associação confirmada. Mantenha a página aberta; sair, parar ou perder acesso interrompe as próximas consultas. O que já foi salvo permanece; iniciar de novo ignora jogos com ID.
+
+Critério conservador: título igual, ignorando caixa, espaços repetidos e símbolos ™/®, um único resultado, e resposta de detalhes da Steam confirmando o mesmo App ID, nome e tipo “game”. DLCs, pacotes, trilhas sonoras com nomes diferentes e edições divergentes não são escolhidos. Não é garantia absoluta: homônimos e cadastro incorreto na fonte ainda exigem revisão do administrador.
+
+Não exige chave Steam adicional ou plano RAWG pago. Usa os endpoints públicos da loja `storesearch` e `appdetails`, sem contrato estável de API; mudanças podem interromper a descoberta. Chamadas têm timeout, espaçamento, cache de 24 horas e pausa de um minuto após falha. Quando a loja falha, a importação continua sem inventar IDs. IDs pertencentes a outro jogo são recusados, IDs existentes e capas próprias são preservados. Preços continuam vindo do GG.deals.

@@ -9,7 +9,7 @@ Esta ferramenta é local e não tem endpoint HTTP. Ela não inicia o servidor Ja
 5. Execute, pela raiz do projeto:
 
 ```sh
-java -jar target/critplay-0.5.1.jar --migrate-h2-to-postgres
+java -jar target/critplay-0.5.2.jar --migrate-h2-to-postgres
 ```
 
 A origem padrão é `jdbc:h2:file:./data/gameshelf`. Para uma cópia em outro local, configure `H2_SOURCE_URL` com uma URL `jdbc:h2:file:` sem parâmetros adicionais; usuário padrão `sa`, senha vazia. Origem deve estar parada, atualizada e existente. É aberta em modo somente leitura.

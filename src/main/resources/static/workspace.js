@@ -133,7 +133,7 @@ $('#change-password-form').addEventListener('submit',async e=>{
 });
 function openGameEditor(game) {
   if(state.addingGame)return;
-  metadataSelectedId=null;
+  resetSteamDraft();metadataSelectedId=null;
   state.editGameId=game?.id||null;state.gameCoverUrl=game?.coverUrl||null;$('#game-form').reset();
   $('#admin-title').textContent=game?'Editar jogo':'Adicionar um jogo';$('#game-submit').textContent=game?'Salvar alterações':'Adicionar ao catálogo';
   $('#game-title').value=game?.title||'';$('#game-genre').value=game?.genre||'';$('#game-year').value=game?.releaseYear||new Date().getFullYear();

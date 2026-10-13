@@ -27,16 +27,18 @@ public class ImportJobStore {
     @Transactional public void finish(long id,String message){db.update("UPDATE import_jobs SET status='COMPLETED',message=? WHERE id=? AND status='RUNNING'",message,id);}
     public static String genre(String value){return switch(value.toLowerCase(Locale.ROOT)){
         case "action"->"Ação";case "adventure"->"Aventura";case "strategy"->"Estratégia";case "shooter"->"Tiro";case "simulation"->"Simulação";case "puzzle"->"Quebra-cabeça";case "platformer"->"Plataforma";case "racing"->"Corrida";case "sports"->"Esportes";case "fighting"->"Luta";case "family"->"Família";case "board games"->"Tabuleiro";case "educational"->"Educativo";case "card"->"Cartas";case "role-playing games rpg","rpg"->"RPG";case "indie"->"Indie";case "casual"->"Casual";case "arcade"->"Arcade";default->"Outros";};}
-    @Transactional public void consume(ImportJob snapshot,MetadataGame metadata,int pageSize){
+    @Transactional public void consume(ImportJob snapshot,MetadataGame metadata,int pageSize){consume(snapshot,metadata,pageSize,null);}
+    @Transactional public void consume(ImportJob snapshot,MetadataGame metadata,int pageSize,Long steamId){
+        lock.acquire("media");if(steamId!=null && games.existsBySteamAppId(steamId))steamId=null;
         db.queryForList("SELECT id FROM import_jobs WHERE id=? FOR UPDATE",snapshot.id());var job=get(snapshot.id());
         if(!job.status().equals("RUNNING")||job.page()!=snapshot.page()||job.index()!=snapshot.index())return;
         String counter="skipped";
         if(metadata!=null&&games.findByRawgId(metadata.id()).isPresent())counter="existing_count";
         else if(metadata!=null&&metadata.title().length()>=2&&metadata.releaseYear()!=null&&!metadata.platforms().isEmpty()){
             var matches=games.findByTitleIgnoreCaseAndReleaseYearAndRawgIdIsNull(metadata.title(),metadata.releaseYear());
-            if(matches.size()==1){var game=matches.get(0);game.importMetadata(metadata.id(),metadata.slug(),metadata.coverUrl());games.save(game);counter="existing_count";}
+            if(matches.size()==1){var game=matches.get(0);game.importMetadata(metadata.id(),metadata.slug(),metadata.coverUrl());game.assignSteamAppId(steamId);games.save(game);counter="existing_count";}
             else {String description=metadata.description().length()>=20?metadata.description():"Metadados importados da RAWG. A fonte não forneceu uma descrição completa deste jogo.";
-                var game=catalog.create(new CreateGameRequest(metadata.title(),genre(metadata.genre()),metadata.platforms(),metadata.releaseYear(),null,description,null,null),job.owner());
+                var game=catalog.create(new CreateGameRequest(metadata.title(),genre(metadata.genre()),metadata.platforms(),metadata.releaseYear(),metadata.platforms().contains(Platform.PC)?steamId:null,description,null,null),job.owner());
                 game.importMetadata(metadata.id(),metadata.slug(),metadata.coverUrl());games.save(game);counter="added";}
         }
         int nextIndex=job.index()+1,nextPage=job.page();if(nextIndex>=pageSize){nextIndex=0;nextPage++;}

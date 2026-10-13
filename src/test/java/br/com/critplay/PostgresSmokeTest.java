@@ -59,7 +59,8 @@ class PostgresSmokeTest {
         blocks.change(user.username(),friend.username(),true);assertTrue(blocks.blocked(user.id(),friend.id()));
         assertFalse(social.friends(user.id(),friend.id()));blocks.change(user.username(),friend.username(),false);
         var job=imports.create(accounts.findByUsername("pg_admin").orElseThrow().getId(),500);
-        imports.consume(job,new br.com.critplay.metadata.MetadataGame(8899L,"pg-bulk","Importação PG","Adventure",Set.of(Platform.PC),2026,"Descrição fictícia de lote PostgreSQL.",null),40);
+        imports.consume(job,new br.com.critplay.metadata.MetadataGame(8899L,"pg-bulk","Importação PG","Adventure",Set.of(Platform.PC),2026,"Descrição fictícia de lote PostgreSQL.",null),40,8899456L);
+        assertEquals(8899456L,jdbc.queryForObject("SELECT steam_app_id FROM games WHERE rawg_id=8899",Long.class));
         assertEquals(1,imports.get(job.id()).added());imports.pause(job.id(),"Teste concluído");
     }
 }

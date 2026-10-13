@@ -10,6 +10,14 @@ Histórico das entregas do CritPlay. O [README](README.md) descreve a instalaç�
 - Guia de funcionalidades separado e histórico concentrado neste changelog.
 - Pesquisa ampliada para hospedagem gratuita, com limitações de persistência e operação.
 
+## 0.5.2
+
+- Busca gratuita de Steam App ID para jogos de PC, usando correspondência exata/única de título e confirmação de tipo/ID na Steam.
+- Novos lotes RAWG procuram IDs automaticamente; importações individuais preenchem o editor para revisão.
+- Botão de busca no editor e associação sequencial dos jogos já cadastrados, com progresso/parada.
+- Preservação de IDs existentes, proteção contra duplicatas e associação sem alterar diários, listas ou capas próprias.
+- Timeout, espaçamento, cache e pausa após indisponibilidade; a importação de metadados continua quando a Steam falha.
+
 ## 0.5.1
 
 - Importação RAWG em lotes de 500, 1.000 e 2.000 novos jogos, com progresso persistido, pausa/retomada, duplicatas e gêneros PT-BR.

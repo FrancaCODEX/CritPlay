@@ -39,6 +39,7 @@ public class Game {
     public String getPlatforms() { return platforms; }
     public int getReleaseYear() { return releaseYear; }
     public Long getSteamAppId() { return steamAppId; }
+    public void assignSteamAppId(Long id) { if(steamAppId==null && platforms.contains("PC")) steamAppId=id; }
     public String getDescription() { return description; }
     public String getCoverUrl() {return coverUrl;}
     public StoreLinks getStoreLinks() {return new StoreLinks(playstationUrl,xboxUrl,nintendoUrl);}

@@ -1,6 +1,6 @@
 'use strict';
 let metadataSelectedId=null,metadataSequence=0,metadataCatalogue=[],adminBusy=false,cleanupPreview=null;
-function resetAdmin(){metadataSelectedId=null;++metadataSequence;metadataCatalogue=[];cleanupPreview=null;$('#metadata-dialog').close();$('#metadata-results').replaceChildren();$('#metadata-preview').replaceChildren();$('#accounts-results').replaceChildren();$('#accounts-search-form').reset();$('#run-cleanup').disabled=true;$('#cleanup-message').textContent='';$('#accounts-message').textContent='';}
+function resetAdmin(){resetSteam();metadataSelectedId=null;++metadataSequence;metadataCatalogue=[];cleanupPreview=null;$('#metadata-dialog').close();$('#metadata-results').replaceChildren();$('#metadata-preview').replaceChildren();$('#accounts-results').replaceChildren();$('#accounts-search-form').reset();$('#run-cleanup').disabled=true;$('#cleanup-message').textContent='';$('#accounts-message').textContent='';}
 async function refreshAdmin(){
   loadJobs();loadReports();
   const sequence=++state.workspaceSequence;$('#accounts-message').textContent='Carregando contas…';
@@ -61,6 +61,7 @@ async function previewMetadata(id){
       $('#admin-title').textContent='Revisar importação da RAWG';$('#game-submit').textContent='Salvar importação';$('#game-title').value=game.title;$('#game-genre').value=game.genre||'';$('#game-year').value=game.releaseYear||'';$('#game-description').value=game.description||'';
       const labels={PC:'PC',PLAYSTATION:'PlayStation',XBOX:'Xbox',NINTENDO:'Nintendo'};
       $('#game-form').querySelectorAll('[name="game-platform"]').forEach(input=>input.checked=game.platforms.includes(input.value)||!!selected?.platforms.split(',').map(x=>x.trim()).includes(labels[input.value]));
+      if(!$('#game-steam-id').value && game.platforms.includes('PC'))resolveSteamDraft();
       $('#game-message').textContent='Metadados e imagem: RAWG. Revise os dados; informações ausentes devem ser preenchidas. A importação preserva o vínculo da fonte.';
     }));$('#metadata-preview').replaceChildren(preview);$('#metadata-message').textContent='Prévia pronta. Ainda não foi salvo no catálogo.';
   }catch(error){if(sequence===metadataSequence)$('#metadata-message').textContent=error.message;}

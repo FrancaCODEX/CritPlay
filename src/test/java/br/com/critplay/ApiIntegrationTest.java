@@ -27,6 +27,7 @@ class ApiIntegrationTest {
     @Autowired PasswordResetRepository resets;
     @Autowired br.com.critplay.metadata.ImportJobStore jobs;
     @MockitoBean ResetMailer mail;
+    @MockitoBean br.com.critplay.steam.SteamResolver steam;
     @MockitoBean br.com.critplay.metadata.RawgClient rawg;
     static final java.nio.file.Path MEDIA=tempMedia();
     static java.nio.file.Path tempMedia(){try{return java.nio.file.Files.createTempDirectory("critplay-api-media-");}catch(java.io.IOException e){throw new IllegalStateException(e);}}
@@ -451,6 +452,24 @@ class ApiIntegrationTest {
         assertEquals(403,administrator.send("POST","/api/admin/metadata/import",update,false,"application/json").statusCode());
     }
 
+    @Test void steamAssociationRequiresAdminPreservesIdAndRejectsDuplicate() throws Exception {
+        var administrator=admin();var member=user();
+        String title="Steam association fixture";
+        when(steam.resolve(title)).thenReturn(new br.com.critplay.steam.SteamResolver.Result("FOUND",777123L,"Encontrado"));
+        long id=mapper.readTree(administrator.send("POST","/api/games",newGameJson(title)).body()).path("id").asLong();
+        assertEquals(403,member.send("POST","/api/admin/steam/games/"+id,null).statusCode());
+        assertEquals(403,administrator.send("POST","/api/admin/steam/games/"+id,null,false,"application/json").statusCode());
+        assertEquals(200,member.send("PUT","/api/diary/"+id,"{\"status\":\"PLAYING\",\"review\":\"Resenha deve permanecer intacta.\"}").statusCode());
+        assertEquals("FOUND",mapper.readTree(administrator.send("POST","/api/admin/steam/games/"+id,null).body()).path("status").asText());
+        assertEquals(777123L,administrator.json("/api/games/"+id).path("steamAppId").asLong());
+        assertEquals("PRESERVED",mapper.readTree(administrator.send("POST","/api/admin/steam/games/"+id,null).body()).path("status").asText());
+        long other=mapper.readTree(administrator.send("POST","/api/games",newGameJson(title)).body()).path("id").asLong();
+        assertEquals("CONFLICT",mapper.readTree(administrator.send("POST","/api/admin/steam/games/"+other,null).body()).path("status").asText());
+        assertTrue(administrator.json("/api/games/"+other).path("steamAppId").isNull());
+        assertEquals("Resenha deve permanecer intacta.",member.json("/api/diary").get(0).path("review").asText());
+        verify(steam,times(2)).resolve(title);
+    }
+
     @Test void diaryDatesArePersistedAndInvalidOrderOrFutureAreRejected() throws Exception {
         var member=user();String body="{\"status\":\"COMPLETED\",\"startDate\":\"2026-01-01\",\"finishDate\":\"2026-02-01\"}";
         assertEquals(200,member.send("PUT","/api/diary/1",body).statusCode());assertEquals("2026-02-01",member.json("/api/diary").get(0).path("finishDate").asText());
@@ -488,7 +507,7 @@ class ApiIntegrationTest {
     @Test void bulkImportPersistsFiveHundredGamesAndResumeDoesNotDuplicate() throws Exception {
         long owner=users.findByUsername("test_admin").orElseThrow().getId();var job=jobs.create(owner,500);
         var first=new br.com.critplay.metadata.MetadataGame(900001L,"bulk-fixture-1","Bulk fixture 1","Adventure",Set.of(br.com.critplay.catalog.Platform.PC),2026,"Descrição fictícia para verificar importação em lote.",null);
-        jobs.consume(job,first,40);jobs.consume(jobs.get(job.id()),first,40);jobs.consume(jobs.get(job.id()),null,40);
+        jobs.consume(job,first,40,8899123L);jobs.consume(jobs.get(job.id()),first,40);jobs.consume(jobs.get(job.id()),null,40);
         jobs.pause(job.id(),"Pausa de teste");int saved=jobs.get(job.id()).processed();jobs.consume(jobs.get(job.id()),first,40);assertEquals(saved,jobs.get(job.id()).processed());jobs.resume(job.id(),owner);
         for(int i=2;i<=500;i++)jobs.consume(jobs.get(job.id()),new br.com.critplay.metadata.MetadataGame(900000L+i,"bulk-fixture-"+i,"Bulk fixture "+i,"Adventure",Set.of(br.com.critplay.catalog.Platform.PC),2026,"Descrição fictícia para verificar importação em lote.",null),40);
         var result=jobs.get(job.id());assertEquals(500,result.added());assertEquals(1,result.existing());assertEquals(1,result.skipped());assertEquals("COMPLETED",result.status());
