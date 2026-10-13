@@ -26,4 +26,5 @@ public class PriceService {
             return new Cached(quote, Instant.now().plus(ttl));
         }).quote();
     }
+    public void invalidate(Long gameId) {cache.remove(gameId);}
 }

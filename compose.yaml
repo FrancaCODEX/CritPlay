@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: gameshelf
+      POSTGRES_USER: ${DB_USERNAME:-gameshelf}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env antes de iniciar PostgreSQL}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - gameshelf-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d gameshelf"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  gameshelf-postgres:

@@ -12,6 +12,10 @@ public class AppUser {
     @Column(nullable = false) private String passwordHash;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private Role role;
     @Column(nullable = false) private Instant createdAt;
+    @Column(nullable = false, length = 500) private String bio = "";
+    @Column(unique = true, length = 254) private String email;
+    private String avatarUrl;
+    @Column(nullable = false) private int sessionVersion;
     protected AppUser() {}
     public AppUser(String username, String displayName, String passwordHash, Role role) {
         this.username = username; this.displayName = displayName;
@@ -22,4 +26,13 @@ public class AppUser {
     public String getDisplayName() { return displayName; }
     public String getPasswordHash() { return passwordHash; }
     public Role getRole() { return role; }
+    public String getBio() { return bio; }
+    public String getEmail() { return email; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public Instant getCreatedAt() { return createdAt; }
+    public int getSessionVersion() { return sessionVersion; }
+    public void updateProfile(String displayName, String bio, String email, String avatarUrl) {
+        this.displayName = displayName; this.bio = bio; this.email = email; this.avatarUrl = avatarUrl;
+    }
+    public void changePassword(String hash) { this.passwordHash = hash; this.sessionVersion++; }
 }

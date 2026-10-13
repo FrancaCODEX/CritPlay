@@ -14,6 +14,7 @@ public class DiaryEntry {
     private Integer rating;
     @Column(length = 2000) private String review;
     private boolean favorite;
+    @Column(nullable=false) private boolean wishlist;
     private Instant updatedAt;
     protected DiaryEntry() {}
     public DiaryEntry(Long userId, Long gameId, DiaryRequest request) {
@@ -23,6 +24,7 @@ public class DiaryEntry {
         this.status = request.status(); this.rating = request.rating();
         this.review = request.review() == null ? "" : request.review().strip();
         this.favorite = request.favorite(); this.updatedAt = Instant.now();
+        this.wishlist=request.wishlist()!=null?request.wishlist():request.status()==PlayStatus.WANT_TO_PLAY;
     }
     public void assignOwner(Long userId) { this.userId = userId; }
     @JsonIgnore public Long getUserId() { return userId; }
@@ -31,5 +33,6 @@ public class DiaryEntry {
     public Integer getRating() { return rating; }
     public String getReview() { return review; }
     public boolean isFavorite() { return favorite; }
+    public boolean isWishlist() {return wishlist;}
     public Instant getUpdatedAt() { return updatedAt; }
 }

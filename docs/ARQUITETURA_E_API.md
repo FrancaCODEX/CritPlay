@@ -1,4 +1,4 @@
-# Arquitetura e API — v0.2
+# Arquitetura e API — v0.3
 
 Monólito modular: interface estática e API REST no mesmo processo Java. Controller recebe HTTP; Service implementa regras; Repository usa JPA; Flyway versiona o banco. O frontend nunca decide permissões sozinho.
 
@@ -94,3 +94,33 @@ Estados: `LIVE`, `NOT_CONFIGURED`, `NOT_FOUND`, `RATE_LIMITED`, `UNAVAILABLE`, `
 V1 representa o catálogo/diário legado. Um banco novo executa V1 e V2; um banco da v0.1 sem histórico recebe baseline 1 e executa V2. V2 acrescenta usuários, IDs automáticos, proprietários, unicidade e FKs. JPA usa `validate`, sem alterar tabelas silenciosamente. Não edite uma migração já aplicada; crie V3 para uma futura mudança.
 
 Antes de produção: migrar para PostgreSQL com migrações próprias, normalizar gêneros/plataformas, paginar a busca no banco, adicionar limites de autenticação e orçamento de chamadas externas. O catálogo pequeno ainda é filtrado em memória.
+
+## Perfil, listas e imagens na v0.3
+
+| Método | Rota | Regra |
+| --- | --- | --- |
+| GET | `/api/profile` | Conta atual, dados privados, estatísticas e resenhas |
+| PUT | `/api/profile` | Editar nome/bio/avatar; mudança de e-mail exige senha atual |
+| PUT | `/api/profile/password` | Senha atual + nova; revoga todas as sessões |
+| GET/POST | `/api/lists` | Listar/criar coleções da conta |
+| GET/PUT/DELETE | `/api/lists/{id}` | Ler/editar/excluir somente a coleção própria |
+| PUT/DELETE | `/api/lists/{id}/games/{gameId}` | Adicionar/remover jogos da coleção própria |
+| POST | `/api/images` | Conta autenticada, multipart `file`, PNG/JPEG até 2 MB |
+| GET | `/media/{arquivo}` | Imagem pública pelo link, nome gerado pelo servidor |
+| PUT | `/api/games/{id}` | ADMIN; mantém ID e referências |
+| POST | `/api/games/import` | ADMIN; JSON `{games:[...]}`, lote de 1 a 50, transacional |
+| GET | `/api/auth/recovery-status` | Informa se SMTP de recuperação foi configurado |
+| POST | `/api/auth/forgot-password` | Usuário + e-mail; resposta genérica, requer CSRF |
+| POST | `/api/auth/reset-password` | Token + nova senha; token expirável/uso único, requer CSRF |
+
+PUT `/api/profile` aceita `displayName`, `bio`, `email`, `avatarUrl`, `currentPassword`; username/role não são editáveis. Avatar/coverUrl precisam corresponder a uma imagem enviada pela conta. ADMIN pode preservar a capa já existente de outro administrador ao editar um jogo, mas não atribuir arbitrariamente uma imagem de outra pessoa.
+
+`DiaryRequest` acrescenta `wishlist`, independente de status/favorite. Para clientes da v0.2 que omitem o campo, `WANT_TO_PLAY` implica wishlist=true; os outros status implicam false. A interface nova sempre envia o campo explícito. As resenhas permanecem no diário e são agregadas no Perfil, sem duplicar armazenamento.
+
+`CreateGameRequest` acrescenta `coverUrl` e `storeLinks:{playstation,xbox,nintendo}`. Links só aceitam HTTPS e os hosts oficiais definidos em `CatalogService`; não são consultados pelo servidor. Não há scraping, conversão de moedas ou garantia de menor preço para consoles.
+
+`game_lists` e `game_list_items` têm FKs e unicidade (lista,jogo). A propriedade é verificada antes de cada leitura/escrita; IDs de listas de outra pessoa retornam 404. Excluir uma lista não altera os diários. `password_reset_tokens` guarda apenas SHA-256 do token, validade e estado de uso. Consumo usa bloqueio pessimista para impedir reutilização concorrente.
+
+O principal da sessão inclui `sessionVersion`. Trocar/resetar senha incrementa essa versão no banco; um filtro invalida as sessões antigas na próxima requisição. Não se envia token de sessão para JavaScript nem se grava senha no navegador.
+
+V3 migra o H2 existente com perfil, wishlist, imagens, listas e tokens. PostgreSQL tem um esquema inicial próprio em `db/postgresql` e é um banco separado; não recebe os dados H2 automaticamente. Migrações já aplicadas V1/V2 permanecem inalteradas.

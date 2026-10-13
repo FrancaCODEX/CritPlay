@@ -11,6 +11,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
 
 @Configuration
 public class SecurityConfig {
@@ -19,18 +22,20 @@ public class SecurityConfig {
         return username -> {
             var user = repository.findByUsername(UserService.normalize(username))
                 .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas."));
-            return User.withUsername(user.getUsername()).password(user.getPasswordHash())
-                .roles(user.getRole().name()).build();
+            return new AccountPrincipal(user);
         };
     }
-    @Bean SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository users,
+        @Value("${app.security.rate-limit-enabled}") boolean rateLimit) throws Exception {
         // CSRF permanece ligado. O frontend obtém um token de sessão antes das escritas.
         http.authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/error", "/favicon.ico").permitAll()
+            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/error", "/favicon.ico").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/games", "/api/games/*", "/api/auth/csrf", "/api/auth/me").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/games").hasRole("ADMIN")
-            .requestMatchers("/api/diary/**", "/api/games/*/prices").authenticated()
+            .requestMatchers(HttpMethod.GET, "/api/auth/recovery-status", "/media/*").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/games", "/api/games/import").hasRole("ADMIN")
+            .requestMatchers(HttpMethod.PUT, "/api/games/*").hasRole("ADMIN")
+            .requestMatchers("/api/diary/**", "/api/games/*/prices", "/api/profile/**", "/api/profile", "/api/lists/**", "/api/lists", "/api/images").authenticated()
             .anyRequest().denyAll())
             .requestCache(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
@@ -43,6 +48,8 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request,response,exception) -> json(response,401,"Entre na sua conta para continuar."))
                 .accessDeniedHandler((request,response,exception) -> json(response,403,"Acesso negado ou token de segurança inválido.")));
+        http.addFilterAfter(new AccountSessionFilter(users),SecurityContextHolderFilter.class);
+        http.addFilterBefore(new AuthRateLimitFilter(rateLimit),CsrfFilter.class);
         return http.build();
     }
     private static void json(HttpServletResponse response, int status, String message) throws IOException {

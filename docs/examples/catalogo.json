@@ -1,0 +1,17 @@
+{
+  "games": [
+    {
+      "title": "Meu novo jogo",
+      "genre": "Aventura",
+      "platforms": [
+        "PC",
+        "PLAYSTATION"
+      ],
+      "releaseYear": 2026,
+      "steamAppId": null,
+      "description": "Substitua este exemplo pelos dados reais do jogo que deseja cadastrar.",
+      "coverUrl": null,
+      "storeLinks": null
+    }
+  ]
+}

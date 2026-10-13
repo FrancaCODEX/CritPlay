@@ -9,6 +9,10 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<?> unavailable(ServiceUnavailableException ex) { return ResponseEntity.status(503).body(Map.of("message",ex.getMessage())); }
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> uploadSize(Exception ex) { return ResponseEntity.status(413).body(Map.of("message","A imagem deve ter até 2 MB.")); }
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<?> conflict(ConflictException ex) {
         return ResponseEntity.status(409).body(Map.of("message", ex.getMessage()));

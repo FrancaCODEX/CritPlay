@@ -1,7 +1,7 @@
 'use strict';
 const $ = selector => document.querySelector(selector);
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
-const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false };
+const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, lists: [], profile: null, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
 async function csrfToken() {
   if (!state.csrf) {
     const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', cache: 'no-store' });
@@ -12,6 +12,7 @@ async function csrfToken() {
 }
 async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if(options.body instanceof FormData) delete headers['Content-Type'];
   if (!['GET', 'HEAD', 'OPTIONS'].includes(options.method || 'GET')) {
     const csrf = await csrfToken(); headers[csrf.headerName] = csrf.token;
   }
@@ -46,9 +47,14 @@ async function loadGames() {
   }
 }
 function render() {
+  const personal=['profile','lists'].includes(state.view);
+  $('.workspace:not(.personal-workspace)').hidden=personal;
+  $('.hero').hidden=personal;$('.journey').hidden=personal;
+  $('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
+  if(personal) {refreshWorkspace(state.view);return;}
   const games = state.games.filter(game => state.view === 'catalog' ||
-    (state.view === 'library' ? state.diary.has(game.id) : state.diary.get(game.id)?.favorite));
-  $('#section-title').textContent = { catalog: 'Explore o catálogo', library: 'Sua biblioteca de jogos', favorites: 'Seus jogos favoritos' }[state.view];
+    (state.view === 'library' ? state.diary.has(game.id) : state.view==='wishlist'?state.diary.get(game.id)?.wishlist:state.diary.get(game.id)?.favorite));
+  $('#section-title').textContent = { catalog: 'Explore o catálogo', library: 'Sua biblioteca de jogos', favorites: 'Seus jogos favoritos', wishlist:'Sua lista de desejos' }[state.view];
   $('#count').textContent = `${games.length} ${games.length === 1 ? 'jogo' : 'jogos'}`;
   $('#catalog-message').textContent = games.length ? '' : 'Nenhum jogo por aqui. Experimente outros filtros ou salve um jogo no seu diário.';
   $('#games').replaceChildren(...games.map(game => {
@@ -57,9 +63,9 @@ function render() {
     card.setAttribute('aria-label', 'Abrir ' + game.title);
     const cover = el('div', 'cover');
     const image = el('img'); image.alt = ''; image.loading = 'lazy';
-    if (game.steamAppId) image.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`;
+    if(game.coverUrl) image.src=game.coverUrl;else if (game.steamAppId) image.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`;
     image.addEventListener('error', () => { image.remove(); cover.prepend(el('span', 'image-fallback', game.title)); }, { once: true });
-    if (game.steamAppId) cover.append(image); else cover.append(el('span', 'image-fallback', game.title));
+    if (game.coverUrl||game.steamAppId) cover.append(image); else cover.append(el('span', 'image-fallback', game.title));
     if (entry) cover.append(el('span', 'badge', `${entry.favorite ? '♥ · ' : ''}${statusLabels[entry.status]}`));
     card.append(cover, el('h3', null, game.title), el('p', null, `${game.genre} · ${game.releaseYear}`));
     if (entry?.rating) card.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ' · Sua nota'));
@@ -70,9 +76,10 @@ function render() {
 function setView(view) {
   if (view !== 'catalog' && !state.user) { openAuth(); toast('Entre para acessar sua biblioteca.'); return; }
   state.view = view;
+  ++state.workspaceSequence;
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
-  render(); $('.workspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game) {
   if (state.saving) return;
@@ -82,7 +89,7 @@ async function openDetail(game) {
   $('#detail-title').textContent = game.title;
   $('#detail-meta').textContent = `${game.genre} · ${game.releaseYear} · ${game.platforms}`;
   $('#detail-description').textContent = game.description;
-  $('#detail-cover').style.backgroundImage = game.steamAppId
+  $('#detail-cover').style.backgroundImage = game.coverUrl?`linear-gradient(0deg,#101114,transparent),url("${game.coverUrl}")`:game.steamAppId
     ? `linear-gradient(0deg,#101114,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
     : 'linear-gradient(135deg,#314329,#242731)';
   $('#diary-form').hidden = !state.user;
@@ -91,6 +98,10 @@ async function openDetail(game) {
   $('#rating').value = entry?.rating || '';
   $('#review').value = entry?.review || '';
   $('#favorite').checked = !!entry?.favorite;
+  $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
+  $('#edit-game').hidden=state.user?.role!=='ADMIN';
+  $('#game-list-controls').hidden=!state.user;
+  updateListPicker();renderConsoleLinks(game);
   $('#remove-entry').hidden = !entry;
   $('#form-message').textContent = '';
   $('#prices').textContent = 'Consultando preços…';
@@ -132,7 +143,7 @@ $('#diary-form').addEventListener('submit', async event => {
   if (!state.user) { openAuth(); return; }
   const gameId = state.selected.id;
   const body = { status: $('#play-status').value, rating: $('#rating').value ? Number($('#rating').value) : null,
-    review: $('#review').value, favorite: $('#favorite').checked };
+    review: $('#review').value, favorite: $('#favorite').checked, wishlist:$('#diary-wishlist').checked };
   lockForm(true);
   try {
     const entry = await api(`/api/diary/${gameId}`, { method: 'PUT', body: JSON.stringify(body) });
@@ -166,9 +177,12 @@ function updateAccountUi() {
   $('#account-name').textContent = state.user ? state.user.displayName : '';
   $('#account-name').title = state.user?.role === 'ADMIN' ? 'Administrador' : 'Usuário';
   $('#add-game').hidden = state.user?.role !== 'ADMIN';
+  $('#import-games').hidden=state.user?.role!=='ADMIN';
 }
 function resetAccount() {
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
+  state.profile=null;state.lists=[];++state.workspaceSequence;
+  $('#profile-form').reset();$('#change-password-form').reset();$('#profile-reviews').replaceChildren();$('#profile-summary').replaceChildren();$('#profile-stats').replaceChildren();$('#lists-content').replaceChildren();
   ++state.detailSequence;
   $('#review').value = ''; $('#rating').value = ''; $('#favorite').checked = false;
   $('#detail').close(); $('#admin-dialog').close();
@@ -181,6 +195,7 @@ async function syncSession() {
   state.diary.clear();
   if (state.user) {
     const entries = await api('/api/diary'); state.diary = new Map(entries.map(entry => [entry.gameId, entry]));
+    state.lists=await api('/api/lists');
   }
   updateAccountUi();
 }
@@ -226,7 +241,7 @@ $('#auth-form').addEventListener('submit', async event => {
   finally { state.authenticating = false; controls.forEach(node => { node.disabled = false; }); }
 });
 $('#account-logout').addEventListener('click', async () => {
-  if (state.saving || state.addingGame) return;
+  if (state.saving || state.addingGame || workspaceBusy) return;
   $('#account-logout').disabled = true;
   try { await api('/api/auth/logout', { method: 'POST' }); resetAccount(); await csrfToken(); toast('Você saiu da sua conta.'); }
   catch (error) { toast(error.message); }
@@ -234,7 +249,7 @@ $('#account-logout').addEventListener('click', async () => {
 });
 $('#add-game').addEventListener('click', () => {
   if (state.user?.role !== 'ADMIN') return;
-  $('#game-form').reset(); $('#game-message').textContent = ''; $('#admin-dialog').showModal();
+  openGameEditor(null);
 });
 $('#close-admin').addEventListener('click', () => $('#admin-dialog').close());
 $('#admin-dialog').addEventListener('cancel', event => { if (state.addingGame) event.preventDefault(); });
@@ -247,13 +262,14 @@ $('#game-form').addEventListener('submit', async event => {
     $('#game-message').textContent = 'Informe um Steam App ID válido e selecione PC.'; return;
   }
   const body = { title: $('#game-title').value.trim(), genre: $('#game-genre').value.trim(), platforms,
-    releaseYear: Number($('#game-year').value), steamAppId, description: $('#game-description').value.trim() };
+    releaseYear: Number($('#game-year').value), steamAppId, description: $('#game-description').value.trim(),coverUrl:state.gameCoverUrl,
+    storeLinks:{playstation:$('#game-playstation').value.trim()||null,xbox:$('#game-xbox').value.trim()||null,nintendo:$('#game-nintendo').value.trim()||null} };
   state.addingGame = true;
   const controls = $('#admin-dialog').querySelectorAll('button,input,textarea'); controls.forEach(node => { node.disabled = true; });
   try {
-    await api('/api/games', { method: 'POST', body: JSON.stringify(body) });
+    await api(state.editGameId?`/api/games/${state.editGameId}`:'/api/games', { method: state.editGameId?'PUT':'POST', body: JSON.stringify(body) });
     $('#admin-dialog').close(); $('#search').value = ''; $('#platform').value = ''; $('#genre').value = '';
-    state.view = 'catalog'; setView('catalog'); await loadGames(); toast('Novo jogo adicionado ao catálogo.');
+    state.view = 'catalog'; setView('catalog'); await loadGames(); toast(state.editGameId?'Jogo atualizado.':'Novo jogo adicionado ao catálogo.');
   } catch (error) { $('#game-message').textContent = error.message; }
   finally { state.addingGame = false; controls.forEach(node => { node.disabled = false; }); }
 });

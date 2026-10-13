@@ -2,7 +2,7 @@
 
 Catálogo e diário de jogos em Java, com interface inspirada em serviços de streaming. Um projeto para aprender construindo, organizado por funcionalidades.
 
-## Versão 0.2
+## Versão 0.3
 
 - Catálogo inicial de 12 jogos, busca e filtros por gênero/plataforma.
 - Cadastro de jogos pela interface, restrito a administradores também na API.
@@ -12,7 +12,15 @@ Catálogo e diário de jogos em Java, com interface inspirada em serviços de st
 - Banco H2 em arquivo; migrações Flyway preservam os dados da versão 0.1.
 - Integração GG.deals para menores preços e históricos de PC, região Brasil.
 - Proteção CSRF para login, registro, logout e demais operações de escrita.
-- Maven Wrapper para Windows/Linux e workflow de testes no GitHub Actions.
+- Perfil editável com nome, bio, avatar, e-mail e suas resenhas.
+- Lista de desejos independente do progresso de jogo, além de favoritos.
+- Listas personalizadas particulares: criar, editar, excluir, adicionar/remover jogos.
+- Edição administrativa de jogos e importação JSON de até 50 jogos por lote.
+- Upload de avatar e capas próprias, validado e reencodificado pelo servidor.
+- Troca de senha com revogação das sessões; recuperação por e-mail com token único/expirável.
+- Links de lojas oficiais para consoles; sem anunciar preços automáticos inexistentes.
+- Profile PostgreSQL e Compose opcionais.
+- Maven Wrapper e CI com testes HTTP, PostgreSQL real e navegação no navegador.
 
 Java 17 ou 21, Spring Boot 3.5.16, Spring Data JPA, Spring Security, Flyway, Bean Validation, H2, HTML/CSS/JavaScript. O mesmo processo Java serve as telas e a API; não precisa de Node, Docker ou banco separado para começar.
 
@@ -91,7 +99,7 @@ Fontes: https://gg.deals/api/ e https://gg.deals/api/prices/.
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/gameshelf-0.2.0.jar
+java -jar target/gameshelf-0.3.0.jar
 ```
 
 No Linux, use `./mvnw`. Testes usam banco em memória e credenciais fictícias exclusivas de teste. Não fazem chamadas ao GG.deals e não modificam seu banco pessoal. Detalhes da verificação estão em `docs/VALIDACAO.md`.
@@ -121,8 +129,63 @@ Veja `docs/PRIMEIROS_PASSOS.md` para aprender o fluxo e `docs/ARQUITETURA_E_API.
 
 Siga `docs/GITHUB.md` para enviar ao repositório `FrancaCODEX/gameshelf`. Não envie `.env`, `data/` ou `target/`. O workflow testa e empacota; não publica um site. Apenas criar o repositório não coloca o Java em um servidor.
 
+## Atualizar da v0.2 pelo IntelliJ
+
+Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. A migração V3 acrescenta os dados novos sem apagar contas, jogos ou resenhas.
+
+As funcionalidades de perfil/listas/troca de senha funcionam com seu `.env` atual. Campos novos de SMTP e PostgreSQL são opcionais. Não substitua seu arquivo de credenciais por `.env.example` ao atualizar.
+
+## Usar as funcionalidades novas
+
+- **Perfil:** edite nome/bio/foto. Para acrescentar ou alterar o e-mail, informe sua senha atual. As resenhas aparecem abaixo, com botão para editar a experiência do jogo.
+- **Desejos:** marque a opção no diário. Ela não muda seu status de jogando/finalizado. Registros antigos com “Quero jogar” são incluídos automaticamente durante a migração.
+- **Listas:** crie coleções e adicione jogos no painel de detalhes. Cada conta só vê/edita suas listas; excluir uma lista não apaga notas ou resenhas.
+- **Editar jogo:** ADMIN abre o detalhe e clica em Editar jogo. O ID é preservado, mantendo as referências dos diários/listas. Steam App IDs repetidos são recusados.
+- **Importar:** ADMIN seleciona um JSON no formato de `docs/examples/catalogo.json`; de 1 a 50 jogos. O lote inteiro é validado e qualquer conflito cancela a gravação de todos. Não é importação automática de uma API externa.
+- **Imagens:** PNG/JPEG até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; perfis e resenhas continuam privados nesta versão.
+- **Consoles:** o administrador pode preencher links HTTPS de PlayStation, Xbox/Microsoft e Nintendo para o jogo. Eles abrem as lojas oficiais. A comparação automática do GG.deals permanece de PC.
+
+Não há exclusão de contas/jogos nem elevação de papéis pela interface. Também não há perfis públicos/sociais; **Perfil** é a página particular da conta atual.
+
+## Senhas e recuperação
+
+Em Perfil, **Trocar senha** exige a senha atual e confirmação da nova senha. Todas as sessões são revogadas e você entra novamente. O nome de usuário permanece fixo para manter a identificação do login.
+
+Para **Esqueci minha senha**, configure SMTP no `.env`:
+
+```properties
+RECOVERY_ENABLED=true
+APP_BASE_URL=http://localhost:8080
+MAIL_HOST=servidor.smtp.do.seu.provedor
+MAIL_PORT=587
+MAIL_USERNAME=usuario_do_smtp
+MAIL_PASSWORD=senha_de_aplicativo_do_smtp
+MAIL_FROM=endereco_remetente_autorizado
+MAIL_AUTH=true
+MAIL_STARTTLS=true
+```
+
+Use os dados reais do provedor; placeholders não enviam e-mails. Cadastre seu e-mail no perfil antes de precisar recuperar a conta. O pedido usa usuário + e-mail e devolve uma mensagem genérica; o link vale 15 minutos, é de uso único, fica como hash no banco e não é devolvido pela API nem impresso nos logs. Nova solicitação invalida os links anteriores, com intervalo de pelo menos 2 minutos. Não foi enviado e-mail real durante os testes: a entrega SMTP precisa ser validada com o seu provedor. Sem SMTP, a tela informa que a recuperação está desativada.
+
+Login (40), registro (20) e recuperação (5) têm limites por IP/rota a cada 10 minutos. A implementação é em memória de uma única instância e não confia em `X-Forwarded-For` para determinar o IP. Em um deploy com proxy/múltiplas instâncias, configurar identificação de IP confiável e limites compartilhados antes de liberar o público.
+
+## PostgreSQL opcional
+
+O modo padrão continua sendo H2, sem instalar nada. Para testar PostgreSQL local, coloque uma senha forte em `DB_PASSWORD` no `.env` e use:
+
+```powershell
+docker compose up -d postgres
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=postgres"
+```
+
+O Compose expõe o banco somente em `127.0.0.1:5432` e usa volume persistente. O profile usa `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` e migrações próprias em `db/postgresql/`. Ele cria um **banco separado**, não transfere automaticamente seus dados H2. Se quiser levar seus dados atuais, planejaremos essa transferência com backup; não apague `data/` e não use `docker compose down -v` para atualizar o banco.
+
+## Testes de interface
+
+Rodar a aplicação não requer Node. O teste opcional `tests/browser-smoke.cjs` usa Playwright e sobe seu próprio Java/banco temporário com contas fictícias. Ele cobre navegação, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa e isolamento entre contas. O CI instala as ferramentas e o executa após os testes Java. `PostgresSmokeTest` roda quando `TEST_POSTGRES=true` e há banco de testes configurado; localmente é ignorado quando essa configuração está ausente.
+
 ## Próximas etapas
 
-Edição de jogos, listas personalizadas, recuperação/troca de senha, importação de catálogo, PostgreSQL, imagens próprias e fontes de preço para consoles. A versão atual tem contas e controle de acesso, mas continua configurada para desenvolvimento local: o servidor escuta em `127.0.0.1`. Para hospedar, preparar HTTPS, `SESSION_COOKIE_SECURE=true`, banco e segredos do ambiente, limitação de tentativas de login/registro, backups e operação do serviço. Não é necessário publicar para continuar aprendendo.
+Perfis públicos com controles de privacidade, importação por API externa de metadados, remoção/limpeza de imagens sem uso, gerenciamento de contas/papéis e fonte licenciada/documentada para preços de consoles. Para hospedar: preparar HTTPS, `SESSION_COOKIE_SECURE=true`, banco, segredos, IP confiável, limites compartilhados, backups e operação. Não houve deploy desta aplicação Java; GitHub guarda o código.
 
-O catálogo inicial é editorial; não é uma importação automática. Capas vêm do CDN da Steam e fontes tipográficas de serviço externo, com alternativas locais. Não redistribuímos as imagens no repositório. Regras de layout responsivo existem, mas a revisão visual no navegador faz parte da próxima verificação.
+O catálogo inicial é editorial; não é uma importação automática. Capas vêm do CDN da Steam e fontes tipográficas de serviço externo, com alternativas locais. Não redistribuímos as imagens no repositório. A interface tem testes de navegação e verificação de overflow no viewport de celular. A revisão visual no seu IntelliJ/navegador continua sendo útil para ajustar preferências de layout.

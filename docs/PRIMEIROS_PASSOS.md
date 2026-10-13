@@ -1,46 +1,36 @@
-# Vamos construir juntos — v0.2
+# Evoluir o GameShelf juntos — v0.3
 
-## Rodar e testar o que você pediu
+## Atualizar no IntelliJ
 
-Configure `.env` conforme o README, entre como administrador e clique em **Adicionar jogo**. Faça um cadastro com Steam App ID correto se quiser usar capas e preços de PC. Depois saia, crie uma conta comum e confira que ela consegue usar o diário, mas não cadastrar jogos.
+Pare o Java, copie `data/` como backup e preserve `.env`. Atualize main em Git → Pull. Rode `GameShelfApplication` ou `.\mvnw.cmd spring-boot:run`. A migração V3 é automática; não apague o banco para ver as novidades.
 
-Abra um jogo, marque “Jogando”, dê uma nota e salve. Reinicie o Java e confira se o registro permanece. Uma segunda conta começa com um diário vazio.
+## Exercício de uso
 
-## Seu primeiro exercício
+1. Abra **Listas** e crie “Para jogar juntos”.
+2. No catálogo, abra um jogo e adicione-o à lista.
+3. Escreva uma resenha, dê nota e marque favorito/desejo.
+4. Em **Perfil**, confira as estatísticas e a resenha; edite nome/bio/foto.
+5. Como ADMIN, edite um jogo e confira que sua resenha continua associada.
+6. Saia e crie outra conta: ela começa sem listas e resenhas da primeira.
 
-Cadastre um jogo pela tela e acompanhe estas partes:
+## O que aprender no código
 
-1. `app.js`: o formulário monta o JSON e chama `POST /api/games` com o token CSRF.
-2. `SecurityConfig`: decide se a sessão é de ADMIN antes de deixar a requisição chegar ao controller.
-3. `CatalogController`: recebe o DTO e aplica validação.
-4. `CatalogService`: transforma plataformas e cria o objeto Game.
-5. `GameRepository`: o Spring Data grava o objeto; o banco gera seu ID.
-6. A resposta JSON volta para o navegador, que atualiza o catálogo.
+- `ProfileService`: combina conta + diário em uma resposta de perfil, sem expor senha.
+- `ListService`: verifica proprietário antes de cada operação.
+- `CatalogService.update`: mantém o ID do jogo e, portanto, os diários/listas associados.
+- `DiaryEntry.wishlist`: uma propriedade independente do progresso.
+- `ImageService`: valida os bytes, tamanho e dimensão de imagem; não confia na extensão informada.
+- `PasswordResetService`: gera token aleatório, guarda só hash e bloqueia a linha ao consumir.
+- `AccountSessionFilter`: revoga sessões antigas depois de trocar senha.
+- `V3__...sql`: evolui o banco sem descartar registros anteriores.
+- `workspace.js`: páginas de Perfil/Listas, upload, formulários e recuperação.
 
-Um controller corresponde à camada que você conhece no Laravel; o service organiza regras; o repository faz acesso aos dados. JPA não é idêntico ao Eloquent, mas a comparação ajuda a localizar responsabilidades.
+As responsabilidades correspondem a camadas que você já conhece do Laravel: controller recebe HTTP, service organiza regras e repository acessa dados. Ao modelar algo privado, obtenha sempre o proprietário da sessão, não do JSON enviado pelo cliente.
 
-## Entender o login
+## Seu próximo exercício sugerido
 
-Spring Security verifica a senha usando BCrypt e mantém a identidade em uma sessão. O navegador envia um cookie HttpOnly automaticamente. O papel ADMIN vem da conta no banco, nunca de um campo preenchido pelo usuário.
+Acrescentar data de início e fim à experiência de um jogo. Primeiro pense em como um usuário edita isso, depois crie uma migração V4, campos no DTO/entidade, validação (fim não pode anteceder início), formulário e um teste que preserve a data após atualização. Podemos revisar etapa por etapa.
 
-O cadastro comum aceita apenas nome de usuário, nome de exibição e senha. O administrador inicial é criado por configuração explícita do servidor. Não confunda usuário do GameShelf com conta do GitHub: são sistemas separados.
+## Depois
 
-## Entender o diário
-
-O controlador obtém a pessoa autenticada e passa seu ID ao serviço. O serviço busca sempre por usuário **e** jogo. Por isso duas pessoas podem avaliar o mesmo jogo sem compartilhar registros. Não confie num `userId` enviado pelo frontend para escolher o proprietário.
-
-## Próximas entregas
-
-| Etapa | O que vamos construir | O que você pratica |
-| --- | --- | --- |
-| Atual | Cadastro de jogos por ADMIN e contas com diário próprio | Spring Security, sessões, autorização e migrações |
-| Próxima | Edição de jogos e troca de senha | PUT, DTOs, formulários e verificação da senha atual |
-| Depois | Listas personalizadas e página de perfil | Relacionamentos e consultas |
-| Depois | PostgreSQL e Docker Compose | Ambientes, banco e infraestrutura |
-| Depois | Importação de catálogo | API externa, paginação e cache |
-| Depois | Alertas e novas fontes de preço | Jobs e adapters |
-| Depois | Hospedar o projeto | Deploy, HTTPS e operação |
-
-Faça uma etapa por vez. Seu próximo exercício pode ser criar a edição de um jogo usando o cadastro atual como referência. Podemos revisar juntos antes de ampliar.
-
-Ao pedir ajuda, envie o arquivo alterado ou o erro completo, sem incluir `.env` ou senhas. O projeto inclui exemplos de configuração sem credenciais reais.
+Perfil público com opção de privacidade, API de metadados do catálogo, limpeza de imagens sem referência e migração dos dados H2 para PostgreSQL. Recuperação real por e-mail depende do SMTP configurado; fontes automáticas de consoles dependem de uma API apropriada. Não publique o serviço Java antes de preparar HTTPS, segredos, limites compartilhados e backup.

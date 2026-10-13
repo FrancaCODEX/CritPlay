@@ -1,6 +1,10 @@
 package br.com.gameshelf;
 
 import br.com.gameshelf.users.*;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
+import java.time.Instant;
 import com.fasterxml.jackson.databind.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,12 +18,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:tests;DB_CLOSE_DELAY=-1", "ggdeals.api-key=",
-    "app.admin.username=test_admin", "app.admin.password=AdminTestPassword42!"
+    "app.security.rate-limit-enabled=false", "app.admin.username=test_admin", "app.admin.password=AdminTestPassword42!"
 })
 class ApiIntegrationTest {
     @LocalServerPort int port;
     @Autowired UserRepository users;
     @Autowired PasswordEncoder encoder;
+    @Autowired PasswordResetRepository resets;
+    @MockitoBean ResetMailer mail;
+    @BeforeEach void mailOff() { when(mail.enabled()).thenReturn(false); }
     final ObjectMapper mapper = new ObjectMapper();
     final String gameJson = """
         {"title":"Jogo de teste","genre":"Aventura","platforms":["PC","XBOX"],
@@ -55,6 +62,15 @@ class ApiIntegrationTest {
         JsonNode json(String path) throws Exception {
             var response=send("GET",path,null);assertEquals(200,response.statusCode());
             return mapper.readTree(response.body());
+        }
+        HttpResponse<String> upload(byte[] data,String filename,String mime) throws Exception {
+            String boundary="gameshelf-test-boundary";
+            var bytes=new java.io.ByteArrayOutputStream();
+            bytes.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"; filename=\""+filename+"\"\r\nContent-Type: "+mime+"\r\n\r\n").getBytes());
+            bytes.write(data);bytes.write(("\r\n--"+boundary+"--\r\n").getBytes());
+            return http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+"/api/images"))
+                .header("Content-Type","multipart/form-data; boundary="+boundary).header(csrfHeader,csrf)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(bytes.toByteArray())).build(),HttpResponse.BodyHandlers.ofString());
         }
         String sessionId() {
             return cookies.getCookieStore().getCookies().stream().filter(c->c.getName().equals("JSESSIONID"))
@@ -177,4 +193,142 @@ class ApiIntegrationTest {
         assertEquals(401,session.send("POST","/api/auth/login","username=test_admin&password=wrong",true,"application/x-www-form-urlencoded").statusCode());
         assertFalse(session.json("/api/auth/me").path("authenticated").asBoolean());
     }
+    String profileJson(String name,String email,String password,String avatar) throws Exception {
+        var data=new LinkedHashMap<String,Object>();data.put("displayName",name);data.put("bio","Gosto de RPGs e boas histórias.");
+        data.put("email",email);data.put("currentPassword",password);data.put("avatarUrl",avatar);return mapper.writeValueAsString(data);
+    }
+    String newGameJson(String title) throws Exception {
+        return mapper.writeValueAsString(Map.of("title",title,"genre","Aventura","platforms",List.of("PC","PLAYSTATION"),
+            "releaseYear",2026,"description","Descrição de teste para um jogo novo com vinte caracteres."));
+    }
+    String accountName(Session session) throws Exception {return session.json("/api/auth/me").path("user").path("username").asText();}
+    @Test void profileCanBeEditedAndShowsOwnReviews() throws Exception {
+        var first=user();var second=user();
+        assertEquals(200,first.send("PUT","/api/profile",profileJson("Novo nome",null,null,null)).statusCode());
+        assertEquals("Novo nome",first.json("/api/profile").path("user").path("displayName").asText());
+        assertEquals(200,first.send("PUT","/api/diary/1","{\"status\":\"COMPLETED\",\"rating\":5,\"review\":\"Minha resenha pessoal\",\"favorite\":true,\"wishlist\":true}").statusCode());
+        var profile=first.json("/api/profile");assertEquals(1,profile.path("reviews").size());
+        assertEquals("Minha resenha pessoal",profile.path("reviews").get(0).path("entry").path("review").asText());
+        assertEquals(1,profile.path("stats").path("wishlist").asInt());
+        assertEquals("COMPLETED",first.json("/api/diary").get(0).path("status").asText());
+        assertEquals(0,second.json("/api/profile").path("reviews").size());
+        assertFalse(profile.toString().contains("passwordHash"));
+    }
+    @Test void emailChangeRequiresPasswordAndProfileRejectsRole() throws Exception {
+        var session=user();String email=accountName(session)+"@example.test";
+        assertEquals(400,session.send("PUT","/api/profile",profileJson("Pessoa",email,null,null)).statusCode());
+        assertEquals(400,session.send("PUT","/api/profile",profileJson("Pessoa",email,"wrong",null)).statusCode());
+        assertEquals(200,session.send("PUT","/api/profile",profileJson("Pessoa",email,"UserTestPassword42!",null)).statusCode());
+        assertEquals(email,session.json("/api/profile").path("user").path("email").asText());
+        var account=users.findByUsername(accountName(session)).orElseThrow();
+        String token="b".repeat(43);resets.save(new PasswordResetToken(account.getId(),PasswordResetService.hash(token),Instant.now().plusSeconds(600)));
+        assertEquals(200,session.send("PUT","/api/profile",profileJson("Pessoa","new_"+email,"UserTestPassword42!",null)).statusCode());
+        assertEquals(400,session.send("POST","/api/auth/reset-password",mapper.writeValueAsString(Map.of("token",token,"newPassword","OtherPassword42!"))).statusCode());
+        assertEquals(400,session.send("PUT","/api/profile","{\"displayName\":\"Pessoa\",\"role\":\"ADMIN\"}").statusCode());
+    }
+    @Test void customListsHaveOwnershipCrudAndNoDuplicateGames() throws Exception {
+        var first=user();var second=user();
+        var created=first.send("POST","/api/lists","{\"name\":\"Para jogar juntos\",\"description\":\"Cooperativos\"}");assertEquals(201,created.statusCode());
+        long id=mapper.readTree(created.body()).path("id").asLong();
+        assertEquals(404,second.send("GET","/api/lists/"+id,null).statusCode());
+        assertEquals(404,second.send("PUT","/api/lists/"+id+"/games/1",null).statusCode());
+        assertEquals(404,second.send("DELETE","/api/lists/"+id,null).statusCode());
+        assertEquals(200,first.send("PUT","/api/lists/"+id+"/games/1",null).statusCode());
+        assertEquals(200,first.send("PUT","/api/lists/"+id+"/games/1",null).statusCode());
+        assertEquals(1,first.json("/api/lists/"+id).path("games").size());
+        assertEquals(200,first.send("PUT","/api/lists/"+id,"{\"name\":\"Novo nome\",\"description\":\"Nova descrição\"}").statusCode());
+        assertEquals("Novo nome",first.json("/api/lists/"+id).path("name").asText());
+        assertEquals(204,first.send("DELETE","/api/lists/"+id+"/games/1",null).statusCode());
+        assertEquals(0,first.json("/api/lists/"+id).path("games").size());
+        assertEquals(204,first.send("DELETE","/api/lists/"+id,null).statusCode());
+        assertEquals(0,first.json("/api/lists").size());
+    }
+    @Test void customListsRejectInvalidGamesAndForgery() throws Exception {
+        var session=user();
+        assertEquals(400,session.send("POST","/api/lists","{\"name\":\"Minha lista\",\"userId\":1}").statusCode());
+        assertEquals(400,session.send("POST","/api/lists","{\"name\":\"\"}").statusCode());
+        assertEquals(403,session.send("POST","/api/lists","{\"name\":\"Minha lista\"}",false,"application/json").statusCode());
+        var response=session.send("POST","/api/lists","{\"name\":\"Minha lista\"}");
+        long id=mapper.readTree(response.body()).path("id").asLong();
+        assertEquals(404,session.send("PUT","/api/lists/"+id+"/games/9999",null).statusCode());
+    }
+    @Test void editingGameIsAdminOnlyAndPreservesDiary() throws Exception {
+        var administrator=admin();var gamer=user();
+        long id=mapper.readTree(administrator.send("POST","/api/games",newGameJson("Jogo para editar")).body()).path("id").asLong();
+        assertEquals(200,gamer.send("PUT","/api/diary/"+id,"{\"status\":\"PLAYING\",\"review\":\"Continua salvo\"}").statusCode());
+        assertEquals(403,gamer.send("PUT","/api/games/"+id,newGameJson("Alteração indevida")).statusCode());
+        assertEquals(200,administrator.send("PUT","/api/games/"+id,newGameJson("Jogo editado")).statusCode());
+        assertEquals("Jogo editado",gamer.json("/api/games/"+id).path("title").asText());
+        assertEquals("Continua salvo",gamer.json("/api/diary").get(0).path("review").asText());
+    }
+    @Test void storeLinksMustMatchOfficialHostAndPlatform() throws Exception {
+        var administrator=admin();var base=mapper.readTree(newGameJson("Jogo com links"));
+        ((com.fasterxml.jackson.databind.node.ObjectNode)base).set("storeLinks",mapper.readTree("{\"playstation\":\"https://store.playstation.com/pt-br/product/example\"}"));
+        assertEquals(201,administrator.send("POST","/api/games",base.toString()).statusCode());
+        ((com.fasterxml.jackson.databind.node.ObjectNode)base).set("storeLinks",mapper.readTree("{\"playstation\":\"https://store.playstation.com.evil.test/game\"}"));
+        assertEquals(400,administrator.send("POST","/api/games",base.toString()).statusCode());
+        ((com.fasterxml.jackson.databind.node.ObjectNode)base).set("storeLinks",mapper.readTree("{\"xbox\":\"https://www.xbox.com/game\"}"));
+        assertEquals(400,administrator.send("POST","/api/games",base.toString()).statusCode());
+    }
+    @Test void catalogImportIsAdminOnlyAndAtomic() throws Exception {
+        var administrator=admin();var gamer=user();
+        String body="{\"games\":["+newGameJson("Importado um")+","+newGameJson("Importado dois")+"]}";
+        assertEquals(403,gamer.send("POST","/api/games/import",body).statusCode());
+        assertEquals(201,administrator.send("POST","/api/games/import",body).statusCode());
+        int before=administrator.json("/api/games").size();
+        var invalid=(com.fasterxml.jackson.databind.node.ObjectNode)mapper.readTree(newGameJson("Não deve ser importado"));
+        invalid.put("steamAppId",1245620); // Já existe no catálogo inicial.
+        String duplicate="{\"games\":["+newGameJson("Primeiro rollback")+","+invalid+"]}";
+        assertEquals(409,administrator.send("POST","/api/games/import",duplicate).statusCode());
+        assertEquals(before,administrator.json("/api/games").size());
+        assertEquals(400,administrator.send("POST","/api/games/import","{\"games\":[]}").statusCode());
+    }
+    @Test void avatarUploadChecksFileContentAndOwnership() throws Exception {
+        var first=user();var second=user();
+        var image=new java.awt.image.BufferedImage(10,10,java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var bytes=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(image,"png",bytes);
+        var upload=first.upload(bytes.toByteArray(),"avatar.png","image/png");assertEquals(200,upload.statusCode(),upload.body());
+        String url=mapper.readTree(upload.body()).path("url").asText();
+        assertEquals(200,first.send("PUT","/api/profile",profileJson("Pessoa",null,null,url)).statusCode());
+        assertEquals(url,first.json("/api/profile").path("user").path("avatarUrl").asText());
+        assertEquals(400,second.send("PUT","/api/profile",profileJson("Pessoa",null,null,url)).statusCode());
+        assertEquals(200,new Session().send("GET",url,null).statusCode());
+        assertEquals(400,first.upload("<svg><script>alert(1)</script></svg>".getBytes(),"avatar.png","image/png").statusCode());
+        assertEquals(400,first.send("PUT","/api/profile",profileJson("Pessoa",null,null,"/media/../../.env")).statusCode());
+    }
+    @Test void passwordChangeRevokesOtherSessionsAndRequiresCurrentPassword() throws Exception {
+        var first=user();String username=accountName(first);var other=new Session();other.login(username,"UserTestPassword42!");
+        assertEquals(400,first.send("PUT","/api/profile/password","{\"currentPassword\":\"wrong\",\"newPassword\":\"NewStrongPassword42!\"}").statusCode());
+        assertEquals(200,first.send("PUT","/api/profile/password","{\"currentPassword\":\"UserTestPassword42!\",\"newPassword\":\"NewStrongPassword42!\"}").statusCode());
+        assertEquals(401,other.send("GET","/api/diary",null).statusCode());
+        assertFalse(first.json("/api/auth/me").path("authenticated").asBoolean());
+        first.login(username,"NewStrongPassword42!");assertTrue(first.json("/api/auth/me").path("authenticated").asBoolean());
+    }
+    @Test void passwordRecoveryIsGenericSingleUseAndRevokesSessions() throws Exception {
+        when(mail.enabled()).thenReturn(true);
+        var session=user();String username=accountName(session),email=username+"@example.test";
+        assertEquals(200,session.send("PUT","/api/profile",profileJson("Pessoa",email,"UserTestPassword42!",null)).statusCode());
+        var anonymous=new Session();anonymous.refreshCsrf();
+        var unknown=anonymous.send("POST","/api/auth/forgot-password","{\"username\":\"unknown_person\",\"email\":\"unknown@example.test\"}");
+        var request=anonymous.send("POST","/api/auth/forgot-password",mapper.writeValueAsString(Map.of("username",username,"email",email)));
+        assertEquals(200,request.statusCode());assertEquals(unknown.body(),request.body());
+        var url=ArgumentCaptor.forClass(String.class);verify(mail).send(eq(email),url.capture());
+        String token=url.getValue().split("#reset=")[1];assertFalse(request.body().contains(token));
+        var saved=resets.findTopByUserIdOrderByIdDesc(users.findByUsername(username).orElseThrow().getId()).orElseThrow();
+        assertFalse(saved.isUsed());
+        var body=mapper.writeValueAsString(Map.of("token",token,"newPassword","RecoveredPassword42!"));
+        assertEquals(200,anonymous.send("POST","/api/auth/reset-password",body).statusCode());
+        assertEquals(400,anonymous.send("POST","/api/auth/reset-password",body).statusCode());
+        assertEquals(401,session.send("GET","/api/diary",null).statusCode());
+        session.login(username,"RecoveredPassword42!");assertTrue(session.json("/api/auth/me").path("authenticated").asBoolean());
+    }
+    @Test void recoveryRejectsExpiredTokenAndReportsDisabledMail() throws Exception {
+        var session=user();var account=users.findByUsername(accountName(session)).orElseThrow();
+        String token="a".repeat(43);resets.save(new PasswordResetToken(account.getId(),PasswordResetService.hash(token),Instant.now().minusSeconds(1)));
+        var anonymous=new Session();anonymous.refreshCsrf();
+        assertEquals(400,anonymous.send("POST","/api/auth/reset-password",mapper.writeValueAsString(Map.of("token",token,"newPassword","NewPasswordTest42!"))).statusCode());
+        assertFalse(anonymous.json("/api/auth/recovery-status").path("enabled").asBoolean());
+        assertEquals(503,anonymous.send("POST","/api/auth/forgot-password","{\"username\":\"some_user\",\"email\":\"user@example.test\"}").statusCode());
+    }
+
 }
