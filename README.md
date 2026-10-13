@@ -71,13 +71,13 @@ Sempre inicie pela raiz do projeto. O banco fica em `data/gameshelf.mv.db`. Não
 
 O bootstrap só cria um administrador quando usuário e senha foram configurados pelo responsável pelo servidor. Registro público sempre cria `USER`. O JSON de cadastro não aceita um campo `role` e não existe endpoint público para elevar permissões.
 
-Depois que a conta administrativa foi criada, mudar a senha no `.env` **não** altera a senha existente. Pode retirar as variáveis de bootstrap após a criação: a conta já está no banco. Recuperação/troca de senha e gerenciamento de papéis ainda serão uma próxima etapa; guarde a senha escolhida.
+Depois que a conta administrativa foi criada, mudar a senha no `.env` **não** altera a senha existente. Pode retirar as variáveis de bootstrap após a criação: a conta já está no banco. Para trocar a senha, use Perfil; recuperação por e-mail depende do SMTP configurado. Gerenciamento de papéis pela interface continua previsto para outra etapa.
 
 Se o nome configurado já pertence a um usuário comum, a aplicação recusa o bootstrap em vez de promovê-lo silenciosamente. Não configure mais de uma instância para migrar/inicializar o mesmo banco H2 ao mesmo tempo.
 
 ## Atualizar da v0.1
 
-Faça uma cópia de segurança de `data/` com o Java parado. Substitua o código, mantenha `data/` e configure o administrador antes de iniciar a v0.2.
+Faça uma cópia de segurança de `data/` com o Java parado. Substitua o código, mantenha `data/` e configure o administrador antes de iniciar a versão atual.
 
 Flyway identifica o esquema antigo, mantém os jogos e acrescenta usuários/proprietários ao diário. As notas antigas permanecem preservadas e são atribuídas ao administrador configurado. Sem administrador configurado, ficam sem proprietário e invisíveis para contas comuns; serão atribuídas quando o bootstrap administrativo for executado.
 
