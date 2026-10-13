@@ -31,6 +31,11 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#close-detail').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
     await page.locator('[data-view=profile]').click();await page.getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     await page.locator('#profile-name').fill('Jogador de teste');await page.locator('#profile-bio').fill('Minha coleção de histórias.');
+    await page.locator('.review-head .text-button').click();
+    const profileRefresh=page.waitForResponse(response=>response.url().endsWith('/api/profile')&&response.status()===200);
+    await page.locator('#diary-form button[type=submit]').click();await profileRefresh;
+    await page.waitForFunction(()=>document.querySelector('#form-message').textContent.includes('salva'));
+    await page.locator('#close-detail').click();assert.equal(await page.locator('#profile-name').inputValue(),'Jogador de teste','Editar uma resenha apagou o rascunho do perfil');
     await page.locator('#profile-avatar-file').setInputFiles({name:'avatar.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAFElEQVR4nGN0yzNiwA2Y8MiNYGkAIi0A+uIAXFoAAAAASUVORK5CYII=','base64')});
     await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('Foto enviada'));
     await page.locator('#profile-form button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('atualizado'));

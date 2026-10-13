@@ -33,8 +33,10 @@ function renderProfile(profile) {
   $('#profile-stats').replaceChildren(...Object.entries(labels).map(([key,label])=>{
     const node=el('div','stat');node.append(el('strong',null,String(profile.stats[key])),el('span',null,label));return node;
   }));
-  $('#profile-name').value=user.displayName;$('#profile-bio').value=user.bio||'';$('#profile-email').value=user.email||'';
-  $('#profile-current-password').value='';state.profileAvatarUrl=user.avatarUrl||null;
+  if(!state.profileDirty) {
+    $('#profile-name').value=user.displayName;$('#profile-bio').value=user.bio||'';$('#profile-email').value=user.email||'';
+    $('#profile-current-password').value='';state.profileAvatarUrl=user.avatarUrl||null;
+  }
   $('#review-count').textContent=profile.reviews.length+(profile.reviews.length===1?' resenha':' resenhas');
   const cards=profile.reviews.map(({game,entry})=>{
     const card=el('article','surface review-card');const head=el('div','review-head');
@@ -96,12 +98,13 @@ $('#add-to-list').addEventListener('click',async()=>{
   catch(error){toast(error.message);}finally{workspaceBusy=false;updateListPicker();}
 });
 $('#account-name').addEventListener('click',()=>setView('profile'));
+$('#profile-form').addEventListener('input',()=>{state.profileDirty=true;});
 $('#profile-form').addEventListener('submit',async e=>{
   e.preventDefault();if(workspaceBusy)return;workspaceBusy=true;busy($('#profile-form'),true);
   try {
     const profile=await api('/api/profile',{method:'PUT',body:JSON.stringify({displayName:$('#profile-name').value.trim(),bio:$('#profile-bio').value,
       email:$('#profile-email').value.trim()||null,avatarUrl:state.profileAvatarUrl,currentPassword:$('#profile-current-password').value||null})});
-    state.user.displayName=profile.user.displayName;state.profile=profile;renderProfile(profile);updateAccountUi();$('#profile-message').textContent='Perfil atualizado.';
+    state.user.displayName=profile.user.displayName;state.profile=profile;state.profileDirty=false;renderProfile(profile);updateAccountUi();$('#profile-message').textContent='Perfil atualizado.';
   }catch(error){$('#profile-message').textContent=error.message;}
   finally{workspaceBusy=false;busy($('#profile-form'),false);}
 });
@@ -112,11 +115,11 @@ async function uploadImage(file) {
 $('#profile-avatar-file').addEventListener('change',async()=>{
   if(workspaceBusy)return;const file=$('#profile-avatar-file').files[0];if(!file)return;
   workspaceBusy=true;busy($('#profile-form'),true);
-  try{state.profileAvatarUrl=(await uploadImage(file)).url;$('#profile-message').textContent='Foto enviada. Clique em Salvar perfil para aplicá-la.';}
+  try{state.profileAvatarUrl=(await uploadImage(file)).url;state.profileDirty=true;$('#profile-message').textContent='Foto enviada. Clique em Salvar perfil para aplicá-la.';}
   catch(error){$('#profile-message').textContent=error.message;}
   finally{workspaceBusy=false;busy($('#profile-form'),false);$('#profile-avatar-file').value='';}
 });
-$('#remove-avatar').addEventListener('click',()=>{state.profileAvatarUrl=null;$('#profile-message').textContent='Clique em Salvar perfil para remover a foto.';});
+$('#remove-avatar').addEventListener('click',()=>{state.profileAvatarUrl=null;state.profileDirty=true;$('#profile-message').textContent='Clique em Salvar perfil para remover a foto.';});
 $('#change-password-form').addEventListener('submit',async e=>{
   e.preventDefault();if(workspaceBusy)return;
   if($('#new-password').value!==$('#confirm-password').value){$('#change-password-message').textContent='As novas senhas não são iguais.';return;}

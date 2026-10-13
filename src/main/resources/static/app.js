@@ -1,7 +1,7 @@
 'use strict';
 const $ = selector => document.querySelector(selector);
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
-const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, lists: [], profile: null, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
+const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, lists: [], profile: null, profileDirty: false, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
 async function csrfToken() {
   if (!state.csrf) {
     const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', cache: 'no-store' });
@@ -181,7 +181,7 @@ function updateAccountUi() {
 }
 function resetAccount() {
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
-  state.profile=null;state.lists=[];++state.workspaceSequence;
+  state.profile=null;state.profileDirty=false;state.lists=[];++state.workspaceSequence;
   $('#profile-form').reset();$('#change-password-form').reset();$('#profile-reviews').replaceChildren();$('#profile-summary').replaceChildren();$('#profile-stats').replaceChildren();$('#lists-content').replaceChildren();
   ++state.detailSequence;
   $('#review').value = ''; $('#rating').value = ''; $('#favorite').checked = false;

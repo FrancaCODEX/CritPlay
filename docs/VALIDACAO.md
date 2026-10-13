@@ -1,7 +1,7 @@
 # Verificação da entrega v0.3 — 13/10/2026
 
 - Build `clean verify` em JDK 17.
-- 32 testes locais de Java passaram; o teste adicional PostgreSQL depende de TEST_POSTGRES=true e roda no CI com banco real.
+- 32 testes locais de Java passaram. No GitHub Actions, os 33 testes passaram, incluindo PostgreSQL 17 real, e a navegação em Chromium também foi aprovada.
 - API: autenticação, CSRF, rotação/invalidação de sessões, bloqueio de cadastro/edição/importação de jogos para usuário comum, validação e conflitos.
 - Perfil: edição, resenhas e estatísticas da conta correta, e-mail alterado somente com senha atual, sem campos de senha/role editáveis na resposta.
 - Listas: criar, editar, excluir, adicionar/remover, rejeitar acesso a lista de outra conta e impedir itens duplicados.
@@ -15,4 +15,4 @@
 - Telas do perfil inspecionadas em desktop e celular usando contas fictícias. As imagens da Steam e fontes externas foram bloqueadas nesse teste para eliminar dependência externa; as capas próprias foram servidas pela aplicação.
 - JavaScript passou em `node --check` e alterações passaram em `git diff --check`.
 
-O CI inclui PostgreSQL 17, `PostgresSmokeTest` e a mesma verificação de navegador. Não foi feita execução em Windows/IntelliJ, teste de envio SMTP real ou comparação automática de preços de consoles. PostgreSQL é opcional e não transfere dados H2 automaticamente. As limitações e configurações estão no README.
+O CI inclui PostgreSQL 17, `PostgresSmokeTest` e a mesma verificação de navegador. A execução da evolução inicial foi aprovada: https://github.com/FrancaCODEX/gameshelf/actions/runs/38436830188. Não foi feita execução em Windows/IntelliJ, teste de envio SMTP real ou comparação automática de preços de consoles. PostgreSQL é opcional e não transfere dados H2 automaticamente. As limitações e configurações estão no README.
