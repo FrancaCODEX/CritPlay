@@ -1,8 +1,8 @@
-# GameShelf
+# CritPlay
 
 Catálogo e diário de jogos em Java, com interface inspirada em serviços de streaming. Um projeto para aprender construindo, organizado por funcionalidades.
 
-## Versão 0.4
+## Versão 0.5 — CritPlay
 
 - Catálogo inicial de 12 jogos, busca e filtros por gênero/plataforma.
 - Cadastro de jogos pela interface, restrito a administradores também na API.
@@ -21,8 +21,10 @@ Catálogo e diário de jogos em Java, com interface inspirada em serviços de st
 - Tema roxo, com layout responsivo.
 - Comunidade: busca de usuários, seguir, pedidos de amizade, aceitar/recusar/cancelar/desfazer.
 - Perfis compartilháveis, com privacidade público/só amigos/privado e controle de descoberta.
-- Painel de preços separado por PC, PlayStation, Xbox e Nintendo, conforme o catálogo.
-- Adaptador PSprices B2B opcional para preços de consoles; exige chave/plano próprios e associação da edição pelo administrador.
+- Preços de PC via GG.deals; integração paga de consoles removida.
+- Importação de metadados RAWG: busca, prévia, revisão, criação ou atualização preservando IDs.
+- Administração de contas: papéis USER/ADMIN, suspensão/reativação e revogação de sessões.
+- Limpeza administrativa de uploads sem referência, com prévia e prazo mínimo de 24 horas.
 - Profile PostgreSQL e Compose opcionais.
 - Maven Wrapper e CI com testes HTTP, PostgreSQL real e navegação no navegador.
 
@@ -42,9 +44,9 @@ Copy-Item .env.example .env
 
 ```properties
 GGDEALS_API_KEY=cole_sua_chave_aqui
-GAMESHELF_ADMIN_USERNAME=franca
-GAMESHELF_ADMIN_PASSWORD=escolha_uma_senha_forte_e_unica
-GAMESHELF_ADMIN_NAME=Vinicius
+CRITPLAY_ADMIN_USERNAME=franca
+CRITPLAY_ADMIN_PASSWORD=escolha_uma_senha_forte_e_unica
+CRITPLAY_ADMIN_NAME=Vinicius
 SESSION_COOKIE_SECURE=false
 ```
 
@@ -77,7 +79,7 @@ O bootstrap só cria um administrador quando usuário e senha foram configurados
 
 Depois que a conta administrativa foi criada, mudar a senha no `.env` **não** altera a senha existente. Pode retirar as variáveis de bootstrap após a criação: a conta já está no banco. Para trocar a senha, use Perfil; recuperação por e-mail depende do SMTP configurado. Gerenciamento de papéis pela interface continua previsto para outra etapa.
 
-Se o nome configurado já pertence a um usuário comum, a aplicação recusa o bootstrap em vez de promovê-lo silenciosamente. Não configure mais de uma instância para migrar/inicializar o mesmo banco H2 ao mesmo tempo.
+Se o nome configurado já pertence a um usuário comum, o bootstrap preserva seu papel e não o promove. Isso também respeita um rebaixamento feito pela administração. Não configure mais de uma instância para migrar/inicializar o mesmo banco H2 ao mesmo tempo.
 
 ## Atualizar da v0.1
 
@@ -91,7 +93,7 @@ O cadastro de novos jogos usa IDs automáticos a partir de 1000, mantendo os IDs
 
 Gere a chave em https://gg.deals/api/ e preencha `GGDEALS_API_KEY`. A chave nunca é enviada para o navegador nem registrada nos logs do cliente. Para reduzir consultas, os preços ficam em cache em memória por 1 hora; falhas por 1 minuto. A consulta de preços exige login.
 
-O endpoint utilizado, `https://api.gg.deals/v1/prices/by-steam-app-id/`, com `region=br`, retorna menores preços de **PC** por categoria de loja, valores históricos, moeda e link para o GG.deals. Não fornece uma lista de cada loja nem comparação de preços de consoles. O painel separa plataformas disponíveis no catálogo; a seção de PC usa o GG.deals. O link leva à comparação detalhada no provedor.
+O endpoint utilizado, `https://api.gg.deals/v1/prices/by-steam-app-id/`, com `region=br`, retorna menores preços de **PC** por categoria de loja, valores históricos, moeda e link para o GG.deals. Não fornece uma lista de cada loja nem comparação de preços de consoles. O catálogo continua incluindo jogos de consoles; o painel de preços usa somente o GG.deals para PC. O link leva à comparação detalhada no provedor.
 
 Sem chave ou sem resposta válida, a interface mostra a indisponibilidade. Não há preços fictícios. Steam App ID é opcional para jogos sem versão Steam; nesses casos, o card mostra o título e o painel não tenta consultar esse endpoint.
 
@@ -103,7 +105,7 @@ Fontes: https://gg.deals/api/ e https://gg.deals/api/prices/.
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/gameshelf-0.4.0.jar
+java -jar target/critplay-0.5.0.jar
 ```
 
 No Linux, use `./mvnw`. Testes usam banco em memória e credenciais fictícias exclusivas de teste. Não fazem chamadas ao GG.deals e não modificam seu banco pessoal. Detalhes da verificação estão em `docs/VALIDACAO.md`.
@@ -111,8 +113,8 @@ No Linux, use `./mvnw`. Testes usam banco em memória e credenciais fictícias e
 ## Estrutura
 
 ```text
-src/main/java/br/com/gameshelf/
-  GameShelfApplication.java
+src/main/java/br/com/critplay/
+  CritPlayApplication.java
   catalog/    → jogos, busca e cadastro administrativo
   diary/      → registros limitados ao proprietário autenticado
   users/      → cadastro, conta e bootstrap administrativo
@@ -133,9 +135,9 @@ Veja `docs/PRIMEIROS_PASSOS.md` para aprender o fluxo e `docs/ARQUITETURA_E_API.
 
 Siga `docs/GITHUB.md` para enviar ao repositório `FrancaCODEX/gameshelf`. Não envie `.env`, `data/` ou `target/`. O workflow testa e empacota; não publica um site. Apenas criar o repositório não coloca o Java em um servidor.
 
-## Atualizar da v0.2/v0.3 pelo IntelliJ
+## Atualizar das versões anteriores pelo IntelliJ
 
-Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. As migrações V3/V4 acrescentam os dados novos sem apagar contas, jogos ou resenhas. Contas existentes permanecem privadas e fora da busca até seu dono ativar essas opções.
+Pare o Java. Faça backup de `data/` e preserve seu `.env`. Em **Git → Pull** atualize a branch main; no terminal, pode usar `git pull --ff-only`. Se você tiver mudanças locais, salve-as em um commit ou use o stash do IntelliJ antes de atualizar; não use reset forçado. Rode novamente. As migrações até V5 acrescentam os dados novos sem apagar contas, jogos ou resenhas. Contas existentes permanecem privadas e fora da busca até seu dono ativar essas opções.
 
 As funcionalidades de perfil/listas/troca de senha funcionam com seu `.env` atual. Campos novos de SMTP e PostgreSQL são opcionais. Não substitua seu arquivo de credenciais por `.env.example` ao atualizar.
 
@@ -147,9 +149,9 @@ As funcionalidades de perfil/listas/troca de senha funcionam com seu `.env` atua
 - **Editar jogo:** ADMIN abre o detalhe e clica em Editar jogo. O ID é preservado, mantendo as referências dos diários/listas. Steam App IDs repetidos são recusados.
 - **Importar:** ADMIN seleciona um JSON no formato de `docs/examples/catalogo.json`; de 1 a 50 jogos. O lote inteiro é validado e qualquer conflito cancela a gravação de todos. Não é importação automática de uma API externa.
 - **Imagens:** PNG/JPEG até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; a visibilidade do perfil/resenhas segue sua configuração de privacidade.
-- **Consoles:** links oficiais continuam disponíveis. A consulta de preços exige configurar o PSprices e associar a edição correta; veja abaixo.
+- **Consoles:** continuam no catálogo e podem ter links para lojas oficiais; não há consulta automática de preços de consoles.
 
-Não há exclusão de contas/jogos nem elevação de papéis pela interface. **Perfil** continua sendo sua área de edição; **Comunidade** permite encontrar e abrir perfis compartilhados.
+Contas podem ser suspensas/reativadas e seus papéis administrados; não há exclusão definitiva de contas/jogos pela interface. **Perfil** continua sendo sua área de edição; **Comunidade** permite encontrar e abrir perfis compartilhados.
 
 ## Senhas e recuperação
 
@@ -190,7 +192,7 @@ Rodar a aplicação não requer Node. O teste opcional `tests/browser-smoke.cjs`
 
 ## Próximas etapas
 
-Importação por API externa de metadados, remoção/limpeza de imagens sem uso e gerenciamento de contas/papéis. A parte social e o adaptador documentado para consoles entraram na v0.4; preços ao vivo de consoles dependem da contratação/configuração do provedor. Para hospedar: preparar HTTPS, `SESSION_COOKIE_SECURE=true`, banco, segredos, IP confiável, limites compartilhados, backups e operação. Não houve deploy desta aplicação Java; GitHub guarda o código.
+Metadados, limpeza de imagens e gestão de papéis entraram na v0.5. A integração paga de consoles foi removida. Próximos passos possíveis: moderação/bloqueios, datas de início/fim do diário e migração dos dados H2 para PostgreSQL. Para hospedar: preparar HTTPS, `SESSION_COOKIE_SECURE=true`, banco, segredos, IP confiável, limites compartilhados, backups e operação. Não houve deploy desta aplicação Java; GitHub guarda o código.
 
 O catálogo inicial é editorial; não é uma importação automática. Capas vêm do CDN da Steam e fontes tipográficas de serviço externo, com alternativas locais. Não redistribuímos as imagens no repositório. A interface tem testes de navegação e verificação de overflow no viewport de celular. A revisão visual no seu IntelliJ/navegador continua sendo útil para ajustar preferências de layout.
 
@@ -200,23 +202,31 @@ Em **Perfil → Privacidade e segurança**, escolha **Somente eu**, **Amigos ace
 
 **Seguir** é unilateral e não libera um perfil restrito a amigos. **Adicionar amigo** envia um pedido; só o destinatário pode aceitar ou recusar. O remetente pode cancelar e qualquer amigo pode desfazer a amizade. A aba Comunidade reúne os pedidos e suas conexões. Perfis públicos podem ser compartilhados pelo link `/#profile=nome_de_usuario`. Desativar a busca impede visitantes e desconhecidos de abrir o perfil; amigos aceitos continuam podendo acessá-lo conforme a visibilidade.
 
-## Preços de consoles: PSprices B2B
 
-Documentação oficial: https://psprices.com/b2b/docs/ e condições/planos: https://psprices.com/b2b/.
+## Nome e compatibilidade
 
-A chave do GG.deals é exclusiva daquela integração; ela não autentica no PSprices. A integração B2B do PSprices requer um plano próprio, com acesso à região escolhida. Não é necessário contratar para usar a parte social e o restante do projeto. Nenhuma compra ou assinatura foi feita durante o desenvolvimento.
+O projeto agora é **CritPlay**: Maven `br.com.critplay:critplay`, pacote Java `br.com.critplay` e classe principal `CritPlayApplication`. No IntelliJ, selecione essa classe caso sua configuração ainda aponte para a classe antiga. O endereço atual do repositório permanece `FrancaCODEX/gameshelf`.
 
-Para habilitar, acrescente ao seu `.env` local e reinicie o Java:
+Seu `.env` atual continua funcionando: as variáveis antigas `GAMESHELF_ADMIN_USERNAME`, `GAMESHELF_ADMIN_PASSWORD`, `GAMESHELF_ADMIN_NAME` e `GAMESHELF_MEDIA_DIRECTORY` são aceitas como alternativas às novas `CRITPLAY_*`. Não substitua suas credenciais. O arquivo H2 continua em `data/gameshelf.mv.db` para abrir o mesmo banco. PostgreSQL e seu volume também preservam os nomes anteriores. V5 H2 / V3 PostgreSQL removem apenas a tabela da antiga fonte paga de consoles e acrescentam os campos novos.
+
+## Importar metadados gratuitamente com RAWG
+
+Documentação/condições oficiais: https://rawg.io/apidocs. A RAWG tem plano gratuito para projetos pessoais, com chave própria, limite de consultas e atribuição obrigatória. Sua chave GG.deals não autentica nessa API.
+
+Acrescente ao seu `.env` e reinicie o Java:
 
 ```properties
-PSPRICES_API_KEY=sua_chave_psprices_b2b
-PSPRICES_REGION=br
+RAWG_API_KEY=sua_chave_rawg
 ```
 
-Com ADMIN, abra um jogo salvo e clique em **Associar preços de consoles**. Escolha a plataforma, busque pelo título e selecione a edição correspondente, conferindo geração/conteúdo. O servidor guarda o ID regional do produto e consulta `/api/b2b/games/verify/`, enviando a chave em `X-API-Key`. Não escolhe automaticamente o primeiro resultado por título. A chave fica no servidor.
+Como ADMIN, clique em **Buscar na RAWG**, busque o título, abra a prévia e escolha **Criar um novo jogo** ou **Atualizar** um existente. Clique em **Revisar no editor**, confira título, gênero, plataformas, ano e descrição, preencha dados ausentes e salve. Nada é persistido só por abrir a prévia. Atualizar mantém ID, diários e listas; o editor preserva capa própria, Steam App ID e links existentes. Um ID RAWG só pode pertencer a um jogo; uma associação existente a outro ID não é substituída silenciosamente.
 
-São exibidos preço atual, moeda, edição, desconto e preço anterior quando o provedor os fornece, com atribuição **Powered by PSprices** e link oficial. O adaptador valida plataforma, região e compra direta; produtos incompatíveis, condicionados a outra compra ou sem preço não viram uma oferta válida. Cache de preços válidos: até 1 hora; falhas: 1 minuto. Sem chave ou sem associação, o painel informa a situação e mantém links de lojas preenchidos pelo administrador. Somente plataformas cadastradas no jogo aparecem.
+Nome/gênero/ano/descrição/plataformas são importados; a imagem externa é usada como alternativa à capa própria. Imagens externas são limitadas ao domínio HTTPS `media.rawg.io`, não são baixadas nem redistribuídas pelo repositório. A interface mostra links de atribuição RAWG. Os dados podem estar em inglês; revise e traduza se desejar. Steam App ID continua opcional e manual, sem consulta a endpoints de lojas de planos comerciais. Sem chave, a importação informa a configuração pendente; o restante do CritPlay continua funcionando.
 
-Não há scraping, conversão cambial nem garantia de menor preço entre lojas de consoles. A oferta de console corresponde à edição associada e à região configurada. PC mantém menores preços por categoria e históricos do GG.deals. PSprices documenta PS5/PS4/PS3/PSVita/PSP, Xbox One/360, Switch/Switch 2/Wii U/3DS; a disponibilidade de uma edição depende do catálogo regional do provedor. Se o catálogo não separar uma versão de geração mais nova, revise a compatibilidade na loja.
+## Administrar contas e imagens
 
-Respeite limites, atribuição e condições do provedor, inclusive restrições de revenda dos dados e de serviços concorrentes. As consultas reais do PSprices ainda não foram verificadas com uma chave licenciada; os testes usam respostas fictícias conforme o contrato documentado.
+**Administração → Contas e permissões:** busque por nome/@usuário, escolha USER/ADMIN e conta ativa/suspensa, e confirme **Salvar permissões**. A API só aceita administradores ativos. Alterações encerram sessões existentes e revogam tokens de recuperação. Contas suspensas não entram, não recuperam senha e não aparecem na busca pública. Reativar não reabre sessões antigas. Você não pode remover seu próprio acesso administrativo; sempre fica pelo menos um ADMIN ativo. Mudanças ficam registradas na tabela `account_audit`, sem senhas/e-mails. Não é exclusão definitiva da conta.
+
+**Administração → Imagens sem uso:** examine a prévia e confirme a exclusão. Só nomes de uploads gerados pelo servidor, arquivos regulares sem referência em avatar/capa e com mais de 24 horas podem ser removidos. Arquivos recentes, vinculados, desconhecidos e links simbólicos são preservados. A execução recalcula as referências sob uma trava de banco compartilhada com as gravações de capas/avatares; uma imagem vinculada depois da prévia não é excluída. Até 1.000 imagens por execução. Nenhuma limpeza ocorre automaticamente.
+
+As entidades de usuário e jogo usam versionamento otimista para rejeitar atualizações concorrentes que poderiam sobrescrever alterações de papel ou metadados. Os dados H2/PostgreSQL e `data/uploads` precisam continuar incluídos em backups. Veja [Operação](docs/OPERACAO.md) para a preparação de hospedagem; esta entrega não fez deploy.

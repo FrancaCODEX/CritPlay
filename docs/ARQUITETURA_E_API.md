@@ -1,4 +1,4 @@
-# Arquitetura e API — v0.4
+# Arquitetura e API — v0.5
 
 Monólito modular: interface estática e API REST no mesmo processo Java. Controller recebe HTTP; Service implementa regras; Repository usa JPA; Flyway versiona o banco. O frontend nunca decide permissões sozinho.
 
@@ -125,22 +125,25 @@ O principal da sessão inclui `sessionVersion`. Trocar/resetar senha incrementa 
 
 V3 migra o H2 existente com perfil, wishlist, imagens, listas e tokens. PostgreSQL tem um esquema inicial próprio em `db/postgresql` e é um banco separado; não recebe os dados H2 automaticamente. Migrações já aplicadas V1/V2 permanecem inalteradas.
 
-## Social e preços por plataforma na v0.4
+## Social e administração na v0.5
 
-| Método | Rota | Acesso e função |
+A API social permanece: GET `/api/people?q=nome`, GET `/api/people/{username}`, GET `/api/social`, PUT `/api/profile/privacy`, PUT/DELETE `/api/people/{username}/follow`, PUT `/api/people/{username}/friendship`. A autorização de visibilidade é aplicada em cada leitura. Suspensão esconde o perfil e bloqueia conexões novas; relações existentes podem ser removidas.
+
+| Método | Rota | Função (ADMIN) |
 | --- | --- | --- |
-| GET | `/api/people?q=nome` | Autenticado; busca literal, mínimo 2 caracteres, até 30 perfis descobríveis |
-| GET | `/api/people/{username}` | Visitante ou autenticado; aplica descoberta/visibilidade; nunca retorna e-mail |
-| GET | `/api/social` | Conexões e pedidos da conta atual |
-| PUT | `/api/profile/privacy` | Própria conta; `{visibility:PUBLIC/FRIENDS/PRIVATE,discoverable:true/false}` |
-| PUT / DELETE | `/api/people/{username}/follow` | Seguir/deixar de seguir, idempotente |
-| PUT | `/api/people/{username}/friendship` | `{action:REQUEST/ACCEPT/REJECT/CANCEL/REMOVE}` |
-| GET | `/api/games/{id}/prices/platforms` | Autenticado; array de cotações para plataformas presentes no catálogo |
-| GET / PUT | `/api/admin/games/{id}/price-sources` | ADMIN; consulta/configura `{sources:{PLAYSTATION:123,XBOX:456}}` |
-| GET | `/api/admin/console-search?q=titulo&platform=XBOX` | ADMIN; busca edições no PSprices |
+| GET | `/api/admin/accounts?q=nome` | Até 50 contas; identidade, papel e estado; sem e-mail/senha |
+| PUT | `/api/admin/accounts/{id}` | `{role:"USER"/"ADMIN",enabled:true/false}` |
+| GET | `/api/admin/images/cleanup` | Prévia: count, bytes, graceHours, limit |
+| POST | `/api/admin/images/cleanup` | `{confirm:true}`; recalcula e exclui elegíveis |
+| GET | `/api/admin/metadata/status` | Configuração RAWG, sem chave |
+| GET | `/api/admin/metadata/search?q=titulo` | Busca de até 10 jogos na RAWG |
+| GET | `/api/admin/metadata/{id}` | Prévia completa; cache de 10 minutos, até 200 registros |
+| POST | `/api/admin/metadata/import` | `{rawgId:123,targetGameId:null,game:{...CreateGameRequest}}` |
 
-O endpoint anterior `/api/games/{id}/prices` continua retornando apenas a cotação PC para compatibilidade. Os preços de console acrescentam `region`, `originalPrice`, `discountPercent`, `edition` e `storeUrl`; `NOT_MAPPED` indica chave configurada sem uma edição associada. Preços não são persistidos no banco.
+Todas as escritas exigem CSRF. `targetGameId` ausente cria um jogo; presente atualiza mantendo referências. Jogos expõem `rawgId`, `metadataCoverUrl` e `metadataSourceUrl`; a imagem do provedor não substitui a capa própria. Chave RAWG permanece no servidor e nunca aparece nas mensagens/logs do cliente.
 
-H2: V4. PostgreSQL: V2, sem alterar migrações já aplicadas. Novas tabelas `user_follows`, `friendships`, `game_console_sources`. O par de amizade tem IDs ordenados e chave única; operações sociais travam os dois usuários em ordem consistente para evitar pedidos duplicados/recíprocos concorrentes. Seguir é independente da amizade. Privacidade é avaliada em cada consulta, sem cache de perfis.
+Preços permanecem em GET `/api/games/{id}/prices` para PC. As rotas de preços por plataforma/associação/busca de consoles foram removidas. V5 H2 / V3 PostgreSQL eliminam `game_console_sources` e acrescentam metadados, estado de conta, versões das entidades, `account_audit` e `operation_locks`. Migrações anteriores mantêm seus checksums.
 
-Perfis autorizados retornam bio, estatísticas e resenhas sanitizadas, sem a entidade completa do usuário/diário. Pedidos só podem ser aceitos/recusados pelo destinatário. Não há compartilhamento de listas personalizadas nesta versão. IDs de fontes são validados quanto à plataforma cadastrada; a resposta do provedor é validada novamente antes de exibir o preço.
+`AccountAdminService` trava a operação administrativa até o commit, preserva um administrador ativo, impede auto-rebaixamento/suspensão e incrementa `sessionVersion`. `AccountPrincipal` respeita `enabled` no login; `AccountSessionFilter` verifica estado/versão nas sessões existentes. A recuperação de senha também recusa contas suspensas. `@Version` em usuários/jogos evita sobrescritas concorrentes.
+
+Limpeza de imagens mantém a trava `media` até o commit; criação/edição de jogos e atualização de perfis obtêm a mesma trava antes de alterar referências. A prévia não decide exclusões: referências e idade são verificadas novamente na execução. Uploads recentes ficam protegidos por 24 horas.

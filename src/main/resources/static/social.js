@@ -1,6 +1,6 @@
 'use strict';
 let privacyDirty=false;
-let publicUsername=null,publicSequence=0,socialBusy=false,consoleSources={},consoleGameId=null,consoleSequence=0;
+let publicUsername=null,publicSequence=0,socialBusy=false;
 const visibilityLabels={PUBLIC:'Público',FRIENDS:'Só amigos',PRIVATE:'Privado'};
 function identityCard(user) {
   const card=button('','surface person-card',()=>openPublicProfile(user.username));
@@ -8,9 +8,9 @@ function identityCard(user) {
   const info=el('div');info.append(el('strong',null,user.displayName),el('p','muted','@'+user.username),el('p','price-note',visibilityLabels[user.visibility]));card.append(avatar,info);return card;
 }
 function resetSocial() {
-  privacyDirty=false;++publicSequence;++consoleSequence;publicUsername=null;consoleGameId=null;consoleSources={};
-  $('#public-profile-dialog').close();$('#console-source-dialog').close();
-  for(const id of ['people-results','social-connections','public-profile-content','console-candidates'])$('#'+id).replaceChildren();
+  privacyDirty=false;++publicSequence;publicUsername=null;
+  $('#public-profile-dialog').close();
+  for(const id of ['people-results','social-connections','public-profile-content'])$('#'+id).replaceChildren();
   $('#people-search-form').reset();$('#privacy-form').reset();$('#privacy-message').textContent='';$('#people-message').textContent='';
 }
 function renderPrivacy(user){if(privacyDirty)return;$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;}
@@ -87,32 +87,5 @@ async function openPublicProfile(username){
     $('#public-profile-message').textContent='';
   }catch(error){if(sequence===publicSequence)$('#public-profile-message').textContent=error.message;}
 }
-async function openConsoleSources(){
-  const game=state.selected;if(!game||state.user?.role!=='ADMIN')return;consoleGameId=game.id;consoleSources={};const sequence=++consoleSequence;
-  $('#detail').close();$('#console-source-query').value=game.title;$('#console-source-message').textContent='Carregando associações…';$('#console-candidates').replaceChildren();
-  const labels={PLAYSTATION:'PlayStation',XBOX:'Xbox',NINTENDO:'Nintendo'};
-  $('#console-source-platform').replaceChildren(...Object.entries(labels).filter(([,label])=>game.platforms.split(',').map(x=>x.trim()).includes(label)).map(([code,label])=>{const option=el('option',null,label);option.value=code;return option;}));
-  $('#console-source-dialog').showModal();busy($('#console-search-form'),true);
-  try{const data=await api(`/api/admin/games/${game.id}/price-sources`);if(sequence!==consoleSequence)return;consoleSources=data.sources;renderConsoleMappings();$('#console-source-message').textContent=data.configured?'Busque e selecione a edição exata.':'Configure PSPRICES_API_KEY no .env para consultar esta fonte.';}
-  catch(error){$('#console-source-message').textContent=error.message;}finally{busy($('#console-search-form'),false);if(!$('#console-source-platform').options.length)busy($('#console-search-form'),true);}
-}
-function renderConsoleMappings(){$('#console-mappings').textContent=Object.entries(consoleSources).map(([platform,id])=>`${platform}: ${id}`).join(' · ')||'Nenhuma edição associada.';}
-$('#configure-console-prices').addEventListener('click',openConsoleSources);
-$('#close-console-source').addEventListener('click',()=>{if(!socialBusy){++consoleSequence;$('#console-source-dialog').close();}});
-$('#console-source-dialog').addEventListener('cancel',event=>{if(socialBusy)event.preventDefault();else ++consoleSequence;});
-async function saveConsoleSource(id){
-  if(socialBusy)return;socialBusy=true;busy($('#console-search-form'),true);const platform=$('#console-source-platform').value;
-  const sources={...consoleSources};if(id)sources[platform]=id;else delete sources[platform];
-  try{const data=await api(`/api/admin/games/${consoleGameId}/price-sources`,{method:'PUT',body:JSON.stringify({sources})});consoleSources=data.sources;renderConsoleMappings();$('#console-source-message').textContent='Associação salva.';$('#console-candidates').replaceChildren();}
-  catch(error){$('#console-source-message').textContent=error.message;}finally{socialBusy=false;busy($('#console-search-form'),false);}
-}
-$('#clear-console-source').addEventListener('click',()=>saveConsoleSource(null));
-$('#console-search-form').addEventListener('submit',async event=>{
-  event.preventDefault();if(socialBusy)return;socialBusy=true;busy($('#console-search-form'),true);const sequence=++consoleSequence;
-  $('#console-source-message').textContent='Buscando edições…';$('#console-candidates').replaceChildren();
-  try{const data=await api('/api/admin/console-search?'+new URLSearchParams({q:$('#console-source-query').value,platform:$('#console-source-platform').value}));if(sequence!==consoleSequence)return;
-    $('#console-candidates').replaceChildren(...data.map(item=>{const node=button(item.name+' · '+(item.edition||'Edição não informada')+' · '+item.platforms.join(', '),'secondary',()=>saveConsoleSource(item.id));return node;}));$('#console-source-message').textContent=data.length?'Selecione a edição que corresponde a este jogo.':'Nenhuma edição encontrada nesta região.';
-  }catch(error){$('#console-source-message').textContent=error.message;}finally{socialBusy=false;busy($('#console-search-form'),false);}
-});
 function openSharedProfile(){const match=location.hash.match(/^#profile=([a-zA-Z0-9_.-]{3,30})$/);if(match)openPublicProfile(match[1]);}
 window.addEventListener('hashchange',openSharedProfile);openSharedProfile();

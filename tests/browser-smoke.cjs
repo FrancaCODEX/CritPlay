@@ -1,14 +1,14 @@
-// Node/Playwright são necessários só para esta verificação, não para usar o GameShelf.
+// Node/Playwright são necessários só para esta verificação, não para usar o CritPlay.
 const {chromium}=require('playwright');
 const {spawn}=require('node:child_process');
 const fs=require('node:fs');const os=require('node:os');const path=require('node:path');const net=require('node:net');const assert=require('node:assert/strict');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port(){const s=net.createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 (async()=>{
-  const work=fs.mkdtempSync(path.join(os.tmpdir(),'gameshelf-browser-'));const serverPort=await port();const base=`http://127.0.0.1:${serverPort}`;
-  const jar=path.resolve(__dirname,'../target/gameshelf-0.4.0.jar');
+  const work=fs.mkdtempSync(path.join(os.tmpdir(),'critplay-browser-'));const serverPort=await port();const base=`http://127.0.0.1:${serverPort}`;
+  const jar=path.resolve(__dirname,'../target/critplay-0.5.0.jar');
   const app=spawn('java',['-jar',jar,`--server.port=${serverPort}`,'--app.admin.username=ui_admin','--app.admin.password=BrowserAdminPassword42!',
-    '--ggdeals.api-key=','--psprices.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
+    '--ggdeals.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
   let browser;
   try {
@@ -20,7 +20,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base);await page.locator('.card').first().waitFor();
     await page.locator('#account-login').click();await page.locator('#username').fill('ui_admin');await page.locator('#password').fill('BrowserAdminPassword42!');await page.locator('#auth-submit').click();
-    await page.locator('#add-game').waitFor({state:'visible'});
+    await page.locator('#add-game').waitFor({state:'visible'});assert((await page.title()).startsWith('CritPlay'));assert.equal(await page.locator('.topbar .brand').textContent(),'CRITPLAYBETA');
     await page.locator('[data-view=lists]').click();await page.locator('#create-list').click();await page.locator('#list-name').fill('Cooperativos');await page.locator('#list-description').fill('Para jogar com amigos');
     await page.locator('#list-form button[type=submit]').click();await page.locator('#list-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Cooperativos',exact:true}).waitFor();
     await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
@@ -40,7 +40,23 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('Foto enviada'));
     await page.locator('#profile-form button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('atualizado'));
     assert.equal(await page.locator('#profile-summary h2').textContent(),'Jogador de teste');assert.equal(await page.locator('#profile-summary img').count(),1);
-    const qa=process.env.GAMESHELF_QA_DIR;if(qa){fs.mkdirSync(qa,{recursive:true});await page.screenshot({path:path.join(qa,'profile-desktop.png'),fullPage:true});}
+    const qa=process.env.CRITPLAY_QA_DIR||process.env.GAMESHELF_QA_DIR;if(qa){fs.mkdirSync(qa,{recursive:true});await page.screenshot({path:path.join(qa,'profile-desktop.png'),fullPage:true});}
+    await page.locator('[data-view=admin]').click();await page.locator('.account-card').first().waitFor();
+    await page.locator('#preview-cleanup').click();await page.waitForFunction(()=>document.querySelector('#cleanup-message').textContent.includes('24 horas'));assert(await page.locator('#run-cleanup').isDisabled());
+    const saveAccount=page.locator('.account-card').filter({hasText:'@ui_admin'}).getByRole('button',{name:'Salvar permissões'});assert(await saveAccount.isDisabled());
+    await page.locator('#metadata-import').click();await page.getByText('Configure RAWG_API_KEY no seu .env e reinicie. A chave é gratuita para projetos pessoais.',{exact:true}).waitFor();await page.locator('#close-metadata').click();
+    const metadataFixture={id:9901,slug:'fixture-import',title:'Jogo RAWG de teste',genre:'Aventura',platforms:['PC'],releaseYear:2026,description:'Descrição de teste trazida pela importação de metadados.',coverUrl:null};
+    await page.route('**/api/admin/metadata/search?*',route=>route.fulfill({json:[metadataFixture]}));await page.route('**/api/admin/metadata/9901',route=>route.fulfill({json:metadataFixture}));
+    let importedBody;
+    await page.route('**/api/admin/metadata/import',async route=>{importedBody=route.request().postDataJSON();
+      // Mantém cadastro/persistência reais; apenas o provedor externo é substituído no fluxo visual.
+      const response=await context.request.post(base+'/api/games',{data:importedBody.game,headers:{'X-CSRF-TOKEN':route.request().headers()['x-csrf-token']}});
+      assert.equal(response.status(),201);await route.fulfill({json:await response.json()});
+    });
+    await page.locator('#metadata-import').click();await page.locator('#metadata-search').fill('Jogo RAWG');await page.locator('#metadata-search-form button').click();await page.getByRole('button',{name:'Jogo RAWG de teste · 2026',exact:true}).click();
+    await page.getByRole('button',{name:'Revisar no editor',exact:true}).click();assert.equal(await page.locator('#game-title').inputValue(),'Jogo RAWG de teste');assert.equal(await page.locator('#game-description').inputValue(),metadataFixture.description);
+    await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo RAWG de teste',exact:true}).waitFor();assert.equal(importedBody.rawgId,9901);
+    await page.unroute('**/api/admin/metadata/import');await page.unroute('**/api/admin/metadata/search?*');await page.unroute('**/api/admin/metadata/9901');
     await page.locator('[data-view=lists]').click();await page.locator('.list-game-row').first().waitFor();assert.equal(await page.locator('.list-game-row').count(),1);
     await page.locator('#add-game').click();await page.locator('#game-title').fill('Jogo criado no navegador');await page.locator('#game-genre').fill('Aventura');await page.locator('#game-description').fill('Um jogo cadastrado pelo administrador através da interface.');
     await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).waitFor();
@@ -55,24 +71,10 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#diary-form button[type=submit]').click();await privacyDraftRefresh;await page.waitForFunction(()=>!document.querySelector('#profile-visibility').disabled);
     await page.locator('#close-detail').click();assert.equal(await page.locator('#profile-visibility').inputValue(),'FRIENDS');assert(await page.locator('#profile-discoverable').isChecked(),'Atualizar resenha apagou o rascunho de privacidade');
     await page.locator('#privacy-form button[type=submit]').click();await page.getByText('Privacidade atualizada.',{exact:true}).waitFor();
-    await page.setViewportSize({width:1440,height:1000});await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
-    await page.locator('#prices .price-platform').first().waitFor();assert.equal(await page.locator('#prices .price-platform').count(),3);
-    assert.deepEqual(await page.locator('#prices h4').allTextContents(),['PC','PlayStation','Xbox']);
-    if(qa)await page.screenshot({path:path.join(qa,'platform-prices.png'),fullPage:true});
-    await page.locator('#configure-console-prices').click();await page.getByText('Configure PSPRICES_API_KEY no .env para consultar esta fonte.',{exact:true}).waitFor();
-    await page.locator('#close-console-source').click();
-    const fixtureUrl='https://gg.deals/steam/app/1245620/?ref=gameshelf-test';
-    await page.route('**/api/games/1/prices/platforms',route=>route.fulfill({json:[
-      {platform:'PC',status:'LIVE',currency:'BRL',currentRetail:99.90,currentKeyshops:79.90,historicalRetail:89.90,historicalKeyshops:69.90,sourceUrl:fixtureUrl,fetchedAt:'2026-10-13T00:00:00Z'},
-      {platform:'PlayStation',status:'LIVE',currency:'BRL',region:'br',currentRetail:119.90,originalPrice:239.80,discountPercent:50,edition:'Standard de teste',storeUrl:'https://store.playstation.com/product/test',sourceUrl:'https://psprices.com/region-br/game/42/test',fetchedAt:'2026-10-13T00:00:00Z'}
-    ]}));
-    await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();await page.getByText('Edição: Standard de teste',{exact:true}).waitFor();
-    assert.equal(await page.locator('#price-source').getAttribute('href'),fixtureUrl);await page.getByText('50% de desconto',{exact:true}).waitFor();
-    assert.equal(await page.getByRole('link',{name:'Powered by PSprices ↗',exact:true}).getAttribute('href'),'https://psprices.com/region-br/game/42/test');
-    await page.locator('#close-detail').click();await page.unroute('**/api/games/1/prices/platforms');
+    await page.setViewportSize({width:1440,height:1000});
     await page.locator('#account-logout').click();await page.locator('#account-login').waitFor();
     await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();
-    await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());
+    await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());assert(await page.locator('#admin-nav').isHidden());
     await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);
     await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
     await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();
@@ -98,8 +100,14 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     const visitor=await browser.newContext();await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
     await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
-    await visitor.close();await secondContext.close();
+    await visitor.close();
+    await adminPage.locator('[data-view=admin]').click();const managedCard=adminPage.locator('.account-card').filter({hasText:'@browser_user'});await managedCard.waitFor();
+    await managedCard.locator('select').selectOption('ADMIN');adminPage.once('dialog',dialog=>dialog.accept());await managedCard.getByRole('button',{name:'Salvar permissões',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Permissões atualizadas'));
+    await page.locator('[data-view=profile]').click();await page.locator('#account-login').waitFor();
+    await page.locator('#account-login').click();await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();await page.locator('#admin-nav').waitFor();
+    if(qa)await adminPage.screenshot({path:path.join(qa,'administration-desktop.png'),fullPage:true});
+    await secondContext.close();
     assert.deepEqual(errors,[],'Erros JavaScript no navegador');
-    console.log('Browser smoke aprovado: login, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa, celular, preços por plataforma, privacidade, busca de usuários, seguir, amizade aceita e perfil público compartilhado.');
+    console.log('Browser smoke aprovado: login, listas, resenha, desejos, perfil/avatar, cadastro/edição administrativa, celular, administração, prévia de limpeza, importação de metadados, privacidade, busca de usuários, seguir, amizade aceita e perfil público compartilhado.');
   } finally {if(browser)await browser.close();app.kill('SIGTERM');await Promise.race([new Promise(r=>app.once('exit',r)),pause(10000)]);if(app.exitCode===null)app.kill('SIGKILL');}
 })().catch(error=>{console.error(error);process.exitCode=1;});

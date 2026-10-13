@@ -1,8 +1,8 @@
-# Evoluir o GameShelf juntos — v0.4
+# Evoluir o CritPlay juntos — v0.5
 
 ## Atualizar no IntelliJ
 
-Pare o Java, copie `data/` como backup e preserve `.env`. Atualize main em Git → Pull. Rode `GameShelfApplication` ou `.\mvnw.cmd spring-boot:run`. A migração V4 é automática; não apague o banco para ver as novidades.
+Pare o Java, copie `data/` como backup e preserve `.env`. Atualize main em Git → Pull. Rode `CritPlayApplication` ou `.\mvnw.cmd spring-boot:run`. A migração V5 é automática; não apague o banco para ver as novidades.
 
 ## Exercício de uso
 
@@ -28,17 +28,26 @@ Pare o Java, copie `data/` como backup e preserve `.env`. Atualize main em Git �
 - `PasswordResetService`: gera token aleatório, guarda só hash e bloqueia a linha ao consumir.
 - `AccountSessionFilter`: revoga sessões antigas depois de trocar senha.
 - `SocialService`: verifica a visibilidade em cada leitura e quem pode aceitar pedidos.
-- `PlatformPriceService`/`PsPricesClient`: separa provedores e valida plataforma/região/edição.
-- `social.js`: busca, conexões, perfil compartilhado e associação administrativa de preços.
-- `V4__...sql`: evolui o banco sem descartar registros anteriores.
+- `RawgClient`/`MetadataService`: busca metadados, revisa e associa a fonte sem perder IDs.
+- `AccountAdminService`: administra papel/suspensão com revogação de sessões.
+- `ImageCleanupService`: revalida referências antes de apagar imagens antigas.
+- `social.js`: busca, conexões, perfil compartilhado.
+- `V5__...sql`: evolui o banco sem descartar registros anteriores.
 - `workspace.js`: páginas de Perfil/Listas, upload, formulários e recuperação.
 
 As responsabilidades correspondem a camadas que você já conhece do Laravel: controller recebe HTTP, service organiza regras e repository acessa dados. Ao modelar algo privado, obtenha sempre o proprietário da sessão, não do JSON enviado pelo cliente.
 
 ## Seu próximo exercício sugerido
 
-Acrescentar data de início e fim à experiência de um jogo. Primeiro pense em como um usuário edita isso, depois crie uma migração V5, campos no DTO/entidade, validação (fim não pode anteceder início), formulário e um teste que preserve a data após atualização. Podemos revisar etapa por etapa.
+Acrescentar data de início e fim à experiência de um jogo. Primeiro pense em como um usuário edita isso, depois crie uma migração V6, campos no DTO/entidade, validação (fim não pode anteceder início), formulário e um teste que preserve a data após atualização. Podemos revisar etapa por etapa.
+
+## Novidades para experimentar
+
+1. Como ADMIN, abra Administração e examine imagens sem uso.
+2. Crie uma conta fictícia e altere seu papel; confira que ela precisa entrar novamente.
+3. Cadastre sua chave gratuita RAWG e reinicie. Use Buscar na RAWG, abra uma prévia e revise antes de importar.
+4. Atualize um jogo já existente pela importação e confira que sua resenha/lista continuam associadas.
 
 ## Depois
 
-API de metadados do catálogo, limpeza de imagens sem referência e migração dos dados H2 para PostgreSQL. Recuperação real por e-mail depende do SMTP configurado; preços ao vivo de consoles dependem da chave/plano PSprices. Não publique o serviço Java antes de preparar HTTPS, segredos, limites compartilhados e backup.
+Moderação/bloqueios, datas do diário e migração dos dados H2 para PostgreSQL. Recuperação por e-mail depende do SMTP configurado. Preços automáticos são só de PC. Consulte OPERACAO.md antes de hospedar.

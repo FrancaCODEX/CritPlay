@@ -2,7 +2,7 @@
 let editingListId=null,resetToken=null,workspaceBusy=false;
 function button(text,className,action) {const node=el('button',className,text);node.type='button';node.addEventListener('click',action);return node;}
 function busy(form,value) {form.querySelectorAll('button,input,textarea,select').forEach(node=>node.disabled=value);}
-function coverFor(game) {return game.coverUrl||(game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`:null);}
+function coverFor(game) {return game.coverUrl||game.metadataCoverUrl||(game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`:null);}
 function compactGame(game,action) {
   const card=button('', 'mini-game',action||(()=>openDetail(game)));
   const url=coverFor(game);if(url) {const image=el('img');image.src=url;image.alt='';image.loading='lazy';image.addEventListener('error',()=>image.remove(),{once:true});card.append(image);}
@@ -132,6 +132,7 @@ $('#change-password-form').addEventListener('submit',async e=>{
 });
 function openGameEditor(game) {
   if(state.addingGame)return;
+  metadataSelectedId=null;
   state.editGameId=game?.id||null;state.gameCoverUrl=game?.coverUrl||null;$('#game-form').reset();
   $('#admin-title').textContent=game?'Editar jogo':'Adicionar um jogo';$('#game-submit').textContent=game?'Salvar alterações':'Adicionar ao catálogo';
   $('#game-title').value=game?.title||'';$('#game-genre').value=game?.genre||'';$('#game-year').value=game?.releaseYear||new Date().getFullYear();

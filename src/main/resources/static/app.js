@@ -39,6 +39,7 @@ async function loadGames() {
     const games = await api('/api/games?' + params);
     if (sequence !== state.searchSequence) return;
     state.games = games;
+    for(const game of games){if(![...$('#genre').options].some(o=>o.value===game.genre))$('#genre').append(el('option',null,game.genre));}
     render();
   } catch (error) {
     if (sequence !== state.searchSequence) return;
@@ -47,11 +48,11 @@ async function loadGames() {
   }
 }
 function render() {
-  const personal=['profile','lists','people'].includes(state.view);
+  const personal=['profile','lists','people','admin'].includes(state.view);
   $('.workspace:not(.personal-workspace)').hidden=personal;
   $('.hero').hidden=personal;$('.journey').hidden=personal;
-  $('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
-  if(personal) {if(state.view==='people')refreshPeople();else refreshWorkspace(state.view);return;}
+  $('#admin-section').hidden=state.view!=='admin';$('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
+  if(personal) {if(state.view==='people')refreshPeople();else if(state.view==='admin')refreshAdmin();else refreshWorkspace(state.view);return;}
   const games = state.games.filter(game => state.view === 'catalog' ||
     (state.view === 'library' ? state.diary.has(game.id) : state.view==='wishlist'?state.diary.get(game.id)?.wishlist:state.diary.get(game.id)?.favorite));
   $('#section-title').textContent = { catalog: 'Explore o catálogo', library: 'Sua biblioteca de jogos', favorites: 'Seus jogos favoritos', wishlist:'Sua lista de desejos' }[state.view];
@@ -63,9 +64,9 @@ function render() {
     card.setAttribute('aria-label', 'Abrir ' + game.title);
     const cover = el('div', 'cover');
     const image = el('img'); image.alt = ''; image.loading = 'lazy';
-    if(game.coverUrl) image.src=game.coverUrl;else if (game.steamAppId) image.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`;
+    if(game.coverUrl||game.metadataCoverUrl) image.src=game.coverUrl||game.metadataCoverUrl;else if (game.steamAppId) image.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`;
     image.addEventListener('error', () => { image.remove(); cover.prepend(el('span', 'image-fallback', game.title)); }, { once: true });
-    if (game.coverUrl||game.steamAppId) cover.append(image); else cover.append(el('span', 'image-fallback', game.title));
+    if (game.coverUrl||game.metadataCoverUrl||game.steamAppId) cover.append(image); else cover.append(el('span', 'image-fallback', game.title));
     if (entry) cover.append(el('span', 'badge', `${entry.favorite ? '♥ · ' : ''}${statusLabels[entry.status]}`));
     card.append(cover, el('h3', null, game.title), el('p', null, `${game.genre} · ${game.releaseYear}`));
     if (entry?.rating) card.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ' · Sua nota'));
@@ -75,11 +76,12 @@ function render() {
 }
 function setView(view) {
   if (view !== 'catalog' && !state.user) { openAuth(); toast('Entre para acessar sua biblioteca.'); return; }
+  if(view==='admin'&&state.user?.role!=='ADMIN')return;
   state.view = view;
   ++state.workspaceSequence;
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
-  render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game) {
   if (state.saving) return;
@@ -89,7 +91,9 @@ async function openDetail(game) {
   $('#detail-title').textContent = game.title;
   $('#detail-meta').textContent = `${game.genre} · ${game.releaseYear} · ${game.platforms}`;
   $('#detail-description').textContent = game.description;
-  $('#detail-cover').style.backgroundImage = game.coverUrl?`linear-gradient(0deg,#120f1c,transparent),url("${game.coverUrl}")`:game.steamAppId
+  const detailImage=game.coverUrl||game.metadataCoverUrl;
+  $('#detail-metadata-source').hidden=!game.metadataSourceUrl;$('#detail-metadata-source').href=game.metadataSourceUrl||'https://rawg.io/';
+  $('#detail-cover').style.backgroundImage = detailImage?`linear-gradient(0deg,#120f1c,transparent),url("${detailImage}")`:game.steamAppId
     ? `linear-gradient(0deg,#120f1c,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
     : 'linear-gradient(135deg,#492b69,#242731)';
   $('#diary-form').hidden = !state.user;
@@ -99,7 +103,7 @@ async function openDetail(game) {
   $('#review').value = entry?.review || '';
   $('#favorite').checked = !!entry?.favorite;
   $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
-  $('#edit-game').hidden=state.user?.role!=='ADMIN';$('#configure-console-prices').hidden=state.user?.role!=='ADMIN';
+  $('#edit-game').hidden=state.user?.role!=='ADMIN';
   $('#game-list-controls').hidden=!state.user;
   updateListPicker();renderConsoleLinks(game);
   $('#remove-entry').hidden = !entry;
@@ -109,33 +113,21 @@ async function openDetail(game) {
   if (!$('#detail').open) $('#detail').showModal();
   if (!state.user) { $('#prices').textContent = 'Entre na sua conta para consultar os preços.'; return; }
   try {
-    const quote = await api(`/api/games/${game.id}/prices/platforms`);
+    const quote = await api(`/api/games/${game.id}/prices`);
     if (sequence !== state.detailSequence || !$('#detail').open) return;
     renderPrices(quote);
   } catch (error) {
     if (sequence === state.detailSequence) $('#prices').textContent = error.message;
   }
 }
-function renderPrices(quotes) {
-  const container=$('#prices');container.replaceChildren();
-  for(const quote of quotes) {
-    if(quote.platform==='PC')$('#price-source').href=quote.sourceUrl;
-    const section=el('section','price-platform');section.append(el('h4',null,quote.platform));
-    if(quote.status!=='LIVE')section.append(el('p','muted',quote.message));
-    else {
-      const money=value=>value==null?'Sem oferta':new Intl.NumberFormat('pt-BR',{style:'currency',currency:quote.currency}).format(value);
-      const rows=quote.platform==='PC'?[['Lojas oficiais · menor preço',quote.currentRetail],['Keyshops · menor preço',quote.currentKeyshops],['Mínimo histórico · oficiais',quote.historicalRetail],['Mínimo histórico · keyshops',quote.historicalKeyshops]]:[['Preço atual da edição',quote.currentRetail],...(quote.originalPrice!=null?[['Antes da promoção',quote.originalPrice]]:[])];
-      for(const [label,value] of rows){const row=el('div','price-row');row.append(el('span',null,label),el('strong',null,money(value)));section.append(row);}
-      if(quote.region)section.append(el('p','price-note','Região: '+quote.region.toUpperCase()));
-      if(quote.edition)section.append(el('p','price-note','Edição: '+quote.edition));
-      if(quote.discountPercent!=null)section.append(el('p','personal-rating',quote.discountPercent+'% de desconto'));
-      section.append(el('p','price-note',`Consultado em ${new Date(quote.fetchedAt).toLocaleString('pt-BR')} · Cache de até 1 hora.`));
-    }
-    if(quote.storeUrl){const link=el('a','source-link','Ver na loja oficial ↗');link.href=quote.storeUrl;link.target='_blank';link.rel='noopener noreferrer';section.append(link);}
-    if(quote.platform!=='PC'&&quote.status==='LIVE'){const source=el('a','source-link','Powered by PSprices ↗');source.href=quote.sourceUrl;source.target='_blank';source.rel='noopener noreferrer';section.append(source);}
-    container.append(section);
+function renderPrices(quote) {
+  const container=$('#prices');container.replaceChildren();$('#price-source').href=quote.sourceUrl;
+  if(quote.status!=='LIVE'){container.append(el('p','muted',quote.message));return;}
+  const money=value=>value==null?'Sem oferta':new Intl.NumberFormat('pt-BR',{style:'currency',currency:quote.currency}).format(value);
+  for(const [label,value] of [['Lojas oficiais · menor preço',quote.currentRetail],['Keyshops · menor preço',quote.currentKeyshops],['Mínimo histórico · oficiais',quote.historicalRetail],['Mínimo histórico · keyshops',quote.historicalKeyshops]]){
+    const row=el('div','price-row');row.append(el('span',null,label),el('strong',null,money(value)));container.append(row);
   }
-  if(!quotes.length)container.append(el('p','muted','Nenhuma plataforma cadastrada para este jogo.'));
+  container.append(el('p','price-note',`Dados por GG.deals · Consultado em ${new Date(quote.fetchedAt).toLocaleString('pt-BR')} · Cache de até 1 hora.`));
 }
 let toastTimeout;
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false;
@@ -184,12 +176,12 @@ function updateAccountUi() {
   $('#account-name').textContent = state.user ? state.user.displayName : '';
   $('#account-name').title = state.user?.role === 'ADMIN' ? 'Administrador' : 'Usuário';
   $('#add-game').hidden = state.user?.role !== 'ADMIN';
-  $('#import-games').hidden=state.user?.role!=='ADMIN';
+  $('#import-games').hidden=state.user?.role!=='ADMIN';$('#metadata-import').hidden=state.user?.role!=='ADMIN';$('#admin-nav').hidden=state.user?.role!=='ADMIN';
 }
 function resetAccount() {
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
   state.profile=null;state.profileDirty=false;state.lists=[];++state.workspaceSequence;
-  resetSocial();
+  resetSocial();resetAdmin();
   $('#profile-form').reset();$('#change-password-form').reset();$('#profile-reviews').replaceChildren();$('#profile-summary').replaceChildren();$('#profile-stats').replaceChildren();$('#lists-content').replaceChildren();
   ++state.detailSequence;
   $('#review').value = ''; $('#rating').value = ''; $('#favorite').checked = false;
@@ -210,7 +202,7 @@ async function syncSession() {
 function setAuthMode(mode) {
   state.authMode = mode;
   const register = mode === 'register';
-  $('#auth-title').textContent = register ? 'Crie sua conta' : 'Entre no GameShelf';
+  $('#auth-title').textContent = register ? 'Crie sua conta' : 'Entre no CritPlay';
   $('#auth-submit').textContent = register ? 'Criar conta' : 'Entrar';
   $('#display-name-label').hidden = !register; $('#display-name').required = register;
   $('#password-hint').hidden = !register; $('#password').minLength = register ? 10 : 1;
@@ -244,7 +236,7 @@ $('#auth-form').addEventListener('submit', async event => {
     await api('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ username, password }).toString() });
     state.csrf = null; await csrfToken(); await syncSession();
-    $('#password').value = ''; $('#auth-dialog').close(); render(); toast('Bem-vindo ao GameShelf!');
+    $('#password').value = ''; $('#auth-dialog').close(); render(); toast('Bem-vindo ao CritPlay!');
   } catch (error) { $('#auth-message').textContent = error.message; }
   finally { state.authenticating = false; controls.forEach(node => { node.disabled = false; }); }
 });
@@ -275,7 +267,8 @@ $('#game-form').addEventListener('submit', async event => {
   state.addingGame = true;
   const controls = $('#admin-dialog').querySelectorAll('button,input,textarea'); controls.forEach(node => { node.disabled = true; });
   try {
-    await api(state.editGameId?`/api/games/${state.editGameId}`:'/api/games', { method: state.editGameId?'PUT':'POST', body: JSON.stringify(body) });
+    if(metadataSelectedId)await api('/api/admin/metadata/import',{method:'POST',body:JSON.stringify({rawgId:metadataSelectedId,game:body,targetGameId:state.editGameId})});
+    else await api(state.editGameId?`/api/games/${state.editGameId}`:'/api/games', { method: state.editGameId?'PUT':'POST', body: JSON.stringify(body) });
     $('#admin-dialog').close(); $('#search').value = ''; $('#platform').value = ''; $('#genre').value = '';
     state.view = 'catalog'; setView('catalog'); await loadGames(); toast(state.editGameId?'Jogo atualizado.':'Novo jogo adicionado ao catálogo.');
   } catch (error) { $('#game-message').textContent = error.message; }
