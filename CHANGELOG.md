@@ -1,6 +1,22 @@
 # Changelog
 
-## Em desenvolvimento
+Toda alteração no projeto deve ser registrada neste arquivo: funcionalidades, correções, interface, configuração, testes e documentação.
+
+## Não lançado
+
+### Hospedagem Oracle e branches
+
+- Separação operacional em `local` (computador) e `oracle-cloud` (VM), com `main` como base comum e guia de sincronização por merges.
+- Docker Compose específico para Oracle com Java 21, PostgreSQL 17, Caddy/HTTPS, volumes persistentes, limites de memória, rotação de logs e health checks.
+- Aplicação e banco sem portas públicas; apenas o proxy tem IP fixo, permitindo containers auxiliares sem conflito durante backup/testes. O profile Oracle aceita cabeçalhos encaminhados somente do Caddy confiável.
+- Exemplo `.env.oracle` e regras Git para proteger segredos de cada ambiente.
+- Dockerfile com curl para health checks e cópia do JAR sem fixar o número da versão; compatibilidade com execução local preservada.
+- Backup consistente do banco e uploads com pausa breve, checksums, metadados, bloqueio concorrente e retomada da aplicação; atualização faz backup antes do pull e rebuild.
+- Guia Oracle para VM ARM, DNS, firewall, HTTPS, migração opcional, backups, atualização e restauração em ambiente separado.
+- README e guias de hospedagem/operação atualizados com a escolha Oracle e o novo profile de proxy.
+- CI específico para construir a stack, validar proxy/cookies/IP, persistência e ciclo de backup/restauração; implantação real depende da VM e domínio.
+
+### Avaliações e interface
 
 - Avaliação salva vira um resumo com opção de editar e cancelar a edição.
 - Detalhes exibem notas/resenhas da comunidade e média de 1 a 5, respeitando privacidade, amizades, bloqueios e moderação.

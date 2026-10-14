@@ -1,0 +1,81 @@
+name: Oracle deployment CI
+on:
+  push:
+    paths:
+      - 'compose.oracle.yaml'
+      - 'Dockerfile'
+      - '.env.oracle.example'
+      - 'deploy/oracle/**'
+      - 'src/main/resources/application-oracle.properties'
+      - 'tests/oracle-smoke.py'
+      - '.github/workflows/oracle-ci.yml'
+  pull_request:
+    paths:
+      - 'compose.oracle.yaml'
+      - 'Dockerfile'
+      - '.env.oracle.example'
+      - 'deploy/oracle/**'
+      - 'src/main/resources/application-oracle.properties'
+      - 'tests/oracle-smoke.py'
+      - '.github/workflows/oracle-ci.yml'
+permissions:
+  contents: read
+jobs:
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configurar stack descartável de teste
+        run: |
+          cp .env.oracle.example .env.oracle
+          cat >> .env.oracle <<'ENV'
+          CRITPLAY_DOMAIN=localhost
+          ACME_EMAIL=test@example.com
+          DB_PASSWORD=OracleCiDatabase42
+          CRITPLAY_ADMIN_USERNAME=oracle_ci
+          CRITPLAY_ADMIN_PASSWORD=OracleCiPassword42!
+          ENV
+          bash -n deploy/oracle/backup.sh deploy/oracle/update.sh
+          docker compose --env-file .env.oracle -f compose.oracle.yaml config --quiet
+          docker compose --env-file .env.oracle -f compose.oracle.yaml run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Construir e validar HTTPS, cookies e proxy
+        run: |
+          docker compose --env-file .env.oracle -f compose.oracle.yaml up -d --build --wait --wait-timeout 180
+          for i in $(seq 1 30); do
+            if curl -kfSs https://localhost/api/health >/dev/null; then break; fi
+            sleep 2
+          done
+          python3 tests/oracle-smoke.py seed
+          # Direct connections from another container must not trust forged XFF.
+          docker compose --env-file .env.oracle -f compose.oracle.yaml run --rm --no-deps --entrypoint bash app -c '
+            for n in {1..6}; do
+              status=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "X-Forwarded-For: 203.0.113.$n" http://app:8080/api/auth/forgot-password)
+              if [[ $n -eq 6 && $status != 429 ]]; then exit 1; fi
+            done'
+      - name: Validar persistência e backup consistente
+        run: |
+          docker compose --env-file .env.oracle -f compose.oracle.yaml down
+          docker compose --env-file .env.oracle -f compose.oracle.yaml up -d --wait --wait-timeout 180
+          python3 tests/oracle-smoke.py verify
+          bash deploy/oracle/backup.sh
+          docker compose --env-file .env.oracle -f compose.oracle.yaml up -d --wait --wait-timeout 180
+          python3 tests/oracle-smoke.py verify
+      - name: Restaurar em volumes novos e vazios do CI
+        run: |
+          backup=$(find data/oracle-backups -mindepth 1 -maxdepth 1 -type d ! -name '.partial-*' | head -1)
+          test -n "$backup"
+          (cd "$backup" && sha256sum -c SHA256SUMS)
+          # This removes only the disposable runner stack, never a real VM.
+          docker compose --env-file .env.oracle -f compose.oracle.yaml down -v
+          docker compose --env-file .env.oracle -f compose.oracle.yaml up -d --wait postgres
+          docker compose --env-file .env.oracle -f compose.oracle.yaml exec -T postgres sh -c 'exec pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --exit-on-error --no-owner --no-privileges' < "$backup/postgres.dump"
+          docker compose --env-file .env.oracle -f compose.oracle.yaml run --rm --no-deps -T --entrypoint tar app -C /app/data -xzf - < "$backup/uploads.tar.gz"
+          docker compose --env-file .env.oracle -f compose.oracle.yaml up -d --wait --wait-timeout 180
+          python3 tests/oracle-smoke.py restored
+      - name: Diagnóstico em caso de falha
+        if: failure()
+        run: docker compose --env-file .env.oracle -f compose.oracle.yaml logs --tail=100
+      - name: Limpar stack descartável
+        if: always()
+        run: docker compose --env-file .env.oracle -f compose.oracle.yaml down -v
