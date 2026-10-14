@@ -104,3 +104,9 @@ Não exige chave Steam adicional ou plano RAWG pago. Usa os endpoints públicos 
 ## Capas do catálogo
 
 Capas próprias têm prioridade, seguidas dos pôsteres verticais da Steam e das imagens RAWG. Se uma fonte falhar, a próxima é tentada; sem imagem disponível, aparece o título. Os cards mantêm tamanho vertical uniforme. Pôsteres da Steam preservam o enquadramento inteiro; capas próprias e alternativas RAWG preenchem toda a área com recorte central, sem distorção ou faixas vazias. Imagens horizontais podem perder parte das laterais para ocupar o card. A mesma seleção é usada nas miniaturas de listas e resenhas.
+
+## Perfil e destaques
+
+Ao entrar no Perfil, aparecem sua apresentação, estatísticas e resenhas. **Editar perfil** abre os formulários de perfil, privacidade e segurança; **Fechar configurações** os recolhe sem apagar rascunhos. Entrar novamente na seção começa com os formulários recolhidos.
+
+A página inicial alterna até seis jogos com imagem, selecionados da ordem do catálogo completo. Setas, indicadores e gesto lateral em telas de toque trocam o destaque; **Explorar** abre o jogo exibido. A troca automática ocorre a cada oito segundos, pausando ao interagir, abrir um diálogo, sair da seção ou ocultar a aba. Também é possível pausar pelo botão e a preferência de reduzir movimento desativa o avanço automático. Filtros do catálogo não mudam os destaques.

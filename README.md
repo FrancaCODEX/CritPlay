@@ -6,7 +6,8 @@ Uma comunidade de jogos para registrar experiências, publicar resenhas e descob
 
 - Catálogo com busca, filtros, edição administrativa e importação RAWG individual ou em lotes de 500, 1.000 e 2.000 jogos.
 - Diário com progresso, nota, resenha e datas de início/término; favoritos, desejos e listas personalizadas particulares.
-- Perfil editável, avatar, privacidade, busca de usuários, seguidores e amizades.
+- Perfil com avatar, resenhas e configurações sob demanda; privacidade, busca de usuários, seguidores e amizades.
+- Carrossel de destaques com navegação e troca automática.
 - Preços de PC via GG.deals; jogos de consoles no catálogo com links manuais para lojas.
 - Administração de contas/papéis, suspensão, denúncias, moderação de resenhas, bloqueios e limpeza de imagens sem uso.
 - Login por sessão, troca de senha e recuperação por e-mail mediante configuração SMTP.
@@ -71,7 +72,7 @@ O H2 permanece em `data/gameshelf.mv.db`, e uploads em `data/uploads/`. O nome a
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/critplay-0.5.2.jar
+java -jar target/critplay-0.5.3.jar
 ```
 
 No Linux, use `./mvnw`. Testes locais usam dados fictícios; o CI também verifica PostgreSQL e navegação. Servidor local escuta em `127.0.0.1`; configuração de hospedagem está no guia abaixo.

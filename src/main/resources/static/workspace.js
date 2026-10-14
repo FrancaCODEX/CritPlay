@@ -202,3 +202,11 @@ function openResetFromLink() {
   $('#recovery-submit').textContent='Salvar nova senha';$('#recovery-submit').disabled=false;$('#recovery-message').textContent='';$('#recovery-dialog').showModal();
 }
 openResetFromLink();
+
+function closeProfileSettings(){
+  $('#profile-settings').hidden=true;$('#toggle-profile-settings').setAttribute('aria-expanded','false');$('#toggle-profile-settings').textContent='Editar perfil';
+}
+$('#toggle-profile-settings').addEventListener('click',()=>{
+  const show=$('#profile-settings').hidden;$('#profile-settings').hidden=!show;
+  $('#toggle-profile-settings').setAttribute('aria-expanded',String(show));$('#toggle-profile-settings').textContent=show?'Fechar configurações':'Editar perfil';
+});

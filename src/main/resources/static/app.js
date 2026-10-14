@@ -52,6 +52,7 @@ async function loadGames() {
     if (sequence !== state.searchSequence) return;
     state.games = games;
     for(const game of games){if(![...$('#genre').options].some(o=>o.value===game.genre))$('#genre').append(el('option',null,game.genre));}
+    if(!params.get('q')&&!params.get('genre')&&!params.get('platform'))updateHeroGames(games);
     render();
   } catch (error) {
     if (sequence !== state.searchSequence) return;
@@ -62,7 +63,7 @@ async function loadGames() {
 function render() {
   const personal=['profile','lists','people','admin'].includes(state.view);
   $('.workspace:not(.personal-workspace)').hidden=personal;
-  $('.hero').hidden=personal;$('.journey').hidden=personal;
+  $('.hero').hidden=personal;$('.journey').hidden=personal;scheduleHero();
   $('#admin-section').hidden=state.view!=='admin';$('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
   if(personal) {if(state.view==='people')refreshPeople();else if(state.view==='admin')refreshAdmin();else refreshWorkspace(state.view);return;}
   const games = state.games.filter(game => state.view === 'catalog' ||
@@ -89,6 +90,7 @@ function setView(view) {
   if (view !== 'catalog' && !state.user) { openAuth(); toast('Entre para acessar sua biblioteca.'); return; }
   if(view==='admin'&&state.user?.role!=='ADMIN')return;
   if(state.view==='admin'&&view!=='admin')resetSteam();
+  if(state.view!==view)closeProfileSettings();
   state.view = view;
   ++state.workspaceSequence;
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;
@@ -177,7 +179,7 @@ $('#detail').addEventListener('close', () => ++state.detailSequence);
 document.querySelectorAll('.nav').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
 $('#open-library').addEventListener('click', () => setView('library'));
 $('#journey-library').addEventListener('click', () => setView('library'));
-$('#featured').addEventListener('click', async () => { try { openDetail(await api('/api/games/1')); } catch (error) { toast(error.message); } });
+$('#featured').addEventListener('click',()=>{const game=heroGames[heroIndex];if(game)openDetail(game);});
 let searchTimeout;
 $('#search').addEventListener('input', () => { ++state.searchSequence; clearTimeout(searchTimeout); searchTimeout = setTimeout(loadGames, 250); });
 ['#platform', '#genre'].forEach(selector => $(selector).addEventListener('change', loadGames));
@@ -191,6 +193,7 @@ function updateAccountUi() {
   $('#import-games').hidden=state.user?.role!=='ADMIN';$('#metadata-import').hidden=state.user?.role!=='ADMIN';$('#admin-nav').hidden=state.user?.role!=='ADMIN';
 }
 function resetAccount() {
+  closeProfileSettings();
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
   state.profile=null;state.profileDirty=false;state.lists=[];++state.workspaceSequence;
   resetSocial();resetAdmin();resetBulk();
@@ -291,3 +294,36 @@ async function init() {
   catch (error) { $('#catalog-message').textContent = error.message; toast('Recarregue a página para tentar novamente.'); }
 }
 init();
+
+let heroGames=[],heroIndex=0,heroTimer=null,heroPaused=false,heroSignature='',heroPointer=null;
+const heroMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+function heroImage(game){return game.coverUrl||(game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg`:game.metadataCoverUrl);}
+function updateHeroGames(games){
+  const selected=games.filter(heroImage).slice(0,6);const signature=JSON.stringify(selected.map(g=>[g.id,g.title,heroImage(g)]));
+  if(signature===heroSignature)return;heroSignature=signature;heroGames=selected;heroIndex=0;
+  $('#hero-track').replaceChildren(...selected.map(game=>{const slide=el('div','hero-slide');slide.style.backgroundImage='url('+JSON.stringify(heroImage(game))+')';return slide;}));
+  $('#hero-dots').replaceChildren(...selected.map((game,index)=>{const dot=el('button','hero-dot');dot.type='button';dot.setAttribute('aria-label','Mostrar '+game.title);dot.addEventListener('click',()=>showHero(index));return dot;}));
+  $('#hero-prev').hidden=$('#hero-next').hidden=$('#hero-pause').hidden=selected.length<2;
+  showHero(0);
+}
+function showHero(index){
+  if(!heroGames.length)return;heroIndex=(index+heroGames.length)%heroGames.length;const game=heroGames[heroIndex];
+  $('#hero-track').style.transform=`translateX(-${heroIndex*100}%)`;$('#hero-title').textContent=game.title;
+  $('#featured').textContent='Explorar '+game.title+' ↗';
+  $('#hero-meta').replaceChildren(el('span',null,'EM DESTAQUE'),document.createTextNode(' '+game.title+' · '+game.genre+' · '+game.releaseYear));
+  [...$('#hero-dots').children].forEach((dot,i)=>{dot.classList.toggle('active',i===heroIndex);dot.setAttribute('aria-current',String(i===heroIndex));});scheduleHero();
+}
+function scheduleHero(){
+  clearTimeout(heroTimer);
+  if(heroGames.length<2||heroPaused||heroMotion.matches||document.hidden||state.view!=='catalog'||$('.hero').matches(':hover')||$('.hero').contains(document.activeElement)||document.querySelector('dialog[open]'))return;
+  heroTimer=setTimeout(()=>showHero(heroIndex+1),8000);
+}
+$('#hero-prev').addEventListener('click',()=>showHero(heroIndex-1));$('#hero-next').addEventListener('click',()=>showHero(heroIndex+1));
+$('#hero-pause').addEventListener('click',()=>{heroPaused=!heroPaused;$('#hero-pause').textContent=heroPaused?'Retomar destaques':'Pausar destaques';$('#hero-pause').setAttribute('aria-pressed',String(heroPaused));scheduleHero();});
+$('.hero').addEventListener('pointerenter',()=>clearTimeout(heroTimer));$('.hero').addEventListener('pointerleave',scheduleHero);
+$('.hero').addEventListener('focusin',()=>clearTimeout(heroTimer));$('.hero').addEventListener('focusout',()=>setTimeout(scheduleHero,0));
+$('.hero').addEventListener('pointerdown',event=>{if(event.pointerType==='touch'&&!event.target.closest('button'))heroPointer={x:event.clientX,y:event.clientY};});
+$('.hero').addEventListener('pointerup',event=>{if(!heroPointer)return;const dx=event.clientX-heroPointer.x,dy=event.clientY-heroPointer.y;heroPointer=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy))showHero(heroIndex+(dx<0?1:-1));});
+$('.hero').addEventListener('pointercancel',()=>heroPointer=null);
+heroMotion.addEventListener('change',scheduleHero);document.addEventListener('visibilitychange',scheduleHero);
+document.addEventListener('click',()=>setTimeout(scheduleHero,0));

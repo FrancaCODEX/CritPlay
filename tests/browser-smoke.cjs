@@ -6,7 +6,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port(){const s=net.createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 (async()=>{
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'critplay-browser-'));const serverPort=await port();const base=`http://127.0.0.1:${serverPort}`;
-  const jar=path.resolve(__dirname,'../target/critplay-0.5.2.jar');
+  const jar=path.resolve(__dirname,'../target/critplay-0.5.3.jar');
   const app=spawn('java',['-jar',jar,`--server.port=${serverPort}`,'--app.admin.username=ui_admin','--app.admin.password=BrowserAdminPassword42!',
     '--ggdeals.api-key=','--app.recovery.enabled=false','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work,env:process.env});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
@@ -20,6 +20,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await context.route('**/api/admin/steam/resolve',route=>route.fulfill({json:{status:'FOUND',appId:777456,message:'Steam App ID encontrado.'}}));
     const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base);await page.locator('.card').first().waitFor();
+    const firstHero=await page.locator('#hero-title').textContent();await page.locator('#hero-next').click();assert.notEqual(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-prev').click();assert.equal(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-pause').click();assert.equal(await page.locator('#hero-pause').getAttribute('aria-pressed'),'true');
     await page.locator('#account-login').click();await page.locator('#username').fill('ui_admin');await page.locator('#password').fill('BrowserAdminPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#add-game').waitFor({state:'visible'});assert((await page.title()).startsWith('CritPlay'));assert.equal(await page.locator('.topbar .brand').textContent(),'CRITPLAYBETA');
     await page.locator('[data-view=lists]').click();await page.locator('#create-list').click();await page.locator('#list-name').fill('Cooperativos');await page.locator('#list-description').fill('Para jogar com amigos');
@@ -32,7 +33,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#add-to-list').click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('adicionado à lista'));
     await page.locator('#close-detail').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
     await page.locator('[data-view=profile]').click();await page.getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
-    await page.locator('#profile-name').fill('Jogador de teste');await page.locator('#profile-bio').fill('Minha coleção de histórias.');
+    assert(await page.locator('#profile-settings').isHidden());await page.locator('#toggle-profile-settings').click();await page.locator('#profile-name').fill('Jogador de teste');await page.locator('#profile-bio').fill('Minha coleção de histórias.');
     await page.locator('.review-head .text-button').click();
     const profileRefresh=page.waitForResponse(response=>response.url().endsWith('/api/profile')&&response.status()===200);
     await page.locator('#diary-form button[type=submit]').click();await profileRefresh;
@@ -70,7 +71,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('[data-view=catalog]').click();
     await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).click();await page.locator('#edit-game').click();await page.locator('#game-title').fill('Jogo editado no navegador');await page.locator('#game-submit').click();
     await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo editado no navegador',exact:true}).waitFor();
-    await page.setViewportSize({width:390,height:844});await page.locator('[data-view=profile]').click();await page.locator('#profile-summary h2').waitFor();
+    await page.setViewportSize({width:390,height:844});await page.locator('[data-view=profile]').click();await page.locator('#profile-summary h2').waitFor();await page.locator('#toggle-profile-settings').click();
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Perfil possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'profile-mobile.png'),fullPage:true});
     await page.locator('#profile-visibility').selectOption('FRIENDS');await page.locator('#profile-discoverable').check();
@@ -103,7 +104,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     if(qa)await page.screenshot({path:path.join(qa,'community-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Comunidade possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'community-mobile.png'),fullPage:true});
-    await adminPage.locator('[data-view=profile]').click();await adminPage.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Jogador de teste');await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
+    await adminPage.locator('[data-view=profile]').click();await adminPage.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Jogador de teste');await adminPage.locator('#toggle-profile-settings').click();await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
     const sharedSettings=await adminPage.evaluate(async()=>(await(await fetch('/api/profile')).json()).user);assert.equal(sharedSettings.visibility,'PUBLIC');assert.equal(sharedSettings.discoverable,true);
     const visitor=await browser.newContext();await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
