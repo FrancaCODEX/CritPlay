@@ -100,3 +100,7 @@ No diário, **Comecei em** e **Terminei em** são opcionais. Fim exige início, 
 Critério conservador: título igual, ignorando caixa, espaços repetidos e símbolos ™/®, um único resultado, e resposta de detalhes da Steam confirmando o mesmo App ID, nome e tipo “game”. DLCs, pacotes, trilhas sonoras com nomes diferentes e edições divergentes não são escolhidos. Não é garantia absoluta: homônimos e cadastro incorreto na fonte ainda exigem revisão do administrador.
 
 Não exige chave Steam adicional ou plano RAWG pago. Usa os endpoints públicos da loja `storesearch` e `appdetails`, sem contrato estável de API; mudanças podem interromper a descoberta. Chamadas têm timeout, espaçamento, cache de 24 horas e pausa de um minuto após falha. Quando a loja falha, a importação continua sem inventar IDs. IDs pertencentes a outro jogo são recusados, IDs existentes e capas próprias são preservados. Preços continuam vindo do GG.deals.
+
+## Capas do catálogo
+
+Capas próprias têm prioridade, seguidas dos pôsteres verticais da Steam e das imagens RAWG. Se uma fonte falhar, a próxima é tentada; sem imagem disponível, aparece o título. Os cards mantêm o formato vertical, mas preservam a imagem inteira, com fundo roxo nos espaços restantes. Isso evita cortar screenshots horizontais ou ampliar rostos/logos. A mesma seleção é usada nas miniaturas de listas e resenhas.

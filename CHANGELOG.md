@@ -4,6 +4,11 @@ Histórico das entregas do CritPlay. O [README](README.md) descreve a instalaç�
 
 ## Não lançado
 
+### Interface
+
+- Capas verticais da Steam priorizadas após capas próprias, com alternativa RAWG se a imagem falhar.
+- Imagens inteiras e centralizadas no catálogo, listas e resenhas, sem ampliação no hover; cards alinhados ao topo.
+
 ### Documentação
 
 - README reorganizado em apresentação, funções atuais, configuração, execução e links de documentação.

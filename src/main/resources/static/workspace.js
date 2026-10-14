@@ -2,10 +2,9 @@
 let editingListId=null,resetToken=null,workspaceBusy=false;
 function button(text,className,action) {const node=el('button',className,text);node.type='button';node.addEventListener('click',action);return node;}
 function busy(form,value) {form.querySelectorAll('button,input,textarea,select').forEach(node=>node.disabled=value);}
-function coverFor(game) {return game.coverUrl||game.metadataCoverUrl||(game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`:null);}
 function compactGame(game,action) {
   const card=button('', 'mini-game',action||(()=>openDetail(game)));
-  const url=coverFor(game);if(url) {const image=el('img');image.src=url;image.alt='';image.loading='lazy';image.addEventListener('error',()=>image.remove(),{once:true});card.append(image);}
+  const image=gameCoverImage(game);if(image)card.append(image);
   card.append(el('strong',null,game.title),el('span','muted',game.genre));return card;
 }
 async function refreshWorkspace(view) {

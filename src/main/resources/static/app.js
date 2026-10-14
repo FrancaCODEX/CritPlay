@@ -1,5 +1,15 @@
 'use strict';
 const $ = selector => document.querySelector(selector);
+function coverSources(game) {
+  return [...new Set([game.coverUrl,game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`:null,game.metadataCoverUrl].filter(Boolean))];
+}
+function coverFor(game) {return coverSources(game)[0]||null;}
+function gameCoverImage(game,onMissing) {
+  const sources=coverSources(game);if(!sources.length)return null;
+  const image=el('img');image.alt='';image.loading='lazy';let index=0;
+  image.addEventListener('error',()=>{if(++index<sources.length)image.src=sources[index];else {image.remove();onMissing?.();}});
+  image.src=sources[0];return image;
+}
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
 const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, lists: [], profile: null, profileDirty: false, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
 async function csrfToken() {
@@ -63,10 +73,9 @@ function render() {
     const card = el('button', 'card'); card.type = 'button';
     card.setAttribute('aria-label', 'Abrir ' + game.title);
     const cover = el('div', 'cover');
-    const image = el('img'); image.alt = ''; image.loading = 'lazy';
-    if(game.coverUrl||game.metadataCoverUrl) image.src=game.coverUrl||game.metadataCoverUrl;else if (game.steamAppId) image.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`;
-    image.addEventListener('error', () => { image.remove(); cover.prepend(el('span', 'image-fallback', game.title)); }, { once: true });
-    if (game.coverUrl||game.metadataCoverUrl||game.steamAppId) cover.append(image); else cover.append(el('span', 'image-fallback', game.title));
+    const missing=()=>cover.prepend(el('span','image-fallback',game.title));
+    const image=gameCoverImage(game,missing);
+    if(image)cover.append(image);else missing();
     if (entry) cover.append(el('span', 'badge', `${entry.favorite ? '♥ · ' : ''}${statusLabels[entry.status]}`));
     card.append(cover, el('h3', null, game.title), el('p', null, `${game.genre} · ${game.releaseYear}`));
     if (entry?.rating) card.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ' · Sua nota'));
