@@ -30,6 +30,10 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#play-status').selectOption('COMPLETED');await page.locator('#rating').selectOption('5');await page.locator('#review').fill('Uma jornada que valeu cada descoberta.');
     await page.locator('#favorite').check();await page.locator('#diary-wishlist').check();await page.locator('#diary-form button[type=submit]').click();
     await page.waitForFunction(()=>document.querySelector('#form-message').textContent.includes('salva'));
+    assert(await page.locator('#diary-form').isHidden());assert(await page.locator('#diary-summary').isVisible());
+    await page.locator('#edit-review').click();assert(await page.locator('#diary-form').isVisible());
+    await page.locator('#review').fill('Rascunho descartado');await page.locator('#cancel-review-edit').click();
+    assert.equal(await page.locator('#review').inputValue(),'Uma jornada que valeu cada descoberta.');
     await page.locator('#add-to-list').click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('adicionado à lista'));
     await page.locator('#close-detail').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
     await page.locator('[data-view=profile]').click();await page.getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();

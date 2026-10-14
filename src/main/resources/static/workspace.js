@@ -40,7 +40,7 @@ function renderProfile(profile) {
   $('#review-count').textContent=profile.reviews.length+(profile.reviews.length===1?' resenha':' resenhas');
   const cards=profile.reviews.map(({game,entry})=>{
     const card=el('article','surface review-card');const head=el('div','review-head');
-    head.append(compactGame(game),button('Editar resenha','text-button',()=>openDetail(game)));card.append(head);
+    head.append(compactGame(game),button('Editar resenha','text-button',()=>openDetail(game, true)));card.append(head);
     if(entry.rating)card.append(el('p','personal-rating','★'.repeat(entry.rating)+' · '+statusLabels[entry.status]));
     if(entry.reviewHidden)card.append(el('p','price-note','Resenha oculta pela moderação.'));
     card.append(el('p','review-text',entry.review),el('p','price-note','Atualizada em '+new Date(entry.updatedAt).toLocaleDateString('pt-BR')));return card;
