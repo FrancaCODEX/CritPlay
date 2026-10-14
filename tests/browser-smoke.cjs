@@ -36,7 +36,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     assert.equal(await page.locator('#review').inputValue(),'Uma jornada que valeu cada descoberta.');
     await page.locator('#add-to-list').click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('adicionado à lista'));
     await page.locator('#close-detail').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
-    await page.locator('[data-view=profile]').click();await page.getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
+    await page.locator('[data-view=profile]').click();await page.locator('#profile-reviews').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     assert(await page.locator('#profile-settings').isHidden());await page.locator('#toggle-profile-settings').click();await page.locator('#profile-name').fill('Jogador de teste');await page.locator('#profile-bio').fill('Minha coleção de histórias.');
     await page.locator('.review-head .text-button').click();
     const profileRefresh=page.waitForResponse(response=>response.url().endsWith('/api/profile')&&response.status()===200);
