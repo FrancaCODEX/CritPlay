@@ -1,5 +1,12 @@
 # Changelog
 
+## Em desenvolvimento
+
+- Avaliação salva vira um resumo com opção de editar e cancelar a edição.
+- Detalhes exibem notas/resenhas da comunidade e média de 1 a 5, respeitando privacidade, amizades, bloqueios e moderação.
+- Cards com zoom suave e atalhos para favoritos/desejos, acessíveis por teclado e toque.
+- Favicon CritPlay em ICO/PNG e ícone para dispositivos Apple.
+
 Histórico das entregas do CritPlay. O [README](README.md) descreve a instalação e as funcionalidades atuais; detalhes de uso ficam em [Funcionalidades](docs/FUNCIONALIDADES.md).
 
 ## 0.5.3

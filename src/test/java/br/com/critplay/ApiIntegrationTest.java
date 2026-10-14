@@ -94,6 +94,47 @@ class ApiIntegrationTest {
     Session admin() throws Exception {
         var session=new Session();session.login("test_admin","AdminTestPassword42!");return session;
     }
+    @Autowired org.springframework.jdbc.core.JdbcTemplate reviewDb;
+    @Test void gameReviewsRespectVisibilityBlocksAndModeration() throws Exception {
+        var owner=user(); var friend=user(); var stranger=new Session();
+        String ownerName=accountName(owner), friendName=accountName(friend);
+        long ownerId=users.findByUsername(ownerName).orElseThrow().getId();
+        long friendId=users.findByUsername(friendName).orElseThrow().getId();
+        var created=admin().send("POST","/api/games",gameJson.replace("\"steamAppId\":420", "\"steamAppId\":null"));
+        assertEquals(201,created.statusCode());
+        long gameId=mapper.readTree(created.body()).path("id").asLong();
+        String path="/api/games/"+gameId+"/reviews";
+        assertEquals(200,owner.send("PUT","/api/diary/"+gameId,
+            "{\"status\":\"COMPLETED\",\"rating\":5,\"review\":\"Muito bom\",\"favorite\":true}").statusCode());
+        assertEquals(0,stranger.json(path).path("ratingCount").asInt());
+        assertEquals(5,owner.json(path).path("averageRating").asDouble());
+        reviewDb.update("UPDATE app_users SET visibility='PUBLIC',discoverable=TRUE WHERE id=?",ownerId);
+        var publicReview=stranger.json(path);
+        assertEquals(1,publicReview.path("ratingCount").asInt());
+        assertEquals(ownerName,publicReview.path("reviews").get(0).path("username").asText());
+        assertFalse(publicReview.path("reviews").get(0).has("favorite"));
+        assertEquals(200,friend.send("PUT","/api/diary/"+gameId,
+            "{\"status\":\"PLAYING\",\"rating\":3,\"review\":\"\",\"favorite\":false}").statusCode());
+        reviewDb.update("UPDATE app_users SET visibility='PUBLIC',discoverable=TRUE WHERE id=?",friendId);
+        assertEquals(4,stranger.json(path).path("averageRating").asDouble());
+        assertEquals(1,stranger.json(path).path("reviewCount").asInt());
+        reviewDb.update("UPDATE app_users SET visibility='FRIENDS',discoverable=FALSE WHERE id=?",ownerId);
+        assertEquals(1,friend.json(path).path("ratingCount").asInt());
+        reviewDb.update("INSERT INTO friendships(first_id,second_id,requester_id,status) VALUES (?,?,?,'ACCEPTED')",
+            Math.min(ownerId,friendId),Math.max(ownerId,friendId),ownerId);
+        assertEquals(2,friend.json(path).path("ratingCount").asInt());
+        reviewDb.update("INSERT INTO user_blocks(blocker_id,blocked_id) VALUES (?,?)",ownerId,friendId);
+        assertEquals(1,friend.json(path).path("ratingCount").asInt());
+        reviewDb.update("DELETE FROM user_blocks WHERE blocker_id=?",ownerId);
+        reviewDb.update("UPDATE diary_entries SET review_hidden=TRUE WHERE user_id=? AND game_id=?",ownerId,gameId);
+        assertEquals(1,friend.json(path).path("ratingCount").asInt());
+        reviewDb.update("UPDATE app_users SET enabled=FALSE WHERE id=?",friendId);
+        assertEquals(0,stranger.json(path).path("ratingCount").asInt());
+        assertTrue(stranger.json(path).path("averageRating").isNull());
+        assertEquals(404,stranger.send("GET","/api/games/99999999/reviews",null).statusCode());
+        assertEquals(200,stranger.send("GET","/favicon.png",null).statusCode());
+        assertEquals(200,stranger.send("GET","/favicon.ico",null).statusCode());
+    }
     @Test void homeAndCatalogArePublic() throws Exception {
         var session=new Session();
         assertEquals(200,session.send("GET","/",null).statusCode());

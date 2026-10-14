@@ -13,7 +13,7 @@ function gameCoverImage(game,onMissing) {
   selectSource();return image;
 }
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
-const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, lists: [], profile: null, profileDirty: false, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
+const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, communitySequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, quickSaving: new Set(), lists: [], profile: null, profileDirty: false, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
 async function csrfToken() {
   if (!state.csrf) {
     const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', cache: 'no-store' });
@@ -73,6 +73,7 @@ function render() {
   $('#catalog-message').textContent = games.length ? '' : 'Nenhum jogo por aqui. Experimente outros filtros ou salve um jogo no seu diário.';
   $('#games').replaceChildren(...games.map(game => {
     const entry = state.diary.get(game.id);
+    const wrapper = el('article', 'game-card');
     const card = el('button', 'card'); card.type = 'button';
     card.setAttribute('aria-label', 'Abrir ' + game.title);
     const cover = el('div', 'cover');
@@ -83,7 +84,17 @@ function render() {
     card.append(cover, el('h3', null, game.title), el('p', null, `${game.genre} · ${game.releaseYear}`));
     if (entry?.rating) card.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ' · Sua nota'));
     card.addEventListener('click', () => openDetail(game));
-    return card;
+    wrapper.append(card);
+    const actions = el('div', 'card-actions');
+    for (const [field, icon, label] of [['favorite','♥','favoritos'],['wishlist','＋','lista de desejos']]) {
+      const active = !!entry?.[field];
+      const button = el('button', 'card-action', icon); button.type = 'button';
+      button.setAttribute('aria-label', `${active?'Remover de':'Adicionar a'} ${label}: ${game.title}`);
+      button.setAttribute('aria-pressed', String(active)); button.title = button.getAttribute('aria-label');
+      button.disabled = state.quickSaving.has(game.id);
+      button.addEventListener('click', () => quickToggle(game, field)); actions.append(button);
+    }
+    wrapper.append(actions); return wrapper;
   }));
 }
 function setView(view) {
@@ -97,8 +108,8 @@ function setView(view) {
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-async function openDetail(game) {
-  if (state.saving) return;
+async function openDetail(game, editing = false) {
+  if (state.saving || state.quickSaving.has(game.id)) return;
   state.selected = game;
   const sequence = ++state.detailSequence;
   const entry = state.diary.get(game.id);
@@ -110,7 +121,7 @@ async function openDetail(game) {
   $('#detail-cover').style.backgroundImage = detailImage?`linear-gradient(0deg,#120f1c,transparent),url("${detailImage}")`:game.steamAppId
     ? `linear-gradient(0deg,#120f1c,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
     : 'linear-gradient(135deg,#492b69,#242731)';
-  $('#diary-form').hidden = !state.user;
+  renderDiarySummary(entry, editing);
   $('#diary-login-hint').hidden = !!state.user;
   $('#play-status').value = entry?.status || 'WANT_TO_PLAY';
   $('#rating').value = entry?.rating || '';
@@ -125,6 +136,7 @@ async function openDetail(game) {
   $('#prices').textContent = 'Consultando preços…';
   $('#price-source').href = game.steamAppId ? `https://gg.deals/steam/app/${game.steamAppId}/` : 'https://gg.deals/';
   if (!$('#detail').open) $('#detail').showModal();
+  loadCommunity(game.id, sequence);
   if (!state.user) { $('#prices').textContent = 'Entre na sua conta para consultar os preços.'; return; }
   try {
     const quote = await api(`/api/games/${game.id}/prices`);
@@ -133,6 +145,77 @@ async function openDetail(game) {
   } catch (error) {
     if (sequence === state.detailSequence) $('#prices').textContent = error.message;
   }
+}
+function renderDiarySummary(entry, editing = false) {
+  const saved = !!entry && (entry.rating != null || !!entry.review?.trim());
+  $('#diary-form').hidden = !state.user || (saved && !editing);
+  $('#edit-review').hidden = !state.user || !saved || editing;
+  $('#cancel-review-edit').hidden = !state.user || !saved || !editing;
+  const summary = $('#diary-summary'); summary.hidden = !state.user || !saved || editing;
+  summary.replaceChildren();
+  if (!saved) return;
+  summary.append(el('p', 'eyebrow', 'SUA AVALIAÇÃO'), el('p', 'muted', statusLabels[entry.status]));
+  if (entry.rating) summary.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ` · ${entry.rating}/5`));
+  if (entry.review) summary.append(el('p', 'review-text', entry.review));
+  if (entry.reviewHidden) summary.append(el('p', 'price-note', 'Sua resenha está oculta pela moderação.'));
+  if (entry.startDate || entry.finishDate) summary.append(el('p', 'price-note',
+    [entry.startDate ? 'Comecei em ' + entry.startDate.split('-').reverse().join('/') : '',
+     entry.finishDate ? 'Terminei em ' + entry.finishDate.split('-').reverse().join('/') : ''].filter(Boolean).join(' · ')));
+}
+$('#edit-review').addEventListener('click', () => {
+  renderDiarySummary(state.diary.get(state.selected.id), true); $('#rating').focus();
+});
+$('#cancel-review-edit').addEventListener('click', () => {
+  if (state.saving) return;
+  const entry = state.diary.get(state.selected.id);
+  $('#play-status').value = entry.status; $('#rating').value = entry.rating || ''; $('#review').value = entry.review || '';
+  $('#start-date').value = entry.startDate || ''; $('#finish-date').value = entry.finishDate || '';
+  $('#favorite').checked = entry.favorite; $('#diary-wishlist').checked = entry.wishlist;
+  $('#form-message').textContent = ''; renderDiarySummary(entry); $('#edit-review').focus();
+});
+async function loadCommunity(gameId, sequence) {
+  const request = ++state.communitySequence;
+  const container = $('#community-reviews');
+  $('#community-average').textContent = 'Carregando avaliações…'; container.replaceChildren();
+  try {
+    const summary = await api(`/api/games/${gameId}/reviews`);
+    if (request !== state.communitySequence || sequence !== state.detailSequence || !$('#detail').open) return;
+    const average = summary.averageRating == null ? 'Sem notas ainda' :
+      `★ ${summary.averageRating.toLocaleString('pt-BR', {maximumFractionDigits:1, minimumFractionDigits:1})}/5 · ${summary.ratingCount} ${summary.ratingCount === 1 ? 'nota' : 'notas'}`;
+    $('#community-average').textContent = average;
+    // Your complete review is already shown in the personal summary.
+    const reviews = summary.reviews.filter(review => review.username !== state.user?.username);
+    container.replaceChildren(...reviews.map(review => {
+      const card = el('article', 'community-review');
+      card.append(el('strong', null, review.displayName + ' · @' + review.username));
+      if (review.rating) card.append(el('p', 'personal-rating', '★'.repeat(review.rating) + ` · ${review.rating}/5`));
+      if (review.review) card.append(el('p', 'review-text', review.review));
+      card.append(el('p', 'price-note', 'Atualizada em ' + new Date(review.updatedAt).toLocaleDateString('pt-BR')));
+      return card;
+    }));
+    if (!reviews.length) container.append(el('p', 'muted', 'Ainda não há avaliações de outros usuários visíveis para você.'));
+    if (summary.ratingCount > 50 || summary.reviewCount > 50) container.append(el('p', 'price-note', 'Mostrando as 50 avaliações mais recentes. A média considera todas as notas visíveis.'));
+  } catch (error) {
+    if (request === state.communitySequence && sequence === state.detailSequence && $('#detail').open) $('#community-average').textContent = error.message;
+  }
+}
+async function quickToggle(game, field) {
+  if (!state.user) { openAuth(); toast('Entre para salvar seus jogos.'); return; }
+  if (state.saving || state.quickSaving.has(game.id)) return;
+  const account = state.user;
+  const entry = state.diary.get(game.id);
+  const body = { status: entry?.status || 'WANT_TO_PLAY', rating: entry?.rating ?? null,
+    review: entry?.review || '', favorite: !!entry?.favorite, wishlist: !!entry?.wishlist,
+    startDate: entry?.startDate || null, finishDate: entry?.finishDate || null };
+  body[field] = !body[field]; state.quickSaving.add(game.id); render();
+  try {
+    const saved = await api(`/api/diary/${game.id}`, { method: 'PUT', body: JSON.stringify(body) });
+    if (state.user !== account) return;
+    state.diary.set(game.id, saved);
+    toast(body[field] ? (field === 'favorite' ? 'Adicionado aos favoritos' : 'Adicionado à lista de desejos') :
+      (field === 'favorite' ? 'Removido dos favoritos' : 'Removido da lista de desejos'));
+  } catch (error) { toast(error.message); }
+  finally { state.quickSaving.delete(game.id); render(); }
 }
 function renderPrices(quote) {
   const container=$('#prices');container.replaceChildren();$('#price-source').href=quote.sourceUrl;
@@ -149,7 +232,7 @@ function toast(message) { $('#toast').textContent = message; $('#toast').hidden 
 function lockForm(locked) {
   state.saving = locked;
   $('#diary-form').querySelectorAll('button,input,select,textarea').forEach(node => { node.disabled = locked; });
-  $('#close-detail').disabled = locked;
+  $('#close-detail').disabled = locked; $('#cancel-review-edit').disabled = locked;
 }
 $('#diary-form').addEventListener('submit', async event => {
   event.preventDefault(); if (state.saving) return;
@@ -161,6 +244,7 @@ $('#diary-form').addEventListener('submit', async event => {
   try {
     const entry = await api(`/api/diary/${gameId}`, { method: 'PUT', body: JSON.stringify(body) });
     state.diary.set(gameId, entry); render(); $('#remove-entry').hidden = false;
+    renderDiarySummary(entry); loadCommunity(gameId, state.detailSequence);
     $('#form-message').textContent = 'Sua experiência foi salva.'; toast('Diário atualizado');
   } catch (error) { $('#form-message').textContent = error.message; }
   finally { lockForm(false); }

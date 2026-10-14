@@ -39,4 +39,5 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/gameshelf-ui" playwright@1.58.2 --no-audit --no-fund
           node "$RUNNER_TEMP/gameshelf-ui/node_modules/playwright/cli.js" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/reviews-ui.cjs
           NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/browser-smoke.cjs

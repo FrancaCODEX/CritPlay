@@ -18,3 +18,22 @@
 
 /* Destaques e configurações sob demanda. */
 .hero{position:relative;isolation:isolate;overflow:hidden;padding-bottom:85px;touch-action:pan-y;background:var(--bg)}.hero-track{position:absolute;inset:0;display:flex;transition:transform .65s ease;z-index:0}.hero-slide{flex:0 0 100%;height:100%;background-size:cover;background-position:center}.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#120f1cf5 0%,#120f1cc7 35%,#120f1c20 85%),linear-gradient(0deg,#120f1c,transparent 65%);pointer-events:none;z-index:1}.hero-content{position:relative;z-index:2}.hero-arrow{position:absolute;z-index:3;top:45%;width:36px;height:54px;border:1px solid #ffffff30;border-radius:8px;background:#120f1c99;color:var(--text);font-size:34px}.hero-prev{left:8px}.hero-next{right:8px}.hero-controls{position:absolute;bottom:25px;left:5%;right:5%;z-index:3;display:flex;align-items:center;gap:20px}.hero-dots{display:flex;gap:8px}.hero-dot{width:26px;height:26px;border:0;background:transparent;padding:8px}.hero-dot::after{content:"";display:block;width:10px;height:10px;border-radius:50%;background:#ffffff50}.hero-dot.active::after{background:var(--accent)}.hero-controls .text-button{color:var(--text)}#profile-settings{margin-top:20px}#profile-section>.section-heading{gap:15px;flex-wrap:wrap}#profile-section>.section-heading button{margin-bottom:22px}@media(max-width:680px){.hero{padding-left:45px;padding-right:45px}.hero h1{font-size:36px;overflow-wrap:anywhere}.hero-arrow{width:30px}.hero-controls{left:40px;right:40px;gap:5px;flex-wrap:wrap}.hero-actions{flex-wrap:wrap}.hero-meta{flex-wrap:wrap;line-height:1.6}.hero-content{min-width:0}}@media(prefers-reduced-motion:reduce){.hero-track{transition:none}}
+
+/* Game cards: the open action and the shortcuts remain separate buttons. */
+.game-card{position:relative;min-width:0;transition:transform .22s ease,filter .22s ease;transform-origin:center center}
+.game-card .card{display:block;width:100%;cursor:pointer}
+.game-card:hover,.game-card:focus-within{z-index:2;transform:translateY(-4px) scale(1.035);filter:drop-shadow(0 12px 18px #0005)}
+.card-actions{position:absolute;top:12px;right:10px;display:flex;gap:7px;opacity:0;transition:opacity .18s ease}
+.game-card:hover .card-actions,.game-card:focus-within .card-actions{opacity:1}
+.card-action{display:grid;place-items:center;width:36px;height:36px;border:1px solid #ffffff50;border-radius:50%;background:#120f1ce8;color:white;font-size:21px;cursor:pointer;box-shadow:0 3px 10px #0006}
+.card-action[aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:#35234ef0}
+.card-action:disabled{opacity:.55;cursor:wait}
+.card-action:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.diary-summary{border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;background:var(--panel)}
+.community-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:22px 0;margin-top:24px}
+.community-section h3{margin:0 0 12px}.community-average{font-size:22px;color:var(--accent);margin:0}
+#community-reviews{display:grid;gap:12px;max-height:340px;overflow:auto;margin-top:16px}
+.community-review{padding:16px;border:1px solid var(--border);border-radius:10px;background:var(--panel)}
+.community-review strong{font-size:13px;overflow-wrap:anywhere}.community-review .personal-rating,.diary-summary .personal-rating{color:var(--accent)}
+@media(hover:none),(pointer:coarse){.card-actions{opacity:1}.card-action{width:40px;height:40px}}
+@media(prefers-reduced-motion:reduce){.game-card,.card-actions{transition:none}.game-card:hover,.game-card:focus-within{transform:none}}
