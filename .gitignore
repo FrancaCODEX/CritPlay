@@ -5,3 +5,12 @@ data/
 .vscode/
 *.iml
 *.log
+
+.env.*
+!.env.example
+!.env.production.example
+!.env.oracle.example
+
+data-oracle-backup.lock
+
+__pycache__/

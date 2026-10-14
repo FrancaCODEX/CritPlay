@@ -1,5 +1,7 @@
 # Hospedagem do CritPlay — pesquisa de 13/10/2026
 
+Decisão de 14/10/2026: seguir com Oracle Cloud Always Free. Veja [o guia da implantação](ORACLE_CLOUD.md) e [a organização das branches](BRANCHES.md). As alternativas abaixo ficam como histórico da pesquisa; não houve deploy.
+
 Ainda não houve contratação nem deploy. Preços em moeda original, antes de domínio, impostos, câmbio e consumo adicional. Fontes oficiais:
 
 - Railway: https://railway.com/pricing e https://docs.railway.com/pricing/plans
