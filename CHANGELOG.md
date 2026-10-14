@@ -8,7 +8,7 @@ Toda alteração no projeto deve ser registrada neste arquivo: funcionalidades, 
 
 - Separação operacional em `local` (computador) e `oracle-cloud` (VM), com `main` como base comum e guia de sincronização por merges.
 - Docker Compose específico para Oracle com Java 21, PostgreSQL 17, Caddy/HTTPS, volumes persistentes, limites de memória, rotação de logs e health checks.
-- Aplicação e banco sem portas públicas; proxy com IP fixo e profile Oracle que aceita cabeçalhos encaminhados somente do Caddy confiável.
+- Aplicação e banco sem portas públicas; apenas o proxy tem IP fixo, permitindo containers auxiliares sem conflito durante backup/testes. O profile Oracle aceita cabeçalhos encaminhados somente do Caddy confiável.
 - Exemplo `.env.oracle` e regras Git para proteger segredos de cada ambiente.
 - Dockerfile com curl para health checks e cópia do JAR sem fixar o número da versão; compatibilidade com execução local preservada.
 - Backup consistente do banco e uploads com pausa breve, checksums, metadados, bloqueio concorrente e retomada da aplicação; atualização faz backup antes do pull e rebuild.

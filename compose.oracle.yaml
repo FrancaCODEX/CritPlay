@@ -44,10 +44,7 @@ services:
       JAVA_TOOL_OPTIONS: '-XX:MaxRAMPercentage=65 -XX:+ExitOnOutOfMemoryError'
     volumes:
       - uploads:/app/data
-    networks:
-      database:
-      proxy:
-        ipv4_address: 172.30.10.20
+    networks: [database, proxy]
     depends_on:
       postgres:
         condition: service_healthy
