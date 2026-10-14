@@ -454,6 +454,7 @@ class ApiIntegrationTest {
 
     @Test void steamAssociationRequiresAdminPreservesIdAndRejectsDuplicate() throws Exception {
         var administrator=admin();var member=user();
+        assertEquals(200,new Session().send("GET","/steam.js",null).statusCode());
         String title="Steam association fixture";
         when(steam.resolve(title)).thenReturn(new br.com.critplay.steam.SteamResolver.Result("FOUND",777123L,"Encontrado"));
         long id=mapper.readTree(administrator.send("POST","/api/games",newGameJson(title)).body()).path("id").asLong();

@@ -29,7 +29,7 @@ public class SecurityConfig {
         @Value("${app.security.rate-limit-enabled}") boolean rateLimit) throws Exception {
         // CSRF permanece ligado. O frontend obtém um token de sessão antes das escritas.
         http.authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/admin.js", "/bulk.js", "/error", "/favicon.ico").permitAll()
+            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/admin.js", "/bulk.js", "/steam.js", "/error", "/favicon.ico").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/health", "/api/games", "/api/games/*", "/api/auth/csrf", "/api/auth/me").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/people/*").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/auth/recovery-status", "/media/*").permitAll()
