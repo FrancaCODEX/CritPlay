@@ -16,6 +16,9 @@ public class ProfileController {
     @PutMapping public Map<String,Object> update(Principal principal,@Valid @RequestBody ProfileUpdateRequest request) {
         service.update(principal.getName(),request);return service.get(principal.getName());
     }
+    @PutMapping("/gamer") public Map<String,Object> gamer(Principal principal,@Valid @RequestBody GamerProfileRequest body) {
+        service.updateGamer(principal.getName(),body);return service.get(principal.getName());
+    }
     @PutMapping("/password") public Map<String,String> password(Principal principal,@Valid @RequestBody PasswordChangeRequest body,
         HttpServletRequest request,HttpServletResponse response) {
         service.changePassword(principal.getName(),body);

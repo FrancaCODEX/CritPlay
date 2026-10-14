@@ -1,8 +1,8 @@
 # Migrar H2 para PostgreSQL
 
-Esta ferramenta é local e não tem endpoint HTTP. Ela não inicia o servidor Java. IDs, hashes de senha, perfis, diários, datas, listas, relações sociais, bloqueios, denúncias, auditoria e progresso de importações são copiados. Sessões são revogadas e tokens de recuperação não são copiados. Lotes ativos passam a pausados.
+Esta ferramenta é local e não tem endpoint HTTP. Ela não inicia o servidor Java. IDs, hashes de senha, perfis/banners, jogos em destaque, notas fracionadas, diários, datas, listas, relações sociais, curtidas, atividades, bloqueios, denúncias, auditoria e progresso de importações são copiados. Sessões são revogadas e tokens de recuperação não são copiados. Lotes ativos passam a pausados.
 
-1. Atualize o código e inicie uma vez a v0.5.1 com seu H2 atual para aplicar V6. Depois pare o Java e faça backup de `data/` e do `.env` por meios protegidos.
+1. Atualize o código e inicie uma vez a versão mais recente com seu H2 atual para aplicar também V7 (meia estrela e comunidade). Depois pare o Java e faça backup de `data/` e do `.env` por meios protegidos.
 2. Prepare um PostgreSQL novo e vazio, acessível à máquina que fará a cópia. Não inicie o CritPlay nesse destino antes da migração: o catálogo inicial tornaria o banco ocupado.
 3. Configure `DB_URL` em formato JDBC, `DB_USERNAME` e `DB_PASSWORD` no ambiente ou `.env`. Mantenha usuário/senha fora da URL. O profile local H2 continua ignorando essas configurações até você ativar o profile postgres.
 4. Empacote com `./mvnw package` (Windows: `.\mvnw.cmd package`).

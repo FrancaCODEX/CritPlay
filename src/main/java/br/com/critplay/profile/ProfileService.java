@@ -15,14 +15,16 @@ public class ProfileService {
     private final UserService users;private final UserRepository repository;private final PasswordEncoder encoder;
     private final DiaryService diary;private final CatalogService catalog;private final ImageService images;
     private final PasswordResetRepository resets;
+    private final org.springframework.jdbc.core.JdbcTemplate db;
     public ProfileService(UserService users,UserRepository repository,PasswordEncoder encoder,DiaryService diary,
-        CatalogService catalog,ImageService images,PasswordResetRepository resets) {
-        this.users=users;this.repository=repository;this.encoder=encoder;this.diary=diary;this.catalog=catalog;this.images=images;this.resets=resets;
+        CatalogService catalog,ImageService images,PasswordResetRepository resets,org.springframework.jdbc.core.JdbcTemplate db) {
+        this.users=users;this.repository=repository;this.encoder=encoder;this.diary=diary;this.catalog=catalog;this.images=images;this.resets=resets;this.db=db;
     }
     public Map<String,Object> get(String username) {
         var user=users.require(username);var entries=diary.list(user.getId());
         var profile=new LinkedHashMap<String,Object>();
         profile.put("id",user.getId());profile.put("username",user.getUsername());profile.put("displayName",user.getDisplayName());
+        profile.put("bannerUrl",user.getBannerUrl());profile.put("featuredGames",featuredGames(user.getId()));
         profile.put("bio",user.getBio());profile.put("email",user.getEmail());profile.put("avatarUrl",user.getAvatarUrl());
         profile.put("visibility",user.getVisibility());profile.put("discoverable",user.isDiscoverable());
         profile.put("role",user.getRole());profile.put("createdAt",user.getCreatedAt());
@@ -33,6 +35,20 @@ public class ProfileService {
             "completed",entries.stream().filter(e->e.getStatus()==PlayStatus.COMPLETED).count(),
             "favorites",entries.stream().filter(DiaryEntry::isFavorite).count(),
             "wishlist",entries.stream().filter(DiaryEntry::isWishlist).count(),"reviews",reviews.size()));
+    }
+    public List<br.com.critplay.catalog.Game> featuredGames(Long userId) {
+        return db.query("SELECT game_id FROM profile_featured_games WHERE user_id=? ORDER BY position",
+            (rs,row)->catalog.find(rs.getLong(1)),userId);
+    }
+    @Transactional public void updateGamer(String username,GamerProfileRequest request) {
+        images.lockReferences();var user=users.require(username);
+        if(new HashSet<>(request.featuredGameIds()).size()!=request.featuredGameIds().size())
+            throw new BadRequestException("Escolha jogos diferentes para os destaques.");
+        for(Long gameId:request.featuredGameIds())catalog.find(gameId);
+        String banner=Objects.equals(request.bannerUrl(),user.getBannerUrl())?user.getBannerUrl():images.ownedUrl(user.getId(),request.bannerUrl());
+        user.updateBanner(banner);repository.saveAndFlush(user);
+        db.update("DELETE FROM profile_featured_games WHERE user_id=?",user.getId());
+        int position=0;for(Long gameId:request.featuredGameIds())db.update("INSERT INTO profile_featured_games(user_id,game_id,position) VALUES (?,?,?)",user.getId(),gameId,++position);
     }
     @Transactional public void update(String username,ProfileUpdateRequest request) {
         images.lockReferences();

@@ -41,14 +41,16 @@ public class SocialService {
         var result=new LinkedHashMap<String,Object>();result.put("user",identity(target));result.put("visible",visible);
         result.put("relationship",actor==null?Map.of("following",false,"friendship","NONE"):relationship(actor.getId(),target.getId()));
         if(visible) {
-            var publicUser=new LinkedHashMap<String,Object>(identity(target));publicUser.put("bio",target.getBio());result.put("user",publicUser);
+            var publicUser=new LinkedHashMap<String,Object>(identity(target));publicUser.put("bio",target.getBio());publicUser.put("bannerUrl",target.getBannerUrl());publicUser.put("featuredGames",profiles.featuredGames(target.getId()));result.put("user",publicUser);
             var details=profiles.get(target.getUsername());result.put("stats",details.get("stats"));
             // Apenas texto/nota das resenhas. Preferências privadas do diário nunca saem neste endpoint.
             var reviews=new ArrayList<Map<String,Object>>();
             for(var raw:(List<?>)details.get("reviews")) {
                 var row=(Map<?,?>)raw;var entry=(br.com.critplay.diary.DiaryEntry)row.get("entry");if(entry.isReviewHidden())continue;
                 var review=new LinkedHashMap<String,Object>();review.put("game",row.get("game"));review.put("review",entry.getReview());
-                review.put("rating",entry.getRating());review.put("updatedAt",entry.getUpdatedAt());reviews.add(review);
+                review.put("entryId",entry.getId());review.put("rating",entry.getRating());review.put("updatedAt",entry.getUpdatedAt());
+                review.put("likeCount",db.queryForObject("SELECT COUNT(*) FROM review_likes l JOIN app_users u ON u.id=l.user_id WHERE l.entry_id=? AND u.enabled=TRUE",Long.class,entry.getId()));
+                review.put("likedByMe",actor!=null&&db.queryForObject("SELECT COUNT(*) FROM review_likes WHERE entry_id=? AND user_id=?",Long.class,entry.getId(),actor.getId())>0);reviews.add(review);
             }
             result.put("reviews",reviews);var sharedStats=new LinkedHashMap<>((Map<String,Object>)details.get("stats"));sharedStats.put("reviews",reviews.size());result.put("stats",sharedStats);
             result.put("social",Map.of("followers",count("SELECT COUNT(*) FROM user_follows WHERE followed_id=?",target.getId()),

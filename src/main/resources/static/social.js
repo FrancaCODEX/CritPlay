@@ -66,7 +66,10 @@ async function openPublicProfile(username){
   try{const profile=await api('/api/people/'+encodeURIComponent(username));if(sequence!==publicSequence||!$('#public-profile-dialog').open)return;
     const user=profile.user;const content=$('#public-profile-content');const head=el('div','profile-summary');const identity=identityCard(user);identity.disabled=true;head.append(identity);content.append(head);
     $('#public-profile-title').textContent='Perfil de '+user.displayName;content.append(el('p','price-note','Visibilidade: '+visibilityLabels[user.visibility]));
-    if(profile.visible){content.append(el('p','profile-bio',user.bio||'Ainda sem bio.'));
+    if(profile.visible){
+      if(user.bannerUrl){const banner=el('div','profile-banner');const image=el('img');image.src=user.bannerUrl;image.alt='Banner de '+user.displayName;banner.append(image);content.prepend(banner);}
+      const featured=el('div','featured-games');renderFeaturedGames(featured,user.featuredGames);content.append(el('h3',null,'Jogos em destaque'),featured);
+      content.append(el('p','profile-bio',user.bio||'Ainda sem bio.'));
       const stats=el('div','stats-grid');const labels={library:'Jogos no diário',completed:'Finalizados',favorites:'Favoritos',wishlist:'Desejos',reviews:'Resenhas'};
       for(const [key,label]of Object.entries(labels)){const stat=el('div','stat');stat.append(el('strong',null,String(profile.stats[key])),el('span',null,label));stats.append(stat);}content.append(stats);
       content.append(el('p','muted',`${profile.social.followers} seguidores · ${profile.social.following} seguindo · ${profile.social.friends} amigos`));
@@ -83,7 +86,7 @@ async function openPublicProfile(username){
     const share=el('input');share.readOnly=true;share.value=location.origin+'/#profile='+encodeURIComponent(username);share.setAttribute('aria-label','Link deste perfil');
     actions.append(share);content.append(actions);
     if(profile.visible){const reviews=el('div','review-grid');content.append(el('h3',null,'Resenhas'));
-      for(const review of profile.reviews){const card=el('article','surface review-card');card.append(compactGame(review.game));if(review.rating)card.append(el('p','personal-rating','★'.repeat(review.rating)));card.append(el('p','review-text',review.review));if(state.user&&state.user.username!==username)card.append(button('Denunciar resenha','text-button',()=>sendReport(username,review.game.id)));reviews.append(card);}content.append(reviews);
+      for(const review of profile.reviews){const card=el('article','surface review-card');card.append(compactGame(review.game));if(review.rating)card.append(ratingDisplay(review.rating));card.append(el('p','review-text',review.review));if(state.user?.username!==username)card.append(reviewLikeButton({...review,displayName:user.displayName}));if(state.user&&state.user.username!==username)card.append(button('Denunciar resenha','text-button',()=>sendReport(username,review.game.id)));reviews.append(card);}content.append(reviews);
       if(!profile.reviews.length)content.append(el('p','muted','Nenhuma resenha publicada ainda.'));
     }
     $('#public-profile-message').textContent='';

@@ -1,5 +1,22 @@
 # Arquitetura e API — v0.5
 
+## Biblioteca e comunidade
+
+| Rota | Acesso | Comportamento |
+| --- | --- | --- |
+| PUT /api/diary/{gameId} | Conta autenticada + CSRF | `rating`: null ou número de 0.5 a 5, múltiplo de 0.5. Preserva a API de notas inteiras. |
+| GET /api/games/{gameId}/reviews | Público, filtrado pelo visitante | Média, contadores e até 50 avaliações. Inclui entryId, likeCount e likedByMe. |
+| PUT /api/reviews/{entryId}/like | Conta autenticada + CSRF | Curtida idempotente em resenha visível de outro autor. |
+| DELETE /api/reviews/{entryId}/like | Conta autenticada + CSRF | Remove a curtida de forma idempotente, respeitando o acesso atual. |
+| GET /api/feed?before={id} | Conta autenticada | Até 25 atividades e nextCursor. Ordenação por ID decrescente; cursor exclusivo. |
+| PUT /api/profile/gamer | Conta autenticada + CSRF | bannerUrl próprio ou null; featuredGameIds obrigatório, até quatro IDs distintos em ordem. |
+
+Feed, avaliações e curtidas compartilham o predicado de visibilidade atual. Os eventos guardam status/nota no momento da ação, sem copiar o texto da resenha. Quando o diário é apagado, suas atividades e curtidas são removidas por cascata. Eventos não expõem favoritos/desejos e não são gerados por mudanças somente nessas preferências.
+
+H2 V7 e PostgreSQL V5 criam profile_featured_games, review_likes, activity_events e banner_url, e convertem rating para double com restrição de meia estrela. A migração entre bancos inclui essas tabelas e reinicia a sequência das atividades.
+
+Ordenação e visualização da biblioteca são feitas no cliente, sobre o catálogo filtrado e o diário da conta; o modo padrão do catálogo conserva a ordem do backend. Apenas o profile Oracle, guardado em outra branch, altera a configuração de hospedagem.
+
 Monólito modular: interface estática e API REST no mesmo processo Java. Controller recebe HTTP; Service implementa regras; Repository usa JPA; Flyway versiona o banco. O frontend nunca decide permissões sozinho.
 
 ## Modelo

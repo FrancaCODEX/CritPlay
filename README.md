@@ -5,8 +5,8 @@ Uma comunidade de jogos para registrar experiências, publicar resenhas e descob
 ## Funcionalidades
 
 - Catálogo com busca, filtros, edição administrativa e importação RAWG individual ou em lotes de 500, 1.000 e 2.000 jogos.
-- Diário com progresso, nota, resenha e datas de início/término; favoritos, desejos e listas personalizadas particulares.
-- Perfil com avatar, resenhas e configurações sob demanda; privacidade, busca de usuários, seguidores e amizades.
+- Diário com progresso, notas de meia estrela (0,5–5), resenha e datas; biblioteca por status, ordenação e modo compacto; favoritos, desejos e listas particulares.
+- Perfil com avatar, banner e até quatro jogos em destaque; resenhas, privacidade, seguidores e amizades; feed de atividades e curtidas em resenhas.
 - Carrossel de destaques com navegação e troca automática.
 - Preços de PC via GG.deals; jogos de consoles no catálogo com links manuais para lojas.
 - Administração de contas/papéis, suspensão, denúncias, moderação de resenhas, bloqueios e limpeza de imagens sem uso.

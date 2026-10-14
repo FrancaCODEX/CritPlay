@@ -4,6 +4,26 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Biblioteca, perfil gamer e comunidade
+
+- Biblioteca com filtros por status e contadores: todos, quero jogar, jogando, finalizados e abandonados.
+- Ordenação da biblioteca por última atualização, título, maior nota e data de conclusão; catálogo principal com ordem padrão ou alfabética em PT-BR.
+- Alternância entre capas e lista compacta, com informações de status e conclusão, mantendo os filtros e a ordenação durante a navegação.
+- Notas de 0,5 a 5 em passos de meia estrela, sem arredondamento silencioso; migrações H2 V7/PostgreSQL V5 preservam notas inteiras existentes.
+- Estrelas com preenchimento parcial e nota numérica no catálogo, biblioteca, resumo, resenhas e perfis compartilhados; médias aceitam notas fracionadas.
+- Perfil gamer com banner próprio e até quatro jogos em destaque, em ordem definida pelo usuário, além das estatísticas existentes. Duplicatas, jogos inexistentes e imagens de outro usuário são recusados.
+- Novo endpoint de identidade gamer; banner e destaques compartilhados respeitam a visibilidade do perfil. Limpeza de imagens preserva banners em uso.
+- Feed de atividades com paginação por cursor para suas experiências, pessoas seguidas e amigos aceitos. Status, notas e resenhas geram eventos persistentes; alterações apenas em favoritos/desejos e salvamentos sem mudanças não geram atividade.
+- Feed e resenhas são filtrados pela privacidade atual, descoberta de perfis, amizades, bloqueios, suspensão e moderação; exclusão do diário remove atividades e curtidas associadas.
+- Curtir/descurtir resenhas com contagem e indicação da sua curtida, no jogo e nos perfis compartilhados; operações idempotentes, autenticação/CSRF e proteção contra curtidas na própria resenha ou em conteúdo inacessível.
+- Cards com status discreto, nota pessoal e marca de favorito; atalhos independentes no hover, foco e toque, coração preenchido, indicação de gravação e foco preservado após a ação.
+- Detalhes com capa vertical, título e média no topo e abas de experiência, comunidade e preços, com navegação por teclado e layout responsivo.
+- Estados vazios com mensagens contextualizadas e ações para explorar o catálogo/encontrar jogadores; feedback de salvamento e respeito à preferência de movimento reduzido.
+- Migração H2 → PostgreSQL ampliada para banner, destaques, curtidas e atividades, preservando IDs e sequências.
+- Testes de API para meia estrela, identidade/privacidade, feed, curtidas e exclusão; testes de migração e navegador ampliados para ordenação, status, modo compacto, abas, banner, destaques, feed, curtidas e celular.
+- README e guias de funcionalidades, API e migração atualizados; toda preparação Oracle continua isolada na branch oracle-cloud.
+
+
 ### Reversão da hospedagem Oracle — 14/10/2026
 
 - Revertido na `main` o merge do PR #2 (`c87f519`), adiando a preparação Oracle Cloud por solicitação do responsável.
