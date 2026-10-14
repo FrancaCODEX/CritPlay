@@ -21,7 +21,7 @@ $('#stop-steam').addEventListener('click',()=>{steamScan=false;$('#backfill-mess
 $('#backfill-steam').addEventListener('click',async()=>{
   if(steamScan||!confirm('Procurar e salvar Steam IDs dos jogos de PC sem ID? Os IDs existentes serão preservados.'))return;
   const scan=++steamScanSequence;steamScan=true;$('#backfill-steam').disabled=true;$('#stop-steam').hidden=false;
-  let checked=0,found=0,pending=0;
+  let checked=0,found=0,pending=0,unavailable=false;
   try{
     const games=(await api('/api/games')).filter(g=>!g.steamAppId&&g.platforms.split(',').map(x=>x.trim()).includes('PC'));
     for(const game of games){
@@ -29,9 +29,9 @@ $('#backfill-steam').addEventListener('click',async()=>{
       $('#backfill-message').textContent=`${checked}/${games.length} verificados · ${found} IDs salvos · ${pending} para revisão · ${game.title}`;
       const result=await api('/api/admin/steam/games/'+game.id,{method:'POST'});if(scan!==steamScanSequence)return;checked++;
       if(result.status==='FOUND')found++;else if(result.status!=='PRESERVED')pending++;
-      if(result.status==='UNAVAILABLE'){steamScan=false;break;}
+      if(result.status==='UNAVAILABLE'){steamScan=false;unavailable=true;break;}
     }
-    $('#backfill-message').textContent=`${checked}/${games.length} verificados · ${found} IDs salvos · ${pending} sem associação. ${checked<games.length?'Busca interrompida; pode iniciar novamente.':'Busca concluída.'}`;
+    $('#backfill-message').textContent=`${checked}/${games.length} verificados · ${found} IDs salvos · ${pending} sem associação. ${unavailable?'Busca interrompida: Steam indisponível; tente novamente em um minuto.':checked<games.length?'Busca interrompida; pode iniciar novamente.':'Busca concluída.'}`;
   }catch(error){$('#backfill-message').textContent=error.message;}
   finally{if(scan===steamScanSequence){steamScan=false;$('#backfill-steam').disabled=false;$('#stop-steam').hidden=true;}}
 });
