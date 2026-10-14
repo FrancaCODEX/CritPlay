@@ -1,13 +1,37 @@
 # Changelog
 
-## Em desenvolvimento
-
-- Avaliação salva vira um resumo com opção de editar e cancelar a edição.
-- Detalhes exibem notas/resenhas da comunidade e média de 1 a 5, respeitando privacidade, amizades, bloqueios e moderação.
-- Cards com zoom suave e atalhos para favoritos/desejos, acessíveis por teclado e toque.
-- Favicon CritPlay em ICO/PNG e ícone para dispositivos Apple.
-
 Histórico das entregas do CritPlay. O [README](README.md) descreve a instalação e as funcionalidades atuais; detalhes de uso ficam em [Funcionalidades](docs/FUNCIONALIDADES.md).
+
+Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcionalidades, correções, interface, testes, configuração e documentação. Mudanças ainda não entregues entram em “Não lançado” e são agrupadas na versão correspondente quando entregues.
+
+## Não lançado
+
+### Avaliações
+
+- Após salvar nota ou resenha, o formulário é recolhido e substituído por um resumo com status, nota, texto e datas.
+- Botão “Editar avaliação” para reabrir o formulário; cancelar restaura os dados salvos. Falhas no salvamento mantêm a edição aberta.
+- Botão “Editar resenha” no perfil abre diretamente o formulário de edição.
+- Novo endpoint GET /api/games/{gameId}/reviews e seção de avaliações da comunidade nos detalhes do jogo.
+- Média de 1 a 5 sobre todas as notas visíveis, incluindo avaliações sem texto; listagem limitada às 50 avaliações mais recentes.
+- Média e listagem respeitam privacidade, descoberta de perfis, amizades, bloqueios, contas suspensas e moderação. Preferências privadas do diário não são compartilhadas.
+- Atualização da média após salvar e descarte de respostas antigas ao trocar de jogo ou recarregar avaliações.
+
+### Interface
+
+- Cards com zoom suave ao passar o mouse ou focar pelo teclado, respeitando a preferência de movimento reduzido.
+- Atalhos independentes para adicionar/remover favoritos e desejos sem abrir o jogo, preservando nota, resenha, status e datas.
+- Atalhos acessíveis por teclado e visíveis em dispositivos de toque; gravações repetidas no mesmo card são bloqueadas enquanto a ação está em andamento.
+- Favicon CritPlay derivado do ícone fornecido, em ICO com tamanhos 16/32/48/64 e PNG de 64 px; ícone Apple de 180 px.
+- Referências dos ícones no HTML e acesso público aos arquivos na configuração de segurança.
+
+### Testes e documentação
+
+- Teste de integração para média, avaliações sem texto, privacidade, amizades, bloqueios, moderação, suspensão, jogo inexistente e acesso aos ícones.
+- Teste de navegador para salvar, editar, cancelar, falha de gravação, comunidade, atalhos, preservação de dados, recarregamento, celular, movimento reduzido, favicon e login.
+- CI ampliado para executar o novo teste de interface, além da regressão geral existente.
+- Regressão geral adaptada ao resumo recolhido e seletor de resenha limitado à seção do perfil para evitar ambiguidade com o resumo do jogo.
+- Validação aprovada no GitHub: 55 testes Java sem falhas, empacotamento e testes de navegador.
+- Regra de registro de toda alteração explicitada neste changelog.
 
 ## 0.5.3
 
