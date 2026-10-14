@@ -1,7 +1,5 @@
 # Preparar a hospedagem do CritPlay
 
-A preparação específica Oracle está em [ORACLE_CLOUD.md](ORACLE_CLOUD.md). Ela inclui rede privada, proxy confiável, volumes, backup e atualização; as observações abaixo continuam aplicáveis às demais implantações.
-
 Esta versão continua preparada para desenvolvimento local. Não houve deploy. O GitHub guarda o código, não executa o servidor Java.
 
 ## Banco, arquivos e segredos
@@ -15,7 +13,7 @@ Esta versão continua preparada para desenvolvimento local. Não houve deploy. O
 
 Mantenha o Java em `127.0.0.1:8080` e coloque um proxy HTTPS na frente, com certificado válido e renovação. O banco também deve ficar numa rede privada. Encaminhe somente as rotas públicas/API necessárias, com limite de corpo compatível com uploads (3 MB).
 
-Não confie indiscriminadamente em `X-Forwarded-For`. Antes de liberar logins via proxy, configure identificação do IP apenas a partir de proxies confiáveis e confirme o endereço que chega aos limites de tentativa. O limiter usa `request.getRemoteAddr()`. No profile `oracle`, o Tomcat resolve esse endereço pelos cabeçalhos enviados apenas pelo Caddy confiável; no ambiente local, cabeçalhos encaminhados não são ativados. Sem essa preparação, usuários atrás de um proxy podem compartilhar o mesmo limite.
+Não confie indiscriminadamente em `X-Forwarded-For`. Antes de liberar logins via proxy, configure identificação do IP apenas a partir de proxies confiáveis e confirme o endereço que chega aos limites de tentativa. A versão atual usa `request.getRemoteAddr()` e não interpreta cabeçalhos de IP. Sem essa preparação, usuários atrás de um proxy podem compartilhar o mesmo limite.
 
 Os limites atuais (login, registro, recuperação) são em memória de uma instância. Para escalar ou preservar limites em reinicializações, substitua por armazenamento compartilhado, por exemplo Redis, e valide a implantação. Isso ainda não está implementado nesta versão.
 

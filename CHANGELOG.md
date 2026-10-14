@@ -1,20 +1,16 @@
 # Changelog
 
-Toda alteração no projeto deve ser registrada neste arquivo: funcionalidades, correções, interface, configuração, testes e documentação.
+Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcionalidades, correções, configuração, testes e documentação.
 
 ## Não lançado
 
-### Hospedagem Oracle e branches
+### Reversão da hospedagem Oracle — 14/10/2026
 
-- Separação operacional em `local` (computador) e `oracle-cloud` (VM), com `main` como base comum e guia de sincronização por merges.
-- Docker Compose específico para Oracle com Java 21, PostgreSQL 17, Caddy/HTTPS, volumes persistentes, limites de memória, rotação de logs e health checks.
-- Aplicação e banco sem portas públicas; apenas o proxy tem IP fixo, permitindo containers auxiliares sem conflito durante backup/testes. O profile Oracle aceita cabeçalhos encaminhados somente do Caddy confiável.
-- Exemplo `.env.oracle` e regras Git para proteger segredos de cada ambiente.
-- Dockerfile com curl para health checks e cópia do JAR sem fixar o número da versão; compatibilidade com execução local preservada.
-- Backup consistente do banco e uploads com pausa breve, checksums, metadados, bloqueio concorrente e retomada da aplicação; atualização faz backup antes do pull e rebuild.
-- Guia Oracle para VM ARM, DNS, firewall, HTTPS, migração opcional, backups, atualização e restauração em ambiente separado.
-- README e guias de hospedagem/operação atualizados com a escolha Oracle e o novo profile de proxy.
-- CI específico para construir a stack, validar proxy/cookies/IP, persistência e ciclo de backup/restauração; implantação real depende da VM e domínio.
+- Revertido na `main` o merge do PR #2 (`c87f519`), adiando a preparação Oracle Cloud por solicitação do responsável.
+- Removidos da `main` os arquivos específicos Oracle, scripts de backup/atualização, profile, CI e guias adicionados pelo PR; Dockerfile, regras Git, README e guias gerais voltam ao estado anterior ao merge.
+- Todo o trabalho de hospedagem permanece preservado na branch `oracle-cloud`, sem alterações; a branch `local` também permanece intacta.
+- Avaliações, notas da comunidade, atalhos nos cards e favicon do PR #1 permanecem na `main`.
+- Para retomar a incorporação futura, reverta este commit de reversão em uma nova branch e abra um novo PR; um merge simples da antiga branch não reaplica os commits já presentes no histórico.
 
 ### Avaliações e interface
 

@@ -77,10 +77,6 @@ java -jar target/critplay-0.5.3.jar
 
 No Linux, use `./mvnw`. Testes locais usam dados fictícios; o CI também verifica PostgreSQL e navegação. Servidor local escuta em `127.0.0.1`; configuração de hospedagem está no guia abaixo.
 
-## Ambientes local e Oracle Cloud
-
-Use `local` para o computador e `oracle-cloud` para a hospedagem. A base comum é a `main`; funcionalidades são sincronizadas por merges, enquanto bancos e segredos permanecem separados. Consulte [Branches](docs/BRANCHES.md) e o [guia Oracle Cloud](docs/ORACLE_CLOUD.md).
-
 ## Documentação
 
 - [Guia das funcionalidades](docs/FUNCIONALIDADES.md)
