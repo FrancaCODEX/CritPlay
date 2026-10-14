@@ -103,4 +103,4 @@ Não exige chave Steam adicional ou plano RAWG pago. Usa os endpoints públicos 
 
 ## Capas do catálogo
 
-Capas próprias têm prioridade, seguidas dos pôsteres verticais da Steam e das imagens RAWG. Se uma fonte falhar, a próxima é tentada; sem imagem disponível, aparece o título. Os cards mantêm o formato vertical, mas preservam a imagem inteira, com fundo roxo nos espaços restantes. Isso evita cortar screenshots horizontais ou ampliar rostos/logos. A mesma seleção é usada nas miniaturas de listas e resenhas.
+Capas próprias têm prioridade, seguidas dos pôsteres verticais da Steam e das imagens RAWG. Se uma fonte falhar, a próxima é tentada; sem imagem disponível, aparece o título. Os cards mantêm tamanho vertical uniforme. Pôsteres da Steam preservam o enquadramento inteiro; capas próprias e alternativas RAWG preenchem toda a área com recorte central, sem distorção ou faixas vazias. Imagens horizontais podem perder parte das laterais para ocupar o card. A mesma seleção é usada nas miniaturas de listas e resenhas.

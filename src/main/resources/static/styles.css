@@ -12,3 +12,6 @@
 
 /* Capas completas: screenshots horizontais não são ampliadas para preencher pôsteres. */
 .grid{align-items:start}.card{align-self:start}.cover img{position:absolute;inset:0;display:block;object-fit:contain;object-position:center}.card:hover .cover img{transform:none}.mini-game img{object-fit:contain;background:var(--panel)}.metadata-preview img{object-fit:contain;background:var(--panel)}
+
+/* Alternativas à capa Steam preenchem o card, com recorte central sem distorção. */
+.cover img[data-cover-fit=fill],.mini-game img[data-cover-fit=fill]{object-fit:cover}

@@ -6,6 +6,8 @@ Histórico das entregas do CritPlay. O [README](README.md) descreve a instalaç�
 
 ### Interface
 
+- Imagens sem pôster Steam preenchem todo o card com recorte central, eliminando faixas vazias; alternativas após falha da Steam seguem a mesma regra.
+
 - Capas verticais da Steam priorizadas após capas próprias, com alternativa RAWG se a imagem falhar.
 - Imagens inteiras e centralizadas no catálogo, listas e resenhas, sem ampliação no hover; cards alinhados ao topo.
 

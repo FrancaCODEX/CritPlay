@@ -7,8 +7,10 @@ function coverFor(game) {return coverSources(game)[0]||null;}
 function gameCoverImage(game,onMissing) {
   const sources=coverSources(game);if(!sources.length)return null;
   const image=el('img');image.alt='';image.loading='lazy';let index=0;
-  image.addEventListener('error',()=>{if(++index<sources.length)image.src=sources[index];else {image.remove();onMissing?.();}});
-  image.src=sources[0];return image;
+  const steamCover=game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`:null;
+  const selectSource=()=>{image.dataset.coverFit=sources[index]===steamCover?'contain':'fill';image.src=sources[index];};
+  image.addEventListener('error',()=>{if(++index<sources.length)selectSource();else {image.remove();onMissing?.();}});
+  selectSource();return image;
 }
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
 const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, lists: [], profile: null, profileDirty: false, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
