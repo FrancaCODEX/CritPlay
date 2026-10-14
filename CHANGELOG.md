@@ -20,7 +20,7 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Detalhes com capa vertical, título e média no topo e abas de experiência, comunidade e preços, com navegação por teclado e layout responsivo.
 - Estados vazios com mensagens contextualizadas e ações para explorar o catálogo/encontrar jogadores; feedback de salvamento e respeito à preferência de movimento reduzido.
 - Migração H2 → PostgreSQL ampliada para banner, destaques, curtidas e atividades, preservando IDs e sequências.
-- Fixtures de navegador usam Elden Ring e Hades do catálogo inicial; seletores de curtidas são limitados ao painel ativo para validar notas, perfil e feed sem ambiguidade com perfis recolhidos.
+- Fixtures de navegador usam Elden Ring e Hades do catálogo inicial; seletores de curtidas e relações sociais são limitados ao painel ativo para validar notas, perfil e feed sem ambiguidade com perfis recolhidos.
 - Testes de API para meia estrela, identidade/privacidade, feed, curtidas e exclusão; testes de migração e navegador ampliados para ordenação, status, modo compacto, abas, banner, destaques, feed, curtidas e celular.
 - README e guias de funcionalidades, API e migração atualizados; toda preparação Oracle continua isolada na branch oracle-cloud.
 
