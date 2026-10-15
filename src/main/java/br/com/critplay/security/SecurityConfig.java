@@ -29,7 +29,7 @@ public class SecurityConfig {
         @Value("${app.security.rate-limit-enabled}") boolean rateLimit) throws Exception {
         // CSRF permanece ligado. O frontend obtém um token de sessão antes das escritas.
         http.authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/admin.js", "/bulk.js", "/steam.js", "/error", "/favicon.ico", "/favicon.png", "/apple-touch-icon.png").permitAll()
+            .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/community.js", "/admin.js", "/bulk.js", "/steam.js", "/error", "/favicon.ico", "/favicon.png", "/apple-touch-icon.png").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/health", "/api/games", "/api/games/*", "/api/games/*/reviews", "/api/auth/csrf", "/api/auth/me").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/people/*").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/auth/recovery-status", "/media/*").permitAll()
@@ -37,7 +37,7 @@ public class SecurityConfig {
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/games", "/api/games/import").hasRole("ADMIN")
             .requestMatchers(HttpMethod.PUT, "/api/games/*").hasRole("ADMIN")
-            .requestMatchers("/api/blocks/**", "/api/blocks", "/api/reports", "/api/people", "/api/people/**", "/api/social", "/api/diary/**", "/api/games/*/prices", "/api/profile/**", "/api/profile", "/api/lists/**", "/api/lists", "/api/images").authenticated()
+            .requestMatchers("/api/blocks/**", "/api/blocks", "/api/reports", "/api/people", "/api/people/**", "/api/social", "/api/feed", "/api/reviews/*/like", "/api/diary/**", "/api/games/*/prices", "/api/profile/**", "/api/profile", "/api/lists/**", "/api/lists", "/api/images").authenticated()
             .anyRequest().denyAll())
             .requestCache(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)

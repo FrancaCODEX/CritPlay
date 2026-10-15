@@ -11,7 +11,7 @@ public class DiaryEntry {
     private Long gameId;
     private Long userId;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private PlayStatus status;
-    private Integer rating;
+    private Double rating;
     @Column(length = 2000) private String review;
     private boolean favorite;
     @Column(nullable=false) private boolean wishlist;
@@ -36,10 +36,11 @@ public class DiaryEntry {
     public boolean isReviewHidden(){return reviewHidden;}
     public void moderate(boolean hidden){reviewHidden=hidden;}
     public void assignOwner(Long userId) { this.userId = userId; }
+    @JsonIgnore public Long getId() { return id; }
     @JsonIgnore public Long getUserId() { return userId; }
     public Long getGameId() { return gameId; }
     public PlayStatus getStatus() { return status; }
-    public Integer getRating() { return rating; }
+    public Double getRating() { return rating; }
     public String getReview() { return review; }
     public boolean isFavorite() { return favorite; }
     public boolean isWishlist() {return wishlist;}

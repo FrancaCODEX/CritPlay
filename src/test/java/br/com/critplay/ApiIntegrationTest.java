@@ -135,6 +135,74 @@ class ApiIntegrationTest {
         assertEquals(200,stranger.send("GET","/favicon.png",null).statusCode());
         assertEquals(200,stranger.send("GET","/favicon.ico",null).statusCode());
     }
+    long communityGame() throws Exception {
+        var response=admin().send("POST","/api/games",gameJson.replace("\"steamAppId\":420","\"steamAppId\":null"));
+        assertEquals(201,response.statusCode());return mapper.readTree(response.body()).path("id").asLong();
+    }
+    String diaryBody(double rating,String review,boolean favorite) throws Exception {
+        return mapper.writeValueAsString(Map.of("status","PLAYING","rating",rating,"review",review,"favorite",favorite,"wishlist",false));
+    }
+    @Test void acceptsOnlyHalfStarsWithoutRoundingAndKeepsExistingRatings() throws Exception {
+        var owner=user();long game=communityGame();String path="/api/diary/"+game;
+        for(double rating:new double[]{0.5,1,1.5,4.5,5}) {
+            var response=owner.send("PUT",path,diaryBody(rating,"Nota fracionada",false));
+            assertEquals(200,response.statusCode());assertEquals(rating,mapper.readTree(response.body()).path("rating").asDouble());
+        }
+        for(double rating:new double[]{0,0.25,3.25,5.5,6})assertEquals(400,owner.send("PUT",path,diaryBody(rating,"Inválida",false)).statusCode());
+        assertEquals(5,owner.json("/api/diary").get(0).path("rating").asDouble());
+    }
+    @Test void gamerIdentityValidatesOwnershipDuplicatesAndPrivacy() throws Exception {
+        var owner=user();var other=user();String username=accountName(owner);
+        byte[] png=Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAFElEQVR4nGN0yzNiwA2Y8MiNYGkAIi0A+uIAXFoAAAAASUVORK5CYII=");
+        var upload=owner.upload(png,"banner.png","image/png");assertEquals(200,upload.statusCode());String banner=mapper.readTree(upload.body()).path("url").asText();
+        var otherUpload=other.upload(png,"other.png","image/png");String foreign=mapper.readTree(otherUpload.body()).path("url").asText();
+        var games=owner.json("/api/games");var ids=new ArrayList<Long>();for(int i=0;i<4;i++)ids.add(games.get(i).path("id").asLong());
+        String body=mapper.writeValueAsString(Map.of("bannerUrl",banner,"featuredGameIds",ids));
+        assertEquals(200,owner.send("PUT","/api/profile/gamer",body).statusCode());
+        var own=owner.json("/api/profile");assertEquals(banner,own.path("user").path("bannerUrl").asText());assertEquals(4,own.path("user").path("featuredGames").size());
+        var hidden=other.json("/api/people/"+username);assertFalse(hidden.path("visible").asBoolean());assertFalse(hidden.path("user").has("bannerUrl"));
+        assertEquals(400,owner.send("PUT","/api/profile/gamer",mapper.writeValueAsString(Map.of("bannerUrl",foreign,"featuredGameIds",ids))).statusCode());
+        assertEquals(400,owner.send("PUT","/api/profile/gamer",mapper.writeValueAsString(Map.of("featuredGameIds",List.of(ids.get(0),ids.get(0))))).statusCode());
+        assertEquals(400,owner.send("PUT","/api/profile/gamer",mapper.writeValueAsString(Map.of("featuredGameIds",List.of(1,2,3,4,5)))).statusCode());
+        assertEquals(404,owner.send("PUT","/api/profile/gamer","{\"featuredGameIds\":[99999999]}").statusCode());
+        assertEquals(200,owner.send("PUT","/api/profile/privacy","{\"visibility\":\"PUBLIC\",\"discoverable\":true}").statusCode());
+        assertEquals(banner,new Session().json("/api/people/"+username).path("user").path("bannerUrl").asText());
+        assertEquals(ids.get(0).longValue(),other.json("/api/people/"+username).path("user").path("featuredGames").get(0).path("id").asLong());
+        assertEquals(200,owner.send("PUT","/api/profile/gamer","{\"bannerUrl\":null,\"featuredGameIds\":[]}").statusCode());
+        assertTrue(owner.json("/api/profile").path("user").path("bannerUrl").isNull());
+    }
+    @Test void feedAndLikesRespectFollowsPrivacyBlocksModerationAndDeletion() throws Exception {
+        var owner=user();var viewer=user();String name=accountName(owner);long game=communityGame();
+        long ownerId=users.findByUsername(name).orElseThrow().getId();
+        assertEquals(200,owner.send("PUT","/api/profile/privacy","{\"visibility\":\"PUBLIC\",\"discoverable\":true}").statusCode());
+        assertEquals(200,owner.send("PUT","/api/diary/"+game,diaryBody(4.5,"Minha aventura",false)).statusCode());
+        assertEquals(0,viewer.json("/api/feed").path("items").size());
+        assertEquals(200,viewer.send("PUT","/api/people/"+name+"/follow",null).statusCode());
+        var feed=viewer.json("/api/feed");assertEquals(1,feed.path("items").size());assertEquals("REVIEW",feed.path("items").get(0).path("action").asText());
+        var review=viewer.json("/api/games/"+game+"/reviews").path("reviews").get(0);long entry=review.path("entryId").asLong();
+        assertEquals(4.5,review.path("rating").asDouble());String like="/api/reviews/"+entry+"/like";
+        for(int i=0;i<2;i++){var response=viewer.send("PUT",like,null);assertEquals(200,response.statusCode());assertEquals(1,mapper.readTree(response.body()).path("likeCount").asInt());}
+        assertTrue(viewer.json("/api/games/"+game+"/reviews").path("reviews").get(0).path("likedByMe").asBoolean());
+        assertEquals(400,owner.send("PUT",like,null).statusCode());
+        assertEquals(200,viewer.send("DELETE",like,null).statusCode());assertEquals(200,viewer.send("DELETE",like,null).statusCode());
+        assertEquals(200,viewer.send("PUT",like,null).statusCode());
+        owner.send("PUT","/api/diary/"+game,diaryBody(4.5,"Minha aventura",true));
+        assertEquals(1,viewer.json("/api/feed").path("items").size(),"Favoritar não deve gerar atividade privada");
+        owner.send("PUT","/api/diary/"+game,diaryBody(4,"Minha aventura",true));
+        var latest=viewer.json("/api/feed");assertEquals(2,latest.path("items").size());long cursor=latest.path("items").get(0).path("id").asLong();
+        assertEquals(1,viewer.json("/api/feed?before="+cursor).path("items").size());
+        owner.send("PUT","/api/profile/privacy","{\"visibility\":\"PRIVATE\",\"discoverable\":true}");
+        assertEquals(0,viewer.json("/api/feed").path("items").size());assertEquals(404,viewer.send("PUT",like,null).statusCode());
+        owner.send("PUT","/api/profile/privacy","{\"visibility\":\"PUBLIC\",\"discoverable\":true}");
+        viewer.send("PUT","/api/blocks/"+name,null);assertEquals(0,viewer.json("/api/feed").path("items").size());assertEquals(404,viewer.send("PUT",like,null).statusCode());
+        viewer.send("DELETE","/api/blocks/"+name,null);viewer.send("PUT","/api/people/"+name+"/follow",null);
+        reviewDb.update("UPDATE diary_entries SET review_hidden=TRUE WHERE user_id=? AND game_id=?",ownerId,game);
+        assertEquals(0,viewer.json("/api/feed").path("items").size());assertEquals(404,viewer.send("PUT",like,null).statusCode());
+        reviewDb.update("UPDATE diary_entries SET review_hidden=FALSE WHERE user_id=? AND game_id=?",ownerId,game);
+        assertEquals(204,owner.send("DELETE","/api/diary/"+game,null).statusCode());assertEquals(0,viewer.json("/api/feed").path("items").size());
+        assertEquals(0,reviewDb.queryForObject("SELECT COUNT(*) FROM review_likes WHERE entry_id=?",Long.class,entry));
+        assertEquals(404,viewer.send("PUT",like,null).statusCode());assertEquals(401,new Session().send("GET","/api/feed",null).statusCode());
+    }
     @Test void homeAndCatalogArePublic() throws Exception {
         var session=new Session();
         assertEquals(200,session.send("GET","/",null).statusCode());

@@ -1,5 +1,17 @@
 # Guia de funcionalidades
 
+## Novidades: biblioteca e comunidade
+
+A biblioteca oferece filtros de status com contadores e visualização por capas ou lista compacta. Você pode ordenar por atualização, título, nota ou conclusão; o catálogo mantém a ordem padrão e permite ordem alfabética. A nota vai de 0,5 a 5 em passos de meia estrela, mantendo as notas já salvas.
+
+Nos detalhes, capa vertical e média ficam no topo. As abas “Sua experiência”, “Comunidade” e “Onde comprar” separam diário, avaliações e preços. Ao salvar, o formulário vira um resumo; edição e cancelamento continuam disponíveis. Corações/atalhos mostram o estado atual e o andamento da gravação.
+
+Em Perfil → Editar perfil → Sua identidade gamer, envie um banner e escolha até quatro jogos em destaque. Esses jogos não precisam estar no diário e não mudam sua lista de favoritos. Banner e seleções são salvos pelo botão “Salvar identidade gamer”, separado dos dados pessoais. As imagens enviadas têm URLs públicas, como os avatares existentes; a divulgação do banner no perfil segue a visibilidade configurada.
+
+Atividades mostra experiências novas suas, de amigos e de pessoas seguidas. O feed começa com os eventos registrados depois desta atualização; não inventa um histórico retroativo. Alterações em notas/resenhas/status geram eventos; favoritos/desejos sozinhos não geram atividade. Você pode atualizar e carregar páginas anteriores. Seguir um perfil privado não dá acesso às suas atividades.
+
+Resenhas de outros usuários podem ser curtidas e descurtidas na aba Comunidade ou no perfil compartilhado. Avaliações só com nota não recebem curtidas. Perfil privado, bloqueio, suspensão, moderação ou exclusão impedem o acesso. As listas personalizadas continuam particulares. Preferências de visualização são mantidas durante a sessão; os dados do diário, perfil, feed e curtidas são persistidos no banco.
+
 Uso das funções atuais do CritPlay. Para instalação, consulte o [README](../README.md). O histórico fica no [CHANGELOG](../CHANGELOG.md).
 
 ## Como funciona o administrador

@@ -16,6 +16,7 @@ public class ImageCleanupService {
         var used=new HashSet<String>();
         db.query("SELECT cover_url FROM games WHERE cover_url IS NOT NULL",rs->{used.add(rs.getString(1));});
         db.query("SELECT avatar_url FROM app_users WHERE avatar_url IS NOT NULL",rs->{used.add(rs.getString(1));});
+        db.query("SELECT banner_url FROM app_users WHERE banner_url IS NOT NULL",rs->{used.add(rs.getString(1));});
         Path directory=images.directory();if(!Files.isDirectory(directory))return List.of();
         var cutoff=Instant.now().minus(Duration.ofHours(24));
         try(var files=Files.list(directory)){

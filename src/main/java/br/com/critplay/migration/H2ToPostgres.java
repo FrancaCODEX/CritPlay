@@ -7,8 +7,8 @@ import java.util.*;
 
 /** Ferramenta local. Não é exposta pela API e não inicia o servidor. */
 public final class H2ToPostgres {
-    private static final List<String> TABLES=List.of("games","app_users","diary_entries","game_lists","game_list_items","user_follows","friendships","user_blocks","content_reports","account_audit","import_jobs");
-    private static final Set<String> IDENTITIES=Set.of("games","app_users","diary_entries","game_lists","game_list_items","content_reports","account_audit","import_jobs");
+    private static final List<String> TABLES=List.of("games","app_users","diary_entries","game_lists","game_list_items","user_follows","friendships","user_blocks","content_reports","account_audit","import_jobs","profile_featured_games","review_likes","activity_events");
+    private static final Set<String> IDENTITIES=Set.of("games","app_users","diary_entries","game_lists","game_list_items","content_reports","account_audit","import_jobs","activity_events");
     private H2ToPostgres(){}
     public static Map<String,Long> migrate(Connection source,Connection target) throws SQLException {
         if(!source.getMetaData().getDatabaseProductName().equals("H2")||!target.getMetaData().getDatabaseProductName().equals("PostgreSQL"))throw new SQLException("Bancos incompatíveis.");

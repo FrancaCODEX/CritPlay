@@ -15,6 +15,7 @@ public class AppUser {
     @Column(nullable = false, length = 500) private String bio = "";
     @Column(unique = true, length = 254) private String email;
     private String avatarUrl;
+    private String bannerUrl;
     @Column(nullable = false) private int sessionVersion;
     @Enumerated(EnumType.STRING) @Column(nullable=false, length=20)
     private br.com.critplay.social.ProfileVisibility visibility = br.com.critplay.social.ProfileVisibility.PRIVATE;
@@ -35,6 +36,8 @@ public class AppUser {
     public Role getRole() { return role; }
     public String getBio() { return bio; }
     public String getEmail() { return email; }
+    public String getBannerUrl(){return bannerUrl;}
+    public void updateBanner(String value){bannerUrl=value;}
     public String getAvatarUrl() { return avatarUrl; }
     public Instant getCreatedAt() { return createdAt; }
     public int getSessionVersion() { return sessionVersion; }

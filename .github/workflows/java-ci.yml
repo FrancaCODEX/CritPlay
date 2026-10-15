@@ -41,3 +41,4 @@ jobs:
           node "$RUNNER_TEMP/gameshelf-ui/node_modules/playwright/cli.js" install --with-deps chromium
           NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/reviews-ui.cjs
           NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/browser-smoke.cjs
+          NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/community-browser.cjs

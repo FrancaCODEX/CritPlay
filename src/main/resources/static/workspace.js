@@ -12,7 +12,8 @@ async function refreshWorkspace(view) {
   try {
     if(view==='profile') {
       busy($('#privacy-form'),true);
-      const profile=await api('/api/profile');
+      const [profile,games]=await Promise.all([api('/api/profile'),api('/api/games')]);
+      if(sequence===state.workspaceSequence)state.profileGames=games;
       if(sequence!==state.workspaceSequence||state.view!==view)return;
       state.profile=profile;renderProfile(profile);renderPrivacy(profile.user);busy($('#privacy-form'),false);
     } else {
@@ -23,7 +24,7 @@ async function refreshWorkspace(view) {
   } catch(error) {if(sequence===state.workspaceSequence) toast(error.message);}
 }
 function renderProfile(profile) {
-  const user=profile.user;const summary=$('#profile-summary');summary.replaceChildren();
+  const user=profile.user;renderGamerProfile(user);const summary=$('#profile-summary');summary.replaceChildren();
   const avatar=el('div','avatar');
   if(user.avatarUrl) {const image=el('img');image.src=user.avatarUrl;image.alt='Foto de '+user.displayName;avatar.append(image);}
   else avatar.textContent=user.displayName.slice(0,2).toUpperCase();
@@ -41,7 +42,7 @@ function renderProfile(profile) {
   const cards=profile.reviews.map(({game,entry})=>{
     const card=el('article','surface review-card');const head=el('div','review-head');
     head.append(compactGame(game),button('Editar resenha','text-button',()=>openDetail(game, true)));card.append(head);
-    if(entry.rating)card.append(el('p','personal-rating','★'.repeat(entry.rating)+' · '+statusLabels[entry.status]));
+    if(entry.rating)card.append(ratingDisplay(entry.rating,statusLabels[entry.status]));
     if(entry.reviewHidden)card.append(el('p','price-note','Resenha oculta pela moderação.'));
     card.append(el('p','review-text',entry.review),el('p','price-note','Atualizada em '+new Date(entry.updatedAt).toLocaleDateString('pt-BR')));return card;
   });

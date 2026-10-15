@@ -13,7 +13,7 @@ function gameCoverImage(game,onMissing) {
   selectSource();return image;
 }
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
-const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, communitySequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, quickSaving: new Set(), lists: [], profile: null, profileDirty: false, editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
+const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, communitySequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, quickSaving: new Set(), lists: [], profile: null, profileDirty: false, gamerDirty: false, profileBannerUrl: null, profileGames: [], catalogSort: 'default', librarySort: 'updated', libraryStatus: '', libraryLayout: 'grid', editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
 async function csrfToken() {
   if (!state.csrf) {
     const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', cache: 'no-store' });
@@ -61,42 +61,74 @@ async function loadGames() {
   }
 }
 function render() {
-  const personal=['profile','lists','people','admin'].includes(state.view);
+  const personal=['profile','lists','people','admin','feed'].includes(state.view);
   $('.workspace:not(.personal-workspace)').hidden=personal;
   $('.hero').hidden=personal;$('.journey').hidden=personal;scheduleHero();
+  $('#feed-section').hidden=state.view!=='feed';
   $('#admin-section').hidden=state.view!=='admin';$('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
-  if(personal) {if(state.view==='people')refreshPeople();else if(state.view==='admin')refreshAdmin();else refreshWorkspace(state.view);return;}
-  const games = state.games.filter(game => state.view === 'catalog' ||
+  if(personal) {if(state.view==='feed')refreshFeed();else if(state.view==='people')refreshPeople();else if(state.view==='admin')refreshAdmin();else refreshWorkspace(state.view);return;}
+  let games = state.games.filter(game => state.view === 'catalog' ||
     (state.view === 'library' ? state.diary.has(game.id) : state.view==='wishlist'?state.diary.get(game.id)?.wishlist:state.diary.get(game.id)?.favorite));
+  renderLibraryControls(games);
+  if(state.view==='library'&&state.libraryStatus)games=games.filter(game=>state.diary.get(game.id)?.status===state.libraryStatus);
+  const sort=state.view==='catalog'?state.catalogSort:state.librarySort;
+  const titleOrder=(a,b)=>a.title.localeCompare(b.title,'pt-BR',{sensitivity:'base',numeric:true})||a.id-b.id;
+  if(sort==='title')games.sort(titleOrder);
+  if(sort==='rating')games.sort((a,b)=>(state.diary.get(b.id)?.rating??-1)-(state.diary.get(a.id)?.rating??-1)||titleOrder(a,b));
+  if(sort==='updated'||sort==='finished')games.sort((a,b)=>{
+    const field=sort==='finished'?'finishDate':'updatedAt';
+    return (state.diary.get(b.id)?.[field]||'').localeCompare(state.diary.get(a.id)?.[field]||'')||titleOrder(a,b);
+  });
   $('#section-title').textContent = { catalog: 'Explore o catálogo', library: 'Sua biblioteca de jogos', favorites: 'Seus jogos favoritos', wishlist:'Sua lista de desejos' }[state.view];
   $('#count').textContent = `${games.length} ${games.length === 1 ? 'jogo' : 'jogos'}`;
-  $('#catalog-message').textContent = games.length ? '' : 'Nenhum jogo por aqui. Experimente outros filtros ou salve um jogo no seu diário.';
-  $('#games').replaceChildren(...games.map(game => {
-    const entry = state.diary.get(game.id);
-    const wrapper = el('article', 'game-card');
-    const card = el('button', 'card'); card.type = 'button';
-    card.setAttribute('aria-label', 'Abrir ' + game.title);
-    const cover = el('div', 'cover');
-    const missing=()=>cover.prepend(el('span','image-fallback',game.title));
-    const image=gameCoverImage(game,missing);
-    if(image)cover.append(image);else missing();
-    if (entry) cover.append(el('span', 'badge', `${entry.favorite ? '♥ · ' : ''}${statusLabels[entry.status]}`));
-    card.append(cover, el('h3', null, game.title), el('p', null, `${game.genre} · ${game.releaseYear}`));
-    if (entry?.rating) card.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ' · Sua nota'));
-    card.addEventListener('click', () => openDetail(game));
-    wrapper.append(card);
-    const actions = el('div', 'card-actions');
-    for (const [field, icon, label] of [['favorite','♥','favoritos'],['wishlist','＋','lista de desejos']]) {
-      const active = !!entry?.[field];
-      const button = el('button', 'card-action', icon); button.type = 'button';
-      button.setAttribute('aria-label', `${active?'Remover de':'Adicionar a'} ${label}: ${game.title}`);
-      button.setAttribute('aria-pressed', String(active)); button.title = button.getAttribute('aria-label');
-      button.disabled = state.quickSaving.has(game.id);
-      button.addEventListener('click', () => quickToggle(game, field)); actions.append(button);
-    }
-    wrapper.append(actions); return wrapper;
+  $('#catalog-message').textContent = '';
+  $('#games-empty').hidden=!!games.length;
+  $('#empty-title').textContent=state.view==='catalog'?'Nenhuma aventura encontrada':'Seu próximo capítulo começa aqui';
+  $('#empty-description').textContent=state.view==='catalog'?'Tente outro nome ou limpe os filtros para descobrir novos mundos.':
+    state.libraryStatus?'Ainda não há jogos neste status. Explore o catálogo e registre sua próxima experiência.':'Salve seus primeiros jogos e construa uma coleção com a sua história.';
+  $('#games').classList.toggle('compact-library',state.view!=='catalog'&&state.libraryLayout==='compact');
+  $('#games').replaceChildren(...games.map(renderGameCard));
+}
+function ratingDisplay(value,suffix='') {
+  const node=el('p','personal-rating');const stars=el('span','rating-stars');stars.setAttribute('aria-hidden','true');
+  stars.append(el('span','stars-empty','★★★★★'));const fill=el('span','stars-fill','★★★★★');fill.style.width=(value/5*100)+'%';stars.append(fill);
+  const label=value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'/5';node.append(stars,el('span',null,label+(suffix?' · '+suffix:'')));return node;
+}
+function renderGameCard(game) {
+  const entry=state.diary.get(game.id);const pending=state.quickSaving.has(game.id);
+  const wrapper=el('article','game-card');wrapper.dataset.gameId=game.id;wrapper.setAttribute('aria-busy',String(pending));
+  const card=el('button','card');card.type='button';card.setAttribute('aria-label','Abrir '+game.title);
+  const cover=el('div','cover');const missing=()=>cover.prepend(el('span','image-fallback',game.title));
+  const image=gameCoverImage(game,missing);if(image)cover.append(image);else missing();
+  if(entry){const badge=el('span','badge status-badge',statusLabels[entry.status]);badge.dataset.status=entry.status;cover.append(badge);}
+  if(entry?.favorite)cover.append(el('span','favorite-mark','♥'));
+  const info=el('div','card-info');info.append(el('h3',null,game.title),el('p','card-meta',`${game.genre} · ${game.releaseYear}`));
+  if(entry?.rating)info.append(ratingDisplay(entry.rating,'Sua nota'));
+  const extra=el('p','compact-meta',entry?`${statusLabels[entry.status]}${entry.finishDate?' · Concluído em '+entry.finishDate.split('-').reverse().join('/'):''}`:game.platforms);
+  info.append(extra);card.append(cover,info);card.addEventListener('click',()=>openDetail(game));wrapper.append(card);
+  const actions=el('div','card-actions');
+  for(const [field,icon,label] of [['favorite',entry?.favorite?'♥':'♡','favoritos'],['wishlist',entry?.wishlist?'✓':'＋','lista de desejos']]) {
+    const active=!!entry?.[field];const action=el('button','card-action',pending?'…':icon);action.type='button';action.dataset.action=field;
+    action.setAttribute('aria-label',`${active?'Remover de':'Adicionar a'} ${label}: ${game.title}`);action.setAttribute('aria-pressed',String(active));action.title=action.getAttribute('aria-label');action.disabled=pending;
+    action.addEventListener('click',()=>quickToggle(game,field));actions.append(action);
+  }
+  wrapper.append(actions);return wrapper;
+}
+function renderLibraryControls(games) {
+  const catalog=state.view==='catalog';$('#library-layout').hidden=catalog;$('#library-status').hidden=state.view!=='library';
+  const options=catalog?[['default','Padrão'],['title','Ordem alfabética']]:[['updated','Última atualização'],['title','Ordem alfabética'],['rating','Maior nota'],['finished','Data de conclusão']];
+  $('#game-sort').replaceChildren(...options.map(([value,label])=>{const option=el('option',null,label);option.value=value;return option;}));
+  $('#game-sort').value=catalog?state.catalogSort:state.librarySort;
+  $('#layout-grid').setAttribute('aria-pressed',String(state.libraryLayout==='grid'));$('#layout-compact').setAttribute('aria-pressed',String(state.libraryLayout==='compact'));
+  if(state.view==='library')$('#library-status').replaceChildren(...[['','Todos'],...Object.entries(statusLabels)].map(([value,label])=>{
+    const count=games.filter(game=>!value||state.diary.get(game.id)?.status===value).length;const chip=el('button','status-chip',label+' · '+count);chip.type='button';chip.dataset.status=value;chip.setAttribute('aria-pressed',String(state.libraryStatus===value));
+    chip.addEventListener('click',()=>{state.libraryStatus=value;render();$('#library-status').querySelector(`[data-status="${value}"]`)?.focus();});return chip;
   }));
 }
+$('#game-sort').addEventListener('change',()=>{if(state.view==='catalog')state.catalogSort=$('#game-sort').value;else state.librarySort=$('#game-sort').value;render();$('#game-sort').focus();});
+for(const [id,layout] of [['layout-grid','grid'],['layout-compact','compact']])$('#'+id).addEventListener('click',()=>{state.libraryLayout=layout;render();$('#'+id).focus();});
+$('#empty-explore').addEventListener('click',()=>{$('#search').value='';$('#genre').value='';$('#platform').value='';state.libraryStatus='';setView('catalog');loadGames();});
+
 function setView(view) {
   if (view !== 'catalog' && !state.user) { openAuth(); toast('Entre para acessar sua biblioteca.'); return; }
   if(view==='admin'&&state.user?.role!=='ADMIN')return;
@@ -106,7 +138,7 @@ function setView(view) {
   ++state.workspaceSequence;
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
-  render(); (view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(); (view==='feed'?$('#feed-section'):view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game, editing = false) {
   if (state.saving || state.quickSaving.has(game.id)) return;
@@ -116,11 +148,12 @@ async function openDetail(game, editing = false) {
   $('#detail-title').textContent = game.title;
   $('#detail-meta').textContent = `${game.genre} · ${game.releaseYear} · ${game.platforms}`;
   $('#detail-description').textContent = game.description;
-  const detailImage=game.coverUrl||game.metadataCoverUrl;
+  const detailImage=coverFor(game);
   $('#source-language-note').hidden=!game.metadataSourceUrl;$('#detail-metadata-source').hidden=!game.metadataSourceUrl;$('#detail-metadata-source').href=game.metadataSourceUrl||'https://rawg.io/';
-  $('#detail-cover').style.backgroundImage = detailImage?`linear-gradient(0deg,#120f1c,transparent),url("${detailImage}")`:game.steamAppId
-    ? `linear-gradient(0deg,#120f1c,transparent),url("https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_hero.jpg")`
-    : 'linear-gradient(135deg,#492b69,#242731)';
+  const poster=$('#detail-cover');poster.replaceChildren();poster.style.backgroundImage='none';poster.setAttribute('aria-label','Capa de '+game.title);
+  const fallback=()=>poster.append(el('span','image-fallback',game.title));const image=gameCoverImage(game,fallback);
+  if(image)poster.append(image);else fallback();
+  selectDetailTab('experience');
   renderDiarySummary(entry, editing);
   $('#diary-login-hint').hidden = !!state.user;
   $('#play-status').value = entry?.status || 'WANT_TO_PLAY';
@@ -146,6 +179,32 @@ async function openDetail(game, editing = false) {
     if (sequence === state.detailSequence) $('#prices').textContent = error.message;
   }
 }
+function selectDetailTab(name) {
+  for(const tab of document.querySelectorAll('[data-detail-tab]')) {
+    const active=tab.dataset.detailTab===name;tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;
+    $('#'+tab.getAttribute('aria-controls')).hidden=!active;
+  }
+}
+document.querySelectorAll('[data-detail-tab]').forEach(tab=>{
+  tab.addEventListener('click',()=>selectDetailTab(tab.dataset.detailTab));
+  tab.addEventListener('keydown',event=>{
+    const tabs=[...document.querySelectorAll('[data-detail-tab]')];let index=tabs.indexOf(tab);
+    if(event.key==='ArrowRight')index=(index+1)%tabs.length;else if(event.key==='ArrowLeft')index=(index+tabs.length-1)%tabs.length;
+    else if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else return;
+    event.preventDefault();selectDetailTab(tabs[index].dataset.detailTab);tabs[index].focus();
+  });
+});
+function reviewLikeButton(review) {
+  const node=el('button','review-like',`${review.likedByMe?'♥':'♡'} ${review.likeCount??0}`);node.type='button';node.setAttribute('aria-pressed',String(!!review.likedByMe));
+  node.setAttribute('aria-label',(review.likedByMe?'Descurtir':'Curtir')+' resenha de '+review.displayName);
+  node.addEventListener('click',async()=>{
+    if(!state.user){openAuth();return;}if(node.disabled)return;
+    node.disabled=true;node.textContent='Salvando…';
+    try {const value=await api(`/api/reviews/${review.entryId}/like`,{method:review.likedByMe?'DELETE':'PUT'});Object.assign(review,value);node.setAttribute('aria-pressed',String(value.likedByMe));node.setAttribute('aria-label',(value.likedByMe?'Descurtir':'Curtir')+' resenha de '+review.displayName);}
+    catch(error){toast(error.message);}
+    finally{node.disabled=false;node.textContent=`${review.likedByMe?'♥':'♡'} ${review.likeCount??0}`;}
+  });return node;
+}
 function renderDiarySummary(entry, editing = false) {
   const saved = !!entry && (entry.rating != null || !!entry.review?.trim());
   $('#diary-form').hidden = !state.user || (saved && !editing);
@@ -155,7 +214,7 @@ function renderDiarySummary(entry, editing = false) {
   summary.replaceChildren();
   if (!saved) return;
   summary.append(el('p', 'eyebrow', 'SUA AVALIAÇÃO'), el('p', 'muted', statusLabels[entry.status]));
-  if (entry.rating) summary.append(el('p', 'personal-rating', '★'.repeat(entry.rating) + ` · ${entry.rating}/5`));
+  if (entry.rating) summary.append(ratingDisplay(entry.rating));
   if (entry.review) summary.append(el('p', 'review-text', entry.review));
   if (entry.reviewHidden) summary.append(el('p', 'price-note', 'Sua resenha está oculta pela moderação.'));
   if (entry.startDate || entry.finishDate) summary.append(el('p', 'price-note',
@@ -188,8 +247,9 @@ async function loadCommunity(gameId, sequence) {
     container.replaceChildren(...reviews.map(review => {
       const card = el('article', 'community-review');
       card.append(el('strong', null, review.displayName + ' · @' + review.username));
-      if (review.rating) card.append(el('p', 'personal-rating', '★'.repeat(review.rating) + ` · ${review.rating}/5`));
+      if (review.rating) card.append(ratingDisplay(review.rating));
       if (review.review) card.append(el('p', 'review-text', review.review));
+      if(review.review)card.append(reviewLikeButton(review));
       card.append(el('p', 'price-note', 'Atualizada em ' + new Date(review.updatedAt).toLocaleDateString('pt-BR')));
       return card;
     }));
@@ -215,7 +275,7 @@ async function quickToggle(game, field) {
     toast(body[field] ? (field === 'favorite' ? 'Adicionado aos favoritos' : 'Adicionado à lista de desejos') :
       (field === 'favorite' ? 'Removido dos favoritos' : 'Removido da lista de desejos'));
   } catch (error) { toast(error.message); }
-  finally { state.quickSaving.delete(game.id); render(); }
+  finally { state.quickSaving.delete(game.id); render();if(state.user===account)$('#games').querySelector(`[data-game-id="${game.id}"] [data-action="${field}"]`)?.focus(); }
 }
 function renderPrices(quote) {
   const container=$('#prices');container.replaceChildren();$('#price-source').href=quote.sourceUrl;
@@ -231,6 +291,7 @@ function toast(message) { $('#toast').textContent = message; $('#toast').hidden 
   clearTimeout(toastTimeout); toastTimeout = setTimeout(() => { $('#toast').hidden = true; }, 3500); }
 function lockForm(locked) {
   state.saving = locked;
+  $('#diary-form button[type="submit"]').textContent=locked?'Salvando…':'Salvar no diário';
   $('#diary-form').querySelectorAll('button,input,select,textarea').forEach(node => { node.disabled = locked; });
   $('#close-detail').disabled = locked; $('#cancel-review-edit').disabled = locked;
 }
@@ -278,6 +339,7 @@ function updateAccountUi() {
 }
 function resetAccount() {
   closeProfileSettings();
+  resetFeed();state.gamerDirty=false;state.profileBannerUrl=null;state.profileGames=[];$('#profile-banner').replaceChildren();$('#profile-featured').replaceChildren();$('#featured-pickers').replaceChildren();
   state.user = null; state.csrf = null; state.diary.clear(); state.view = 'catalog';
   state.profile=null;state.profileDirty=false;state.lists=[];++state.workspaceSequence;
   resetSocial();resetAdmin();resetBulk();
