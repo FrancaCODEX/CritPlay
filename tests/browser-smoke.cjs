@@ -27,7 +27,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#list-form button[type=submit]').click();await page.locator('#list-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Cooperativos',exact:true}).waitFor();
     await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
     await page.locator('#start-date').fill('2026-01-01');await page.locator('#finish-date').fill('2026-02-01');
-    await page.locator('#play-status').selectOption('COMPLETED');await page.locator('#rating').selectOption('5');await page.locator('#review').fill('Uma jornada que valeu cada descoberta.');
+    await page.locator('#play-status').selectOption('COMPLETED');await page.getByRole('radio',{name:'5 de 5 estrelas',exact:true}).check();await page.locator('#review').fill('Uma jornada que valeu cada descoberta.');
     await page.locator('#favorite').check();await page.locator('#diary-wishlist').check();await page.locator('#diary-form button[type=submit]').click();
     await page.waitForFunction(()=>document.querySelector('#form-message').textContent.includes('salva'));
     assert(await page.locator('#diary-form').isHidden());assert(await page.locator('#diary-summary').isVisible());

@@ -2,9 +2,9 @@
 
 ## Novidades: biblioteca e comunidade
 
-A biblioteca oferece filtros de status com contadores e visualização por capas ou lista compacta. Você pode ordenar por atualização, título, nota ou conclusão; o catálogo mantém a ordem padrão e permite ordem alfabética. A nota vai de 0,5 a 5 em passos de meia estrela, mantendo as notas já salvas.
+A biblioteca oferece filtros de status com contadores e visualização por capas ou lista compacta. Você pode ordenar por atualização, título, nota ou conclusão; o catálogo mantém a ordem padrão e permite ordem alfabética. A nota vai de 0,5 a 5 em passos de meia estrela, mantendo as notas já salvas. Escolha diretamente nas cinco estrelas: cada metade representa 0,5. O mouse mostra uma prévia; clique ou toque confirma a escolha, que é gravada ao salvar o diário. Use as setas no teclado, Home/End para os extremos e “Limpar nota” para deixar sem avaliação.
 
-Nos detalhes, capa vertical e média ficam no topo. As abas “Sua experiência”, “Comunidade” e “Onde comprar” separam diário, avaliações e preços. Ao salvar, o formulário vira um resumo; edição e cancelamento continuam disponíveis. Corações/atalhos mostram o estado atual e o andamento da gravação.
+Nos detalhes, capa vertical e média ficam no topo. A média é exibida com cinco estrelas proporcionais, valor numérico e quantidade de notas; ainda sem avaliações, aparecem estrelas vazias. As abas “Sua experiência”, “Comunidade” e “Onde comprar” separam diário, avaliações e preços. Ao salvar, o formulário vira um resumo; edição e cancelamento continuam disponíveis. Corações/atalhos mostram o estado atual e o andamento da gravação.
 
 Em Perfil → Editar perfil → Sua identidade gamer, envie um banner e escolha até quatro jogos em destaque. Esses jogos não precisam estar no diário e não mudam sua lista de favoritos. Banner e seleções são salvos pelo botão “Salvar identidade gamer”, separado dos dados pessoais. As imagens enviadas têm URLs públicas, como os avatares existentes; a divulgação do banner no perfil segue a visibilidade configurada.
 

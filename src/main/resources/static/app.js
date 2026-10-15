@@ -94,6 +94,46 @@ function ratingDisplay(value,suffix='') {
   stars.append(el('span','stars-empty','★★★★★'));const fill=el('span','stars-fill','★★★★★');fill.style.width=(value/5*100)+'%';stars.append(fill);
   const label=value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'/5';node.append(stars,el('span',null,label+(suffix?' · '+suffix:'')));return node;
 }
+function paintRatingPicker(value,preview=false) {
+  const rating=Number(value)||0;
+  [...$('#rating-track').children].forEach((star,index)=>{star.querySelector('.picker-star-fill').style.width=Math.max(0,Math.min(100,(rating-index)*100))+'%';});
+  $('#rating-value').textContent=rating?rating.toLocaleString('pt-BR')+'/5'+(preview?' · Prévia':''):'Sem nota';
+  $('#rating-picker').classList.toggle('is-preview',preview);
+}
+function setRating(value) {
+  $('#rating').value=value==null||value===''?'':String(value);
+  for(const input of document.querySelectorAll('[name="rating-choice"]'))input.checked=input.value===$('#rating').value;
+  $('#clear-rating').disabled=state.saving||!$('#rating').value;
+  paintRatingPicker($('#rating').value);
+}
+function focusRatingPicker(){($('#rating-track input:checked')||$('#rating-track input'))?.focus();}
+for(let index=0;index<5;index++) {
+  const star=el('span','picker-star');
+  const empty=el('span','picker-star-empty','★');empty.setAttribute('aria-hidden','true');
+  const fill=el('span','picker-star-fill','★');fill.setAttribute('aria-hidden','true');star.append(empty,fill);
+  for(const half of [0.5,1]) {
+    const value=index+half;const hit=el('label','rating-hit '+(half===0.5?'rating-half':'rating-full'));
+    const input=el('input');input.type='radio';input.name='rating-choice';input.value=String(value);
+    input.setAttribute('aria-label',value.toLocaleString('pt-BR')+' de 5 estrelas');
+    input.addEventListener('change',()=>{if(input.checked)setRating(value);});
+    hit.addEventListener('pointerenter',()=>{if(!input.disabled)paintRatingPicker(value,true);});
+    input.addEventListener('keydown',event=>{
+      if(event.key!=='Home'&&event.key!=='End')return;
+      event.preventDefault();const target=event.key==='Home'?$('#rating-track input'):$('#rating-track input[value="5"]');
+      target.checked=true;setRating(target.value);target.focus();
+    });
+    hit.append(input);star.append(hit);
+  }
+  $('#rating-track').append(star);
+}
+$('#rating-track').addEventListener('pointerleave',()=>paintRatingPicker($('#rating').value));
+$('#clear-rating').addEventListener('click',()=>{setRating(null);focusRatingPicker();});
+function renderAverageRating(summary) {
+  const node=$('#community-average');node.classList.add('personal-rating');
+  const display=ratingDisplay(summary.averageRating??0,`${summary.ratingCount} ${summary.ratingCount===1?'nota':'notas'}`);
+  if(summary.averageRating==null)display.lastElementChild.textContent='Sem notas ainda';
+  node.replaceChildren(...display.childNodes);
+}
 function renderGameCard(game) {
   const entry=state.diary.get(game.id);const pending=state.quickSaving.has(game.id);
   const wrapper=el('article','game-card');wrapper.dataset.gameId=game.id;wrapper.setAttribute('aria-busy',String(pending));
@@ -157,7 +197,7 @@ async function openDetail(game, editing = false) {
   renderDiarySummary(entry, editing);
   $('#diary-login-hint').hidden = !!state.user;
   $('#play-status').value = entry?.status || 'WANT_TO_PLAY';
-  $('#rating').value = entry?.rating || '';
+  setRating(entry?.rating ?? null);
   $('#review').value = entry?.review || '';$('#start-date').value=entry?.startDate||'';$('#finish-date').value=entry?.finishDate||'';$('#start-date').max=new Date().toLocaleDateString('en-CA');$('#finish-date').max=$('#start-date').max;
   $('#favorite').checked = !!entry?.favorite;
   $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
@@ -222,12 +262,12 @@ function renderDiarySummary(entry, editing = false) {
      entry.finishDate ? 'Terminei em ' + entry.finishDate.split('-').reverse().join('/') : ''].filter(Boolean).join(' · ')));
 }
 $('#edit-review').addEventListener('click', () => {
-  renderDiarySummary(state.diary.get(state.selected.id), true); $('#rating').focus();
+  renderDiarySummary(state.diary.get(state.selected.id), true); focusRatingPicker();
 });
 $('#cancel-review-edit').addEventListener('click', () => {
   if (state.saving) return;
   const entry = state.diary.get(state.selected.id);
-  $('#play-status').value = entry.status; $('#rating').value = entry.rating || ''; $('#review').value = entry.review || '';
+  $('#play-status').value = entry.status; setRating(entry.rating ?? null); $('#review').value = entry.review || '';
   $('#start-date').value = entry.startDate || ''; $('#finish-date').value = entry.finishDate || '';
   $('#favorite').checked = entry.favorite; $('#diary-wishlist').checked = entry.wishlist;
   $('#form-message').textContent = ''; renderDiarySummary(entry); $('#edit-review').focus();
@@ -239,9 +279,7 @@ async function loadCommunity(gameId, sequence) {
   try {
     const summary = await api(`/api/games/${gameId}/reviews`);
     if (request !== state.communitySequence || sequence !== state.detailSequence || !$('#detail').open) return;
-    const average = summary.averageRating == null ? 'Sem notas ainda' :
-      `★ ${summary.averageRating.toLocaleString('pt-BR', {maximumFractionDigits:1, minimumFractionDigits:1})}/5 · ${summary.ratingCount} ${summary.ratingCount === 1 ? 'nota' : 'notas'}`;
-    $('#community-average').textContent = average;
+    renderAverageRating(summary);
     // Your complete review is already shown in the personal summary.
     const reviews = summary.reviews.filter(review => review.username !== state.user?.username);
     container.replaceChildren(...reviews.map(review => {
@@ -293,6 +331,9 @@ function lockForm(locked) {
   state.saving = locked;
   $('#diary-form button[type="submit"]').textContent=locked?'Salvando…':'Salvar no diário';
   $('#diary-form').querySelectorAll('button,input,select,textarea').forEach(node => { node.disabled = locked; });
+  $('#rating-picker').setAttribute('aria-disabled',String(locked));
+  $('#clear-rating').disabled=locked||!$('#rating').value;
+  paintRatingPicker($('#rating').value);
   $('#close-detail').disabled = locked; $('#cancel-review-edit').disabled = locked;
 }
 $('#diary-form').addEventListener('submit', async event => {
@@ -345,7 +386,7 @@ function resetAccount() {
   resetSocial();resetAdmin();resetBulk();
   $('#profile-form').reset();$('#change-password-form').reset();$('#profile-reviews').replaceChildren();$('#profile-summary').replaceChildren();$('#profile-stats').replaceChildren();$('#lists-content').replaceChildren();
   ++state.detailSequence;
-  $('#review').value = ''; $('#rating').value = ''; $('#favorite').checked = false;
+  $('#review').value = ''; setRating(null); $('#favorite').checked = false;
   $('#detail').close(); $('#admin-dialog').close();
   document.querySelectorAll('.nav').forEach(button => button.classList.toggle('active', button.dataset.view === 'catalog'));
   updateAccountUi(); render();

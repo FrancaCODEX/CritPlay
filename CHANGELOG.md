@@ -4,6 +4,16 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Estrelas interativas nas avaliações
+
+- Campo de nota substituído por cinco estrelas com duas áreas de seleção em cada uma, permitindo escolher de 0,5 a 5 por clique ou toque.
+- Passar o mouse pré-visualiza o preenchimento sem alterar a nota; sair da área restaura a seleção confirmada. Indicador numérico diferencia prévia e seleção.
+- Controle acessível com opções de rádio, setas do teclado, Home/End, foco visível e ação de limpar a nota; seleção restaurada ao abrir/editar/cancelar e bloqueada durante o salvamento.
+- Média abaixo do título passa a mostrar cinco estrelas preenchidas proporcionalmente ao valor real, com nota numérica e contagem de avaliações. Sem notas, as estrelas ficam vazias sem atribuir nota zero ao jogo.
+- CSS responsivo, foco/hover e respeito à preferência de movimento reduzido; sem dependência de biblioteca externa e sem alterações na API ou banco.
+- Testes de navegador adaptados para estrelas e ampliados com prévia sem gravação, meia estrela, teclado, limpeza, edição/cancelamento, toque e preenchimento da média; guia de funcionalidades atualizado.
+
+
 ### Biblioteca, perfil gamer e comunidade
 
 - Biblioteca com filtros por status e contadores: todos, quero jogar, jogando, finalizados e abandonados.
