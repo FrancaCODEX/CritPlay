@@ -61,7 +61,7 @@ class DemoDataTest {
         assertTrue(db.queryForObject("SELECT COUNT(DISTINCT rating) FROM diary_entries",Long.class)>=5);
         assertEquals(14,db.queryForObject("SELECT COUNT(DISTINCT review) FROM diary_entries",Long.class));
         assertEquals(14,db.queryForObject("SELECT COUNT(*) FROM diary_entries WHERE game_id=?",Long.class,gameId));
-        assertTrue(community.reviews(gameId,null).reviews().stream().allMatch(r->r.review().contains("tentativa de fuga")));
+        assertTrue(community.reviews(gameId,null).reviews().stream().allMatch(r->r.review().contains("Hades")));
     }
     @Test void everyGameHasDifferentVoicesAndRatings() {
         seed.seed("");
