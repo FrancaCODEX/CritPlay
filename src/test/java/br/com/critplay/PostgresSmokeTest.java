@@ -48,6 +48,7 @@ class PostgresSmokeTest {
         assertEquals(0,demo.diversifyLegacyReviews());
         assertTrue(jdbc.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-variety-v2'",Boolean.class));
         assertTrue(jdbc.queryForObject("SELECT COUNT(DISTINCT rating) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class)>=5);
+        entityManager.clear(); // Startup runners use separate transactions/persistence contexts.
         assertEquals(14,demoCollections.personalize("Hades,Celeste"));
         assertEquals(0,demoCollections.personalize("Hades,Celeste"));
         assertEquals(27,jdbc.queryForObject("SELECT COUNT(*) FROM game_lists l JOIN app_users u ON u.id=l.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
