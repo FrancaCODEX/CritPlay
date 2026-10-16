@@ -499,7 +499,7 @@ class ApiIntegrationTest {
         assertEquals(404,reader.send("GET","/api/people/"+name,null).statusCode());
     }
     @Test void registrationStartsPublicWithShareableCollections() throws Exception {
-        var session=new Session();String name="public_"+UUID.randomUUID().toString().replace("-", "").substring(0,12);
+        var session=new Session();session.refreshCsrf();String name="public_"+UUID.randomUUID().toString().replace("-", "").substring(0,12);
         assertEquals(201,session.send("POST","/api/auth/register",mapper.writeValueAsString(Map.of("username",name,"displayName","Novo jogador","password","UserTestPassword42!"))).statusCode());
         session.login(name,"UserTestPassword42!");var user=session.json("/api/profile").path("user");
         assertEquals("PUBLIC",user.path("visibility").asText());assertTrue(user.path("discoverable").asBoolean());

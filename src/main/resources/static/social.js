@@ -16,7 +16,7 @@ function resetSocial() {
 function renderPrivacy(user){if(privacyDirty)return;$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;for(const key of ['library','favorites','wishlist','lists'])$('#privacy-'+key).checked=user.collectionPrivacy?.[key]??false;}
 $('#privacy-form').addEventListener('input',()=>privacyDirty=true);
 $('#privacy-form').addEventListener('submit',async event=>{
-  event.preventDefault();if(socialBusy)return;socialBusy=true;busy($('#privacy-form'),true);
+  event.preventDefault();if(socialBusy)return;socialBusy=true;busy($('#privacy-form'),true);$('#privacy-message').textContent='Salvando privacidade…';
   try{const value=await api('/api/profile/privacy',{method:'PUT',body:JSON.stringify({visibility:$('#profile-visibility').value,discoverable:$('#profile-discoverable').checked,...Object.fromEntries(['library','favorites','wishlist','lists'].map(key=>[key+'Public',$('#privacy-'+key).checked]))})});
     if(state.profile)Object.assign(state.profile.user,value);privacyDirty=false;renderPrivacy(value);$('#privacy-message').textContent='Privacidade atualizada.';
   }catch(error){$('#privacy-message').textContent=error.message;}finally{socialBusy=false;busy($('#privacy-form'),false);}
