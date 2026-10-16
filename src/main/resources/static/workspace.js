@@ -172,34 +172,57 @@ $('#import-file').addEventListener('change',async()=>{
     $('#search').value='';$('#genre').value='';$('#platform').value='';setView('catalog');await loadGames();toast('Catálogo importado.');
   }catch(error){toast(error.message);}finally{$('#import-games').disabled=false;$('#import-file').value='';}
 });
-$('#forgot-password').addEventListener('click',async()=>{
-  $('#auth-dialog').close();resetToken=null;$('#recovery-form').reset();$('#recovery-account-fields').hidden=false;$('#recovery-new-fields').hidden=true;
+let recoverySequence=0,recoveryAvailable=false;
+async function checkRecoveryAvailability() {
+  const sequence=++recoverySequence;recoveryAvailable=false;
+  $('#recovery-form').hidden=true;$('#recovery-unavailable').hidden=false;
+  $('#recovery-hint').textContent='Consultando a disponibilidade da recuperação…';
+  $('#recovery-unavailable-message').textContent='Aguarde enquanto verificamos o serviço.';
+  $('#recovery-retry').disabled=true;$('#recovery-retry').textContent='Verificando…';
+  $('#recovery-message').textContent='';
+  try {
+    const status=await api('/api/auth/recovery-status');
+    if(sequence!==recoverySequence||!$('#recovery-dialog').open||resetToken)return;
+    recoveryAvailable=status.enabled===true;
+    $('#recovery-form').hidden=!recoveryAvailable;$('#recovery-unavailable').hidden=recoveryAvailable;
+    $('#recovery-hint').textContent=recoveryAvailable?'Informe o usuário e o e-mail salvo no seu perfil.':'O envio de links de recuperação está indisponível.';
+    $('#recovery-unavailable-message').textContent='O responsável pelo CritPlay precisa configurar o envio de e-mail neste servidor. Se você ainda está conectado em outro dispositivo, pode trocar a senha em Perfil → Editar perfil → Segurança da conta.';
+    if(recoveryAvailable){busy($('#recovery-form'),false);$('#recovery-username').focus();}
+  } catch(error) {
+    if(sequence!==recoverySequence||!$('#recovery-dialog').open||resetToken)return;
+    $('#recovery-hint').textContent='Não foi possível verificar o serviço de recuperação.';
+    $('#recovery-unavailable-message').textContent=error.message+' Você pode verificar novamente.';
+  } finally {
+    if(sequence===recoverySequence){$('#recovery-retry').disabled=false;$('#recovery-retry').textContent='Verificar novamente';}
+  }
+}
+$('#forgot-password').addEventListener('click',()=>{
+  $('#auth-dialog').close();resetToken=null;$('#recovery-form').reset();busy($('#recovery-form'),false);$('#recovery-account-fields').hidden=false;$('#recovery-new-fields').hidden=true;
   $('#recovery-title').textContent='Recuperar senha';$('#recovery-submit').textContent='Enviar link';$('#recovery-message').textContent='';
   $('#recovery-username').required=true;$('#recovery-email').required=true;$('#recovery-new-password').required=false;$('#recovery-confirm-password').required=false;
-  $('#recovery-dialog').showModal();$('#recovery-submit').disabled=true;
-  try{const status=await api('/api/auth/recovery-status');$('#recovery-submit').disabled=!status.enabled;
-    $('#recovery-hint').textContent=status.enabled?'Informe o usuário e o e-mail salvo no seu perfil.':'A recuperação por e-mail ainda não está configurada. Se você tem acesso à conta, pode trocar a senha em Perfil.';
-  }catch(error){$('#recovery-message').textContent=error.message;}
+  $('#recovery-dialog').showModal();checkRecoveryAvailability();
 });
-$('#close-recovery').addEventListener('click',()=>{if(!workspaceBusy)$('#recovery-dialog').close();});
-$('#recovery-dialog').addEventListener('cancel',e=>{if(workspaceBusy)e.preventDefault();});
+$('#recovery-retry').addEventListener('click',()=>checkRecoveryAvailability());
+$('#recovery-login').addEventListener('click',()=>{if(workspaceBusy)return;++recoverySequence;resetToken=null;$('#recovery-dialog').close();openAuth();});
+$('#close-recovery').addEventListener('click',()=>{if(!workspaceBusy){++recoverySequence;$('#recovery-dialog').close();}});
+$('#recovery-dialog').addEventListener('cancel',e=>{if(workspaceBusy)e.preventDefault();else ++recoverySequence;});
 $('#recovery-form').addEventListener('submit',async e=>{
-  e.preventDefault();if(workspaceBusy)return;
+  e.preventDefault();if(workspaceBusy||(!resetToken&&!recoveryAvailable))return;
   if(resetToken&&$('#recovery-new-password').value!==$('#recovery-confirm-password').value){$('#recovery-message').textContent='As senhas não são iguais.';return;}
-  workspaceBusy=true;busy($('#recovery-form'),true);
+  workspaceBusy=true;busy($('#recovery-form'),true);$('#recovery-login').disabled=true;$('#recovery-submit').textContent=resetToken?'Salvando…':'Enviando…';
   try {
     const result=await api(resetToken?'/api/auth/reset-password':'/api/auth/forgot-password',{method:'POST',body:JSON.stringify(resetToken
       ?{token:resetToken,newPassword:$('#recovery-new-password').value}:{username:$('#recovery-username').value.trim(),email:$('#recovery-email').value.trim()})});
     $('#recovery-message').textContent=result.message;
     if(resetToken){resetToken=null;$('#recovery-form').reset();$('#recovery-dialog').close();resetAccount();openAuth();toast(result.message);}
   }catch(error){$('#recovery-message').textContent=error.message;}
-  finally{workspaceBusy=false;busy($('#recovery-form'),false);}
+  finally{workspaceBusy=false;busy($('#recovery-form'),false);$('#recovery-login').disabled=false;$('#recovery-submit').textContent=resetToken?'Salvar nova senha':'Enviar link';}
 });
 function openResetFromLink() {
   if(!location.hash.startsWith('#reset='))return;
   const token=location.hash.slice(7);history.replaceState(null,'',location.pathname+location.search);
   if(!/^[A-Za-z0-9_-]{43}$/.test(token)){toast('Link de recuperação inválido.');return;}
-  resetToken=token;$('#recovery-title').textContent='Escolha uma nova senha';$('#recovery-hint').textContent='Este link tem validade de 15 minutos e pode ser usado apenas uma vez.';
+  ++recoverySequence;resetToken=token;$('#recovery-form').hidden=false;$('#recovery-unavailable').hidden=true;busy($('#recovery-form'),false);$('#recovery-title').textContent='Escolha uma nova senha';$('#recovery-hint').textContent='Este link tem validade de 15 minutos e pode ser usado apenas uma vez.';
   $('#recovery-account-fields').hidden=true;$('#recovery-new-fields').hidden=false;
   $('#recovery-username').required=false;$('#recovery-email').required=false;$('#recovery-new-password').required=true;$('#recovery-confirm-password').required=true;
   $('#recovery-submit').textContent='Salvar nova senha';$('#recovery-submit').disabled=false;$('#recovery-message').textContent='';$('#recovery-dialog').showModal();

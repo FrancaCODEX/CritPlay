@@ -84,6 +84,7 @@ No Linux, use `./mvnw`. Testes locais usam dados fictícios; o CI também verifi
 - [Arquitetura e API](docs/ARQUITETURA_E_API.md)
 - [Migração H2 → PostgreSQL](docs/MIGRACAO_POSTGRES.md)
 - [Hospedagem gratuita e paga](docs/HOSPEDAGEM.md)
+- [Recuperação de senha: configurar e-mail](docs/RECUPERACAO_SENHA.md)
 - [Operação e backups](docs/OPERACAO.md)
 - [Verificação dos testes](docs/VALIDACAO.md)
 - [Histórico de versões](CHANGELOG.md)

@@ -48,7 +48,9 @@ Contas podem ser suspensas/reativadas e seus papéis administrados; não há exc
 
 Em Perfil, **Trocar senha** exige a senha atual e confirmação da nova senha. Todas as sessões são revogadas e você entra novamente. O nome de usuário permanece fixo para manter a identificação do login.
 
-Para **Esqueci minha senha**, configure SMTP no `.env`:
+Para **Esqueci minha senha**, configure SMTP no `.env`. O [guia de recuperação de senha](RECUPERACAO_SENHA.md) inclui um exemplo Gmail e diagnóstico. Sem envio configurado, a tela explica a indisponibilidade e oferece “Verificar novamente” e “Voltar ao login”; após configurar e reiniciar o servidor, a nova consulta libera o formulário. Uma falha de consulta também permite nova tentativa. Links de redefinição já recebidos continuam abrindo o formulário de nova senha independentemente dessa consulta.
+
+Configuração:
 
 ```properties
 RECOVERY_ENABLED=true
