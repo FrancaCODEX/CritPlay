@@ -110,6 +110,7 @@
 .skeleton-game{padding:0 0 16px}.skeleton-game .skeleton-picture{aspect-ratio:2/3;border-radius:0}
 .skeleton-game .skeleton-line{margin-left:16px}.skeleton-review{min-height:160px;margin-bottom:14px}
 .skeleton-review .skeleton-picture{width:52px;height:52px;border-radius:50%}
+.featured-game img{height:auto}
 img.cover-loading{background:linear-gradient(100deg,#292333,#3b304b,#292333);background-size:250% 100%;animation:skeleton-shimmer 1.6s ease-in-out infinite}
 .cover{aspect-ratio:2/3}.cover img{width:100%;height:100%}
 @keyframes skeleton-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}

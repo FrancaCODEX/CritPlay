@@ -192,3 +192,11 @@ Migração é um comando local `--migrate-h2-to-postgres`, não uma rota. Abre H
 ## Steam App ID — v0.5.2
 
 ADMIN e CSRF obrigatórios. `POST /api/admin/steam/resolve` com `{ "title": "Hades" }` retorna `status`, `appId` opcional e `message`, sem gravar. `POST /api/admin/steam/games/{id}` consulta e associa somente se o jogo ainda não tem ID e está em PC. Estados: FOUND, PRESERVED, NOT_FOUND, AMBIGUOUS, CONFLICT, UNAVAILABLE. Falha da fonte não inventa IDs. Não há chave adicional; endpoints públicos da loja podem mudar sem aviso.
+
+## Compartilhamento de coleções no perfil
+
+`PUT /api/profile/privacy` mantém `visibility` e `discoverable` e aceita os booleanos opcionais `libraryPublic`, `favoritesPublic`, `wishlistPublic` e `listsPublic`. Campos omitidos preservam a preferência existente. A resposta e o usuário de `GET /api/profile` incluem `collectionPrivacy`, com as chaves `library`, `favorites`, `wishlist` e `lists`.
+
+`GET /api/people/{username}` inclui `collections` somente quando o perfil é visível. Cada chave é omitida se a coleção for privada (o titular tem acesso às próprias coleções). Biblioteca retorna objetos `{game,status,rating}`; notas moderadas são omitidas. Favoritos/desejos retornam `{game}`. Listas retornam nome, descrição e jogos; os endpoints `/api/lists` continuam exclusivos do titular para leitura e edição. Contagens de biblioteca/concluídos, favoritos e desejos também são omitidas conforme os controles. Não são serializadas entidades de diário, datas pessoais, e-mail ou texto moderado nessas coleções.
+
+H2 V8 e PostgreSQL V6 adicionam as quatro preferências. Linhas existentes recebem `false`, preservando o caráter particular anterior das coleções; novos usuários recebem `true` e visibilidade geral `PUBLIC`. Visibilidade e descoberta já configuradas são preservadas. A migração H2 → PostgreSQL copia esses campos junto às demais colunas dos usuários.
