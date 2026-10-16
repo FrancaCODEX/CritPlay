@@ -14,13 +14,14 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
   try{
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},hasTouch:true});
     const game={id:1,title:'Jogo de teste',genre:'RPG',releaseYear:2026,platforms:'PC',description:'Uma aventura para testar.'};
-    let entry=null,failSave=false,authenticated=true,averageOverride,delayGames=true,delayReviews=false,failReviews=false;
+    let entry=null,failSave=false,authenticated=true,averageOverride,delayGames=true,delayReviews=false,failReviews=false,privateSharedProfile=false;
     await context.route('**/*',async route=>{
       const req=route.request(),url=new URL(req.url());
       if(url.origin!==base)return route.abort();
       if(!url.pathname.startsWith('/api/'))return route.continue();
       const json=value=>route.fulfill({json:value});
       switch(url.pathname){
+        case '/api/people/other':return json({visible:!privateSharedProfile,user:{username:'other',displayName:'Angel Gamer',visibility:privateSharedProfile?'FRIENDS':'PUBLIC',...(!privateSharedProfile?{bio:'Uma jornada pelos meus jogos favoritos.',featuredGames:[]}:{} )},relationship:{following:false,friendship:'NONE'},...(!privateSharedProfile?{stats:{library:1,completed:0,favorites:0,wishlist:0,reviews:0},social:{followers:12,following:8,friends:3},reviews:[],collections:{library:[{game,status:'PLAYING',rating:4.5}],favorites:[],wishlist:[],lists:[]}}:{})});
         case '/api/auth/csrf':return json({headerName:'X-CSRF-TOKEN',token:'test'});
         case '/api/auth/me':return json({authenticated,user:authenticated?{username:'tester',displayName:'Tester',role:'USER'}:null});
         case '/api/diary':return json(entry?[entry]:[]);
@@ -84,7 +85,26 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
     await page.locator('#close-detail').click();
     await page.emulateMedia({reducedMotion:'reduce'});await page.locator('.game-card').hover();assert.equal(await page.locator('.game-card').evaluate(n=>getComputedStyle(n).transform),'none');
     assert.equal((await page.request.get(base+'/favicon.ico')).status(),200);
+    await page.goto(base+'/#profile=other');await page.locator('#public-profile-content .public-name-row h3').waitFor();
+    assert.equal(await page.locator('#public-profile-content .public-name-row h3').textContent(),'Angel Gamer');
+    assert.equal(await page.locator('#public-profile-content .public-profile-identity').evaluate(node=>node.tagName),'DIV');
+    assert.equal(await page.locator('#public-profile-content .public-profile-identity').evaluate(node=>getComputedStyle(node).opacity),'1');
+    assert.equal(await page.locator('#public-profile-content input').count(),0);assert.equal(await page.locator('#public-profile-content .shared-game').count(),1);
+    assert(await page.locator('#public-profile-content .profile-banner').isVisible());assert(await page.evaluate(()=>{const dialog=document.querySelector('#public-profile-dialog');return dialog.scrollWidth<=dialog.clientWidth+1;}));
+    await page.evaluate(()=>{window.sharedData=null;Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.sharedData=data;}});});
+    await page.getByRole('button',{name:'Compartilhar',exact:true}).click();await page.getByText('Perfil compartilhado.',{exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>window.sharedData),{title:'Perfil de Angel Gamer no CritPlay',url:base+'/#profile=other'});
+    await page.evaluate(()=>{window.copyCount=0;Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>window.copyCount++}});Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('Cancelled','AbortError');}});});
+    await page.getByRole('button',{name:'Compartilhar',exact:true}).click();assert.equal(await page.evaluate(()=>window.copyCount),0);assert.equal(await page.locator('.public-share-feedback').textContent(),'');
+    await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.copiedProfile=text}});});
+    await page.getByRole('button',{name:'Compartilhar',exact:true}).click();await page.getByText('Link copiado!',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.copiedProfile),base+'/#profile=other');
+    await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('Not allowed');}}});document.execCommand=()=>{window.fallbackCopy=document.querySelector('#public-profile-dialog textarea')?.value;return true;};});
+    await page.getByRole('button',{name:'Compartilhar',exact:true}).click();assert.equal(await page.evaluate(()=>window.fallbackCopy),base+'/#profile=other');assert.equal(await page.locator('#public-profile-content textarea').count(),0);assert.equal(await page.locator('#public-profile-dialog textarea').count(),0);
+    await page.evaluate(()=>{document.execCommand=()=>false;});await page.getByRole('button',{name:'Compartilhar',exact:true}).click();await page.getByText('Não foi possível compartilhar. Tente novamente.',{exact:true}).waitFor();assert(await page.getByRole('button',{name:'Compartilhar',exact:true}).isEnabled());
+    privateSharedProfile=true;await page.locator('#public-profile-content').getByRole('button',{name:'Seguir',exact:true}).click();await page.getByText('Este perfil está disponível apenas para amigos aceitos.',{exact:true}).waitFor();
+    assert.equal(await page.locator('#public-profile-content .shared-collections').count(),0);assert.equal(await page.locator('#public-profile-content .public-profile-stats').count(),0);assert.equal(await page.locator('#public-profile-content .profile-bio').count(),0);
+    await page.locator('#close-public-profile').click();await page.evaluate(()=>history.replaceState(null,'','/'));
     authenticated=false;await page.reload();await page.getByRole('button',{name:'Adicionar a favoritos: Jogo de teste',exact:true}).click();await page.locator('#auth-dialog').waitFor();
-    assert.deepEqual(errors,[]);console.log('Reviews UI: save, edit, cancel, failed save, community, shortcuts, reload, mobile, interactive stars (hover/half/keyboard/clear/touch), average stars, reduced motion, favicon and login passed.');
+    assert.deepEqual(errors,[]);console.log('Reviews UI: save, edit, cancel, failed save, community, shortcuts, reload, mobile, interactive stars (hover/half/keyboard/clear/touch), average stars, reduced motion, favicon, login and shared profile design/share/native/cancel/clipboard/fallback/privacy passed.');
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
