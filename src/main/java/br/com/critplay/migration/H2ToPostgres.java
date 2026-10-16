@@ -46,7 +46,7 @@ public final class H2ToPostgres {
             }}
             for(String table:TABLES){try(var statement=target.createStatement();var rows=statement.executeQuery("SELECT COUNT(*) FROM "+table)){rows.next();if(rows.getLong(1)!=totals.get(table))throw new SQLException("Contagem divergente.");}}
             // Preserve one-time fixture state when moving a populated local database.
-            for(String fixture:List.of("community-v1","community-variety-v2")) {
+            for(String fixture:List.of("community-v1","community-variety-v2","community-collections-v3")) {
                 try(var read=source.prepareStatement("SELECT completed FROM demo_seed_runs WHERE name=?")) {
                     read.setString(1,fixture);
                     try(var row=read.executeQuery()) {

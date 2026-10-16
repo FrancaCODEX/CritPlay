@@ -181,5 +181,24 @@ public class DemoDataService {
         return db.update("UPDATE diary_entries SET rating=?,review=?,row_version=row_version+1 WHERE id=? AND rating=? AND review=? AND updated_at=?",
             rating,review,entry.getId(),entry.getRating(),entry.getReview(),java.sql.Timestamp.from(entry.getUpdatedAt()));
     }
+    static List<String> demoNames(){return PEOPLE.stream().limit(14).map(Persona::username).toList();}
+    static boolean originalTitle(Game game){return OBSERVATIONS.containsKey(key(game));}
+    static boolean originalContent(int person,int slot,Game game,DiaryEntry entry,long version) {
+        PlayStatus status=slot==5?PlayStatus.PLAYING:slot==6?PlayStatus.DROPPED:slot==7?PlayStatus.WANT_TO_PLAY:PlayStatus.COMPLETED;
+        if(version>1||entry.getStatus()!=status||entry.isWishlist()!=(slot==7))return false;
+        if(slot==7)return entry.getRating()==null&&entry.getReview().isBlank()&&!entry.isFavorite()&&entry.getStartDate()==null&&entry.getFinishDate()==null;
+        if(entry.getStartDate()==null)return false;
+        var expected=entry.getUpdatedAt().atZone(java.time.ZoneOffset.UTC).toLocalDate().minusDays(40+person+slot);
+        if(Math.abs(java.time.temporal.ChronoUnit.DAYS.between(expected,entry.getStartDate()))>1)return false;
+        if(!Objects.equals(entry.getFinishDate(),slot<5?entry.getStartDate().plusDays(10+slot):null))return false;
+        double oldRating=3.0+((person+slot)%5)*0.5;
+        boolean oldFavorite=oldRating>=4.5;
+        double newRating=DemoOpinions.rating(person,game);
+        boolean modern=Objects.equals(entry.getRating(),newRating)&&entry.getReview().equals(slot<5?DemoOpinions.review(person,game):"");
+        if(modern&&entry.isFavorite()==(version==0?newRating>=4.5:oldFavorite))return true;
+        String oldReview=slot<5?"[Resenha fictícia de demonstração] "+OBSERVATIONS.getOrDefault(key(game),
+            "Em "+game.getTitle()+", gostei de conhecer a proposta e explorar as possibilidades do jogo.")+" "+OPINIONS[(person+slot)%5]:"";
+        return version==0&&Objects.equals(entry.getRating(),oldRating)&&entry.getReview().equals(oldReview)&&entry.isFavorite()==oldFavorite;
+    }
     private static String key(Game game){return game.getTitle().strip().toLowerCase(Locale.ROOT);}
 }

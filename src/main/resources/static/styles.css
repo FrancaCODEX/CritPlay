@@ -199,3 +199,7 @@ img.cover-loading{background:linear-gradient(100deg,#292333,#3b304b,#292333);bac
 .skeleton-person .skeleton-picture{height:48px;width:48px;border-radius:50%;grid-row:span 2}
 .skeleton-person .skeleton-line{margin:0}.skeleton-person .skeleton-line.short{margin:0}
 @media(max-width:600px){#profile-social .profile-follow-counts{padding:0 8px 18px;gap:20px}}
+
+/* Author credit, keeping source attribution readable on small screens. */
+.site-footer{flex-wrap:wrap;column-gap:28px;row-gap:14px}.footer-identity{flex:1 1 310px;min-width:0}.footer-identity p{margin:4px 0;line-height:1.7}.footer-credit strong{font-weight:500;color:var(--text)}.footer-credit a{color:var(--accent);overflow-wrap:anywhere}.footer-credit a:hover{text-decoration:underline}.site-footer>.source-link{margin-top:0;font-size:11px}.site-footer>a:last-child{margin-left:0}
+@media(max-width:680px){.footer-identity{flex:0 1 auto;width:100%}.footer-credit span{display:none}.footer-credit a{display:block}.site-footer>.brand{width:auto}}

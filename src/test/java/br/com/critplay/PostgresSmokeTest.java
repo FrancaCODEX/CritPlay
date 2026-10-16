@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class PostgresSmokeTest {
     @Autowired jakarta.persistence.EntityManager entityManager;
     @Autowired br.com.critplay.demo.DemoDataService demo;
+    @Autowired br.com.critplay.demo.DemoCollectionsService demoCollections;
     @Autowired JdbcTemplate jdbc;
     @Autowired UserService users;
     @Autowired CatalogService catalog;
@@ -38,7 +39,7 @@ class PostgresSmokeTest {
         long hades=jdbc.queryForObject("SELECT id FROM games WHERE title='Hades'",Long.class);
         String legacy="[Resenha fictícia de demonstração] As armas e os diálogos fazem cada tentativa de fuga ter algo novo para descobrir. Gostei, mas não entrou entre meus favoritos. Vale experimentar com calma.";
         entityManager.flush();
-        jdbc.update("UPDATE diary_entries SET review=?,rating=3 WHERE user_id=? AND game_id=?",legacy,luna,hades);
+        jdbc.update("UPDATE diary_entries SET review=?,rating=3,favorite=FALSE WHERE user_id=? AND game_id=?",legacy,luna,hades);
         entityManager.clear();
         jdbc.update("UPDATE demo_seed_runs SET completed=FALSE WHERE name='community-variety-v2'");
         assertEquals(1,demo.diversifyLegacyReviews());
@@ -47,6 +48,9 @@ class PostgresSmokeTest {
         assertEquals(0,demo.diversifyLegacyReviews());
         assertTrue(jdbc.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-variety-v2'",Boolean.class));
         assertTrue(jdbc.queryForObject("SELECT COUNT(DISTINCT rating) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class)>=5);
+        assertEquals(14,demoCollections.personalize("Hades,Celeste"));
+        assertEquals(0,demoCollections.personalize("Hades,Celeste"));
+        assertEquals(27,jdbc.queryForObject("SELECT COUNT(*) FROM game_lists l JOIN app_users u ON u.id=l.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
         assertEquals(16,jdbc.queryForObject("SELECT COUNT(*) FROM app_users WHERE LEFT(username,5)='demo_'",Long.class));
         assertEquals(28,jdbc.queryForObject("SELECT COUNT(*) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
     }
