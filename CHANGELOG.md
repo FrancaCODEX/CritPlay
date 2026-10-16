@@ -11,7 +11,7 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Coleções privadas e suas contagens são omitidas das respostas públicas; dados compartilhados usam campos explícitos, sem expor diário completo, e-mail, datas pessoais ou conteúdo moderado.
 - Novas contas começam públicas, encontráveis e com coleções compartilháveis. Migrações H2 V8/PostgreSQL V6 preservam visibilidade existente e mantêm as coleções antigas particulares até o titular optar por compartilhar.
 - Blocos de prévia no catálogo, avaliações, perfil inicial e listas; capas reservam espaço e mostram fundo de carregamento. Falhas limpam placeholders, perfil/listas permitem tentar novamente, e preferência por movimento reduzido é respeitada.
-- Cadastro informa o padrão público e onde alterá-lo; salvamento da privacidade mostra andamento. Testes de API ampliados para padrão público, privacidade por coleção e bloqueios; testes de navegador adaptados à navegação e ampliados para carregamento lento/falha, compartilhamento e celular. README, guia de funcionalidades e contrato da API atualizados.
+- Cadastro informa o padrão público e onde alterá-lo; salvamento da privacidade mostra andamento. Testes de API ampliados para padrão público, privacidade por coleção e bloqueios; testes de navegador adaptados à navegação e às mensagens de visibilidade e ampliados para carregamento lento/falha, compartilhamento e celular. README, guia de funcionalidades e contrato da API atualizados.
 
 
 ### Estrelas interativas nas avaliações

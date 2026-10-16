@@ -92,7 +92,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('[data-view=profile]').click();await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
     await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();
     await page.locator('#people-results').getByText('@ui_admin',{exact:true}).waitFor();await page.locator('#people-results button').click();
-    await page.getByText('As resenhas e estatísticas estão disponíveis apenas para amigos aceitos.',{exact:true}).waitFor();
+    await page.getByText('Este perfil está disponível apenas para amigos aceitos.',{exact:true}).waitFor();
     await page.getByRole('button',{name:'Seguir',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Deixar de seguir',exact:true}).waitFor();
     assert.equal(await page.locator('#public-profile-content .review-card').count(),0);
     await page.getByRole('button',{name:'Adicionar amigo',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Cancelar pedido',exact:true}).waitFor();await page.locator('#close-public-profile').click();
