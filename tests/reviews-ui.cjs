@@ -14,13 +14,16 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
   try{
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},hasTouch:true});
     const game={id:1,title:'Jogo de teste',genre:'RPG',releaseYear:2026,platforms:'PC',description:'Uma aventura para testar.'};
-    let entry=null,failSave=false,authenticated=true,averageOverride,delayGames=true,delayReviews=false,failReviews=false;
+    let entry=null,failSave=false,authenticated=true,averageOverride,delayGames=true,delayReviews=false,failReviews=false,recoveryEnabled=false,recoveryStatusFails=false,recoverySendFails=false,recoveryRequests=0;
     await context.route('**/*',async route=>{
       const req=route.request(),url=new URL(req.url());
       if(url.origin!==base)return route.abort();
       if(!url.pathname.startsWith('/api/'))return route.continue();
       const json=value=>route.fulfill({json:value});
       switch(url.pathname){
+        case '/api/auth/recovery-status':return recoveryStatusFails?route.fulfill({status:503,json:{message:'Falha ao consultar recuperação'}}):json({enabled:recoveryEnabled});
+        case '/api/auth/forgot-password':recoveryRequests++;assert.deepEqual(req.postDataJSON(),{username:'tester',email:'tester@example.test'});return recoverySendFails?route.fulfill({status:503,json:{message:'Serviço temporariamente indisponível'}}):json({message:'Se os dados corresponderem a uma conta, enviaremos um link de recuperação.'});
+        case '/api/auth/reset-password':assert.equal(req.postDataJSON().newPassword,'NewPassword42!');return json({message:'Senha redefinida. Entre com sua nova senha.'});
         case '/api/auth/csrf':return json({headerName:'X-CSRF-TOKEN',token:'test'});
         case '/api/auth/me':return json({authenticated,user:authenticated?{username:'tester',displayName:'Tester',role:'USER'}:null});
         case '/api/diary':return json(entry?[entry]:[]);
@@ -85,6 +88,22 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
     await page.emulateMedia({reducedMotion:'reduce'});await page.locator('.game-card').hover();assert.equal(await page.locator('.game-card').evaluate(n=>getComputedStyle(n).transform),'none');
     assert.equal((await page.request.get(base+'/favicon.ico')).status(),200);
     authenticated=false;await page.reload();await page.getByRole('button',{name:'Adicionar a favoritos: Jogo de teste',exact:true}).click();await page.locator('#auth-dialog').waitFor();
-    assert.deepEqual(errors,[]);console.log('Reviews UI: save, edit, cancel, failed save, community, shortcuts, reload, mobile, interactive stars (hover/half/keyboard/clear/touch), average stars, reduced motion, favicon and login passed.');
+    // Unconfigured SMTP must show an actionable state, not a dead submit button.
+    await page.locator('#forgot-password').click();await page.locator('#recovery-retry:not([disabled])').waitFor();
+    assert(await page.locator('#recovery-form').isHidden());assert(await page.locator('#recovery-unavailable').isVisible());
+    assert((await page.locator('#recovery-unavailable-message').textContent()).includes('configurar o envio de e-mail'));assert.equal(recoveryRequests,0);
+    await page.locator('#recovery-login').click();await page.locator('#auth-dialog').waitFor();
+    recoveryStatusFails=true;await page.locator('#forgot-password').click();await page.waitForFunction(()=>document.querySelector('#recovery-unavailable-message').textContent.includes('Falha ao consultar recuperação'));
+    assert(await page.locator('#recovery-retry').isEnabled());recoveryStatusFails=false;recoveryEnabled=true;await page.locator('#recovery-retry').click();
+    await page.locator('#recovery-form').waitFor();assert(await page.locator('#recovery-submit').isEnabled());
+    await page.locator('#recovery-username').fill('tester');await page.locator('#recovery-email').fill('tester@example.test');recoverySendFails=true;
+    await page.locator('#recovery-submit').click();await page.getByText('Serviço temporariamente indisponível',{exact:true}).waitFor();assert(await page.locator('#recovery-submit').isEnabled());
+    assert.equal(await page.locator('#recovery-email').inputValue(),'tester@example.test');recoverySendFails=false;
+    await page.locator('#recovery-submit').click();await page.waitForFunction(()=>document.querySelector('#recovery-message').textContent.includes('Se os dados corresponderem'));assert.equal(recoveryRequests,2);
+    await page.locator('#close-recovery').click();recoveryEnabled=false;
+    await page.goto(base+'/#reset='+'a'.repeat(43));await page.locator('#recovery-new-fields').waitFor();assert(await page.locator('#recovery-submit').isEnabled());assert(await page.locator('#recovery-unavailable').isHidden());
+    await page.locator('#recovery-new-password').fill('NewPassword42!');await page.locator('#recovery-confirm-password').fill('DifferentPassword42!');await page.locator('#recovery-submit').click();await page.getByText('As senhas não são iguais.',{exact:true}).waitFor();
+    await page.locator('#recovery-confirm-password').fill('NewPassword42!');await page.locator('#recovery-submit').click();await page.locator('#auth-dialog').waitFor();
+    assert.deepEqual(errors,[]);console.log('Reviews UI: save, edit, cancel, failed save, community, shortcuts, reload, mobile, interactive stars (hover/half/keyboard/clear/touch), average stars, reduced motion, favicon, login and password recovery availability/retry/send/reset passed.');
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
