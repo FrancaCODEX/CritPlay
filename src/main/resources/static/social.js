@@ -13,11 +13,11 @@ function resetSocial() {
   for(const id of ['people-results','social-connections','public-profile-content'])$('#'+id).replaceChildren();
   $('#people-search-form').reset();$('#privacy-form').reset();$('#privacy-message').textContent='';$('#people-message').textContent='';
 }
-function renderPrivacy(user){if(privacyDirty)return;$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;}
+function renderPrivacy(user){if(privacyDirty)return;$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;for(const key of ['library','favorites','wishlist','lists'])$('#privacy-'+key).checked=user.collectionPrivacy?.[key]??false;}
 $('#privacy-form').addEventListener('input',()=>privacyDirty=true);
 $('#privacy-form').addEventListener('submit',async event=>{
-  event.preventDefault();if(socialBusy)return;socialBusy=true;busy($('#privacy-form'),true);
-  try{const value=await api('/api/profile/privacy',{method:'PUT',body:JSON.stringify({visibility:$('#profile-visibility').value,discoverable:$('#profile-discoverable').checked})});
+  event.preventDefault();if(socialBusy)return;socialBusy=true;busy($('#privacy-form'),true);$('#privacy-message').textContent='Salvando privacidade…';
+  try{const value=await api('/api/profile/privacy',{method:'PUT',body:JSON.stringify({visibility:$('#profile-visibility').value,discoverable:$('#profile-discoverable').checked,...Object.fromEntries(['library','favorites','wishlist','lists'].map(key=>[key+'Public',$('#privacy-'+key).checked]))})});
     if(state.profile)Object.assign(state.profile.user,value);privacyDirty=false;renderPrivacy(value);$('#privacy-message').textContent='Privacidade atualizada.';
   }catch(error){$('#privacy-message').textContent=error.message;}finally{socialBusy=false;busy($('#privacy-form'),false);}
 });
@@ -61,19 +61,19 @@ async function socialAction(username,action,following){
   }catch(error){toast(error.message);}finally{socialBusy=false;controls.forEach(node=>node.disabled=false);}
 }
 async function openPublicProfile(username){
-  publicUsername=username;const sequence=++publicSequence;$('#public-profile-content').replaceChildren();$('#public-profile-message').textContent='Carregando perfil…';
+  publicUsername=username;const sequence=++publicSequence;showSkeletons($('#public-profile-content'));$('#public-profile-message').textContent='Carregando perfil…';
   if(!$('#public-profile-dialog').open)$('#public-profile-dialog').showModal();
   try{const profile=await api('/api/people/'+encodeURIComponent(username));if(sequence!==publicSequence||!$('#public-profile-dialog').open)return;
-    const user=profile.user;const content=$('#public-profile-content');const head=el('div','profile-summary');const identity=identityCard(user);identity.disabled=true;head.append(identity);content.append(head);
+    const user=profile.user;const content=$('#public-profile-content');finishLoading(content);content.replaceChildren();const head=el('div','profile-summary');const identity=identityCard(user);identity.disabled=true;head.append(identity);content.append(head);
     $('#public-profile-title').textContent='Perfil de '+user.displayName;content.append(el('p','price-note','Visibilidade: '+visibilityLabels[user.visibility]));
     if(profile.visible){
       if(user.bannerUrl){const banner=el('div','profile-banner');const image=el('img');image.src=user.bannerUrl;image.alt='Banner de '+user.displayName;banner.append(image);content.prepend(banner);}
       const featured=el('div','featured-games');renderFeaturedGames(featured,user.featuredGames);content.append(el('h3',null,'Jogos em destaque'),featured);
       content.append(el('p','profile-bio',user.bio||'Ainda sem bio.'));
       const stats=el('div','stats-grid');const labels={library:'Jogos no diário',completed:'Finalizados',favorites:'Favoritos',wishlist:'Desejos',reviews:'Resenhas'};
-      for(const [key,label]of Object.entries(labels)){const stat=el('div','stat');stat.append(el('strong',null,String(profile.stats[key])),el('span',null,label));stats.append(stat);}content.append(stats);
+      for(const [key,label]of Object.entries(labels)){if(profile.stats[key]===undefined)continue;const stat=el('div','stat');stat.append(el('strong',null,String(profile.stats[key])),el('span',null,label));stats.append(stat);}content.append(stats);
       content.append(el('p','muted',`${profile.social.followers} seguidores · ${profile.social.following} seguindo · ${profile.social.friends} amigos`));
-    }else content.append(el('p','privacy-note',user.visibility==='FRIENDS'?'As resenhas e estatísticas estão disponíveis apenas para amigos aceitos.':'Este perfil mantém bio, resenhas e estatísticas privadas.'));
+    }else content.append(el('p','privacy-note',user.visibility==='FRIENDS'?'Este perfil está disponível apenas para amigos aceitos.':'Este perfil é privado.'));
     const actions=el('div','social-actions');
     if(state.user&&state.user.username!==username){
       actions.append(button('Bloquear','text-button',async()=>{if(!confirm('Bloquear esta pessoa e remover suas conexões com ela?'))return;try{await api('/api/blocks/'+encodeURIComponent(username),{method:'PUT'});$('#public-profile-dialog').close();if(state.view==='people')await refreshPeople();toast('Usuário bloqueado.');}catch(error){toast(error.message);}}),button('Denunciar perfil','text-button',()=>sendReport(username,null)));
@@ -85,12 +85,32 @@ async function openPublicProfile(username){
     }else if(!state.user)actions.append(button('Entrar para se conectar','primary',()=>{$('#public-profile-dialog').close();openAuth();}));
     const share=el('input');share.readOnly=true;share.value=location.origin+'/#profile='+encodeURIComponent(username);share.setAttribute('aria-label','Link deste perfil');
     actions.append(share);content.append(actions);
-    if(profile.visible){const reviews=el('div','review-grid');content.append(el('h3',null,'Resenhas'));
+    if(profile.visible){renderPublicCollections(content,profile.collections||{});const reviews=el('div','review-grid');content.append(el('h3',null,'Resenhas'));
       for(const review of profile.reviews){const card=el('article','surface review-card');card.append(compactGame(review.game));if(review.rating)card.append(ratingDisplay(review.rating));card.append(el('p','review-text',review.review));if(state.user?.username!==username)card.append(reviewLikeButton({...review,displayName:user.displayName}));if(state.user&&state.user.username!==username)card.append(button('Denunciar resenha','text-button',()=>sendReport(username,review.game.id)));reviews.append(card);}content.append(reviews);
       if(!profile.reviews.length)content.append(el('p','muted','Nenhuma resenha publicada ainda.'));
     }
     $('#public-profile-message').textContent='';
-  }catch(error){if(sequence===publicSequence)$('#public-profile-message').textContent=error.message;}
+  }catch(error){if(sequence===publicSequence){finishLoading($('#public-profile-content'));$('#public-profile-content').replaceChildren();$('#public-profile-message').textContent=error.message;}}
 }
 function openSharedProfile(){const match=location.hash.match(/^#profile=([a-zA-Z0-9_.-]{3,30})$/);if(match)openPublicProfile(match[1]);}
 window.addEventListener('hashchange',openSharedProfile);openSharedProfile();
+
+function renderPublicCollections(content,collections) {
+  const section=el('section','shared-collections');section.append(el('h3',null,'Coleções'));
+  const navigation=el('div','profile-navigation');navigation.setAttribute('role','group');navigation.setAttribute('aria-label','Coleções compartilhadas');
+  const panel=el('div','shared-collection-panel');
+  const labels={library:'Biblioteca',favorites:'Favoritos',wishlist:'Desejos',lists:'Listas'};
+  function select(key) {
+    navigation.querySelectorAll('button').forEach(node=>{const active=node.dataset.collection===key;node.classList.toggle('active',active);node.setAttribute('aria-pressed',String(active));});
+    panel.replaceChildren();
+    if(!Object.hasOwn(collections,key)){panel.append(el('p','privacy-note','Esta coleção é privada.'));return;}
+    const items=collections[key];
+    if(!items.length){panel.append(el('p','muted','Ainda não há jogos nesta coleção.'));return;}
+    if(key==='lists')for(const list of items){const card=el('article','surface shared-list');card.append(el('h4',null,list.name),el('p','muted',list.description));
+      const games=el('div','shared-games');for(const game of list.games)games.append(compactGame(game));if(!list.games.length)games.append(el('p','muted','Esta lista ainda não tem jogos.'));card.append(games);panel.append(card);}
+    else {const games=el('div','shared-games');for(const item of items){const card=el('article','shared-game');card.append(compactGame(item.game));
+      if(item.status)card.append(el('p','price-note',statusLabels[item.status]));if(item.rating)card.append(ratingDisplay(item.rating));games.append(card);}panel.append(games);}
+  }
+  for(const [key,label]of Object.entries(labels)){const control=button(label,'profile-nav-button',()=>select(key));control.dataset.collection=key;navigation.append(control);}
+  section.append(navigation,panel);content.append(section);select('library');
+}

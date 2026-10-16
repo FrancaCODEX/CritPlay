@@ -14,7 +14,7 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
   try{
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},hasTouch:true});
     const game={id:1,title:'Jogo de teste',genre:'RPG',releaseYear:2026,platforms:'PC',description:'Uma aventura para testar.'};
-    let entry=null,failSave=false,authenticated=true,averageOverride;
+    let entry=null,failSave=false,authenticated=true,averageOverride,delayGames=true,delayReviews=false,failReviews=false;
     await context.route('**/*',async route=>{
       const req=route.request(),url=new URL(req.url());
       if(url.origin!==base)return route.abort();
@@ -25,9 +25,9 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
         case '/api/auth/me':return json({authenticated,user:authenticated?{username:'tester',displayName:'Tester',role:'USER'}:null});
         case '/api/diary':return json(entry?[entry]:[]);
         case '/api/lists':return json([]);
-        case '/api/games':return json([game]);
+        case '/api/games':if(delayGames)await new Promise(resolve=>setTimeout(resolve,700));return json([game]);
         case '/api/games/1/prices':return json({status:'UNAVAILABLE',message:'Sem preços',sourceUrl:'https://gg.deals/'});
-        case '/api/games/1/reviews':return json({averageRating:averageOverride===undefined?(entry?.rating?(entry.rating+3)/2:3):averageOverride,ratingCount:averageOverride===null?0:(entry?.rating?2:1),reviewCount:1,
+        case '/api/games/1/reviews':if(delayReviews)await new Promise(resolve=>setTimeout(resolve,700));if(failReviews)return route.fulfill({status:503,json:{message:'Avaliações indisponíveis'}});return json({averageRating:averageOverride===undefined?(entry?.rating?(entry.rating+3)/2:3):averageOverride,ratingCount:averageOverride===null?0:(entry?.rating?2:1),reviewCount:1,
           reviews:[{username:'other',displayName:'Outro jogador',rating:3,review:'<img src=x onerror=alert(1)>',updatedAt:'2026-10-14T12:00:00Z'}]});
         case '/api/diary/1':
           if(failSave)return route.fulfill({status:500,json:{message:'Falha simulada'}});
@@ -36,18 +36,18 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
       }
     });
     const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base);await page.locator('.card').waitFor();
+    await page.goto(base);await page.locator('#games[aria-busy=true] .skeleton-game').first().waitFor();assert.equal(await page.locator('#games .skeleton-game').count(),8);await page.locator('.card').waitFor();assert.equal(await page.locator('#games').getAttribute('aria-busy'),null);delayGames=false;
     await page.locator('.game-card').hover();await page.waitForTimeout(250);
     assert.notEqual(await page.locator('.game-card').evaluate(n=>getComputedStyle(n).transform),'none');
     await page.getByRole('button',{name:'Adicionar a favoritos: Jogo de teste',exact:true}).click();
     await page.getByRole('button',{name:'Remover de favoritos: Jogo de teste',exact:true}).waitFor();assert.equal(entry.favorite,true);assert.equal(entry.wishlist,false);
     assert(await page.locator('#detail').isHidden());
-    averageOverride=null;
+    averageOverride=null;delayReviews=true;
     await page.getByRole('button',{name:'Abrir Jogo de teste',exact:true}).click();
-    await page.waitForFunction(()=>document.querySelector('#community-average').textContent.includes('Sem notas ainda'));
+    await page.locator('#tab-community').click();await page.locator('#community-reviews[aria-busy=true] .skeleton-review').first().waitFor();await page.waitForFunction(()=>document.querySelector('#community-average').textContent.includes('Sem notas ainda'));assert.equal(await page.locator('#community-reviews .skeleton-card').count(),0);delayReviews=false;
     assert.equal(await page.locator('#community-average .stars-empty').textContent(),'★★★★★');
     assert.equal(await page.locator('#community-average .stars-fill').evaluate(node=>node.style.width),'0%');
-    await page.locator('#close-detail').click();averageOverride=2.25;
+    await page.locator('#close-detail').click();failReviews=true;await page.getByRole('button',{name:'Abrir Jogo de teste',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#community-average').textContent==='Avaliações indisponíveis');assert.equal(await page.locator('#community-reviews .skeleton-card').count(),0);assert.equal(await page.locator('#community-reviews').getAttribute('aria-busy'),null);await page.locator('#close-detail').click();failReviews=false;averageOverride=2.25;
     await page.getByRole('button',{name:'Abrir Jogo de teste',exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('#community-average .stars-fill')?.style.width==='45%');
     await page.locator('#close-detail').click();averageOverride=undefined;

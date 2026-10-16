@@ -10,11 +10,14 @@ import java.util.*;
 
 @Service
 public class SocialService {
+    private final br.com.critplay.collections.ListService lists;
+    private final br.com.critplay.diary.DiaryService diary;
+    private final br.com.critplay.catalog.CatalogService catalog;
     private final BlockService blocks;
     private final UserService users; private final UserRepository repository;
     private final JdbcTemplate db; private final ProfileService profiles;
-    public SocialService(UserService users, UserRepository repository, JdbcTemplate db, ProfileService profiles,BlockService blocks) {
-        this.users=users;this.repository=repository;this.db=db;this.profiles=profiles;this.blocks=blocks;
+    public SocialService(UserService users, UserRepository repository, JdbcTemplate db, ProfileService profiles,BlockService blocks,br.com.critplay.collections.ListService lists,br.com.critplay.diary.DiaryService diary,br.com.critplay.catalog.CatalogService catalog) {
+        this.lists=lists;this.diary=diary;this.catalog=catalog;this.users=users;this.repository=repository;this.db=db;this.profiles=profiles;this.blocks=blocks;
     }
     public Map<String,Object> identity(AppUser user) {
         var value=new LinkedHashMap<String,Object>();
@@ -43,7 +46,19 @@ public class SocialService {
         if(visible) {
             var publicUser=new LinkedHashMap<String,Object>(identity(target));publicUser.put("bio",target.getBio());publicUser.put("bannerUrl",target.getBannerUrl());publicUser.put("featuredGames",profiles.featuredGames(target.getId()));result.put("user",publicUser);
             var details=profiles.get(target.getUsername());result.put("stats",details.get("stats"));
-            // Apenas texto/nota das resenhas. Preferências privadas do diário nunca saem neste endpoint.
+            // Explicit allowlist: never serialize diary entities into public collections.
+            var privacy=target.collectionPrivacy();var collections=new LinkedHashMap<String,Object>();
+            var entries=diary.list(target.getId());
+            for(String section:List.of("library","favorites","wishlist")) {
+                if(own||privacy.get(section))collections.put(section,entries.stream()
+                    .filter(e->section.equals("library")||section.equals("favorites")&&e.isFavorite()||section.equals("wishlist")&&e.isWishlist())
+                    .map(e->{var item=new LinkedHashMap<String,Object>();item.put("game",catalog.find(e.getGameId()));
+                        if(section.equals("library")){item.put("status",e.getStatus());if(!e.isReviewHidden())item.put("rating",e.getRating());}
+                        return item;}).toList());
+            }
+            if(own||privacy.get("lists"))collections.put("lists",lists.all(target.getId()));
+            result.put("collections",collections);
+            // Reviews follow profile visibility and moderation independently of collections.
             var reviews=new ArrayList<Map<String,Object>>();
             for(var raw:(List<?>)details.get("reviews")) {
                 var row=(Map<?,?>)raw;var entry=(br.com.critplay.diary.DiaryEntry)row.get("entry");if(entry.isReviewHidden())continue;
@@ -52,7 +67,10 @@ public class SocialService {
                 review.put("likeCount",db.queryForObject("SELECT COUNT(*) FROM review_likes l JOIN app_users u ON u.id=l.user_id WHERE l.entry_id=? AND u.enabled=TRUE",Long.class,entry.getId()));
                 review.put("likedByMe",actor!=null&&db.queryForObject("SELECT COUNT(*) FROM review_likes WHERE entry_id=? AND user_id=?",Long.class,entry.getId(),actor.getId())>0);reviews.add(review);
             }
-            result.put("reviews",reviews);var sharedStats=new LinkedHashMap<>((Map<String,Object>)details.get("stats"));sharedStats.put("reviews",reviews.size());result.put("stats",sharedStats);
+            result.put("reviews",reviews);var sharedStats=new LinkedHashMap<>((Map<String,Object>)details.get("stats"));sharedStats.put("reviews",reviews.size());
+            if(!own){if(!privacy.get("library")){sharedStats.remove("library");sharedStats.remove("completed");}
+                if(!privacy.get("favorites"))sharedStats.remove("favorites");if(!privacy.get("wishlist"))sharedStats.remove("wishlist");}
+            result.put("stats",sharedStats);
             result.put("social",Map.of("followers",count("SELECT COUNT(*) FROM user_follows WHERE followed_id=?",target.getId()),
                 "following",count("SELECT COUNT(*) FROM user_follows WHERE follower_id=?",target.getId()),
                 "friends",count("SELECT COUNT(*) FROM friendships WHERE status='ACCEPTED' AND (first_id=? OR second_id=?)",target.getId(),target.getId())));
@@ -81,8 +99,12 @@ public class SocialService {
         return Map.of("following",following,"followers",followers,"friends",friends,"incoming",incoming,"outgoing",outgoing);
     }
     @Transactional public Map<String,Object> privacy(String viewer,ProfileVisibility visibility,boolean discoverable) {
-        var user=users.require(viewer);user.updatePrivacy(visibility,discoverable);repository.save(user);
-        return Map.of("visibility",user.getVisibility(),"discoverable",user.isDiscoverable());
+        return privacy(viewer,visibility,discoverable,null,null,null,null);
+    }
+    @Transactional public Map<String,Object> privacy(String viewer,ProfileVisibility visibility,boolean discoverable,
+        Boolean library,Boolean favorites,Boolean wishlist,Boolean lists) {
+        var user=users.require(viewer);user.updatePrivacy(visibility,discoverable);user.updateCollections(library,favorites,wishlist,lists);repository.save(user);
+        return Map.of("visibility",user.getVisibility(),"discoverable",user.isDiscoverable(),"collectionPrivacy",user.collectionPrivacy());
     }
     // Trava o par em ordem consistente: evita duplicidade e deadlock entre pedidos recíprocos.
     private long[] pair(String viewer,String targetName) {

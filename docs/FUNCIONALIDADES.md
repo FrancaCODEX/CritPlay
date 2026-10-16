@@ -1,5 +1,15 @@
 # Guia de funcionalidades
 
+## Perfil e coleções
+
+A navegação principal reúne Descobrir, Perfil, Comunidade e Atividades (Administração aparece para administradores). Dentro do Perfil, use Visão geral, Minha biblioteca, Favoritos, Desejos e Listas. A visão geral apresenta identidade, destaques e resenhas; as coleções mantêm busca, filtros e modos de visualização. Editar perfil continua abrindo as configurações sob demanda.
+
+Em Editar perfil → Privacidade e segurança, escolha a visibilidade geral e quais coleções compartilhar. Uma coleção marcada só aparece para quem pode ver o perfil; desmarcada, seus jogos e contagens não são enviados a visitantes ou outros jogadores. O dono continua vendo suas coleções. Listas compartilham nome, descrição e jogos, sem permitir edição por terceiros. Biblioteca compartilha jogo, status e nota, sem datas pessoais ou texto do diário. Resenhas seguem a privacidade geral e a moderação.
+
+Novas contas começam públicas e com as quatro coleções compartilháveis; você pode torná-las privadas a qualquer momento. Atualizações preservam escolhas de visibilidade anteriores e mantêm coleções de contas antigas particulares até o titular marcar o compartilhamento. E-mail e dados de segurança continuam privados.
+
+Catálogo, resenhas, perfil inicial e listas mostram blocos de prévia durante consultas. As capas reservam espaço enquanto carregam; mensagens substituem os blocos em caso de erro, com nova tentativa no perfil e listas. Movimento reduzido desativa a animação.
+
 ## Novidades: biblioteca e comunidade
 
 A biblioteca oferece filtros de status com contadores e visualização por capas ou lista compacta. Você pode ordenar por atualização, título, nota ou conclusão; o catálogo mantém a ordem padrão e permite ordem alfabética. A nota vai de 0,5 a 5 em passos de meia estrela, mantendo as notas já salvas. Escolha diretamente nas cinco estrelas: cada metade representa 0,5. O mouse mostra uma prévia; clique ou toque confirma a escolha, que é gravada ao salvar o diário. Use as setas no teclado, Home/End para os extremos e “Limpar nota” para deixar sem avaliação.
@@ -10,7 +20,7 @@ Em Perfil → Editar perfil → Sua identidade gamer, envie um banner e escolha 
 
 Atividades mostra experiências novas suas, de amigos e de pessoas seguidas. O feed começa com os eventos registrados depois desta atualização; não inventa um histórico retroativo. Alterações em notas/resenhas/status geram eventos; favoritos/desejos sozinhos não geram atividade. Você pode atualizar e carregar páginas anteriores. Seguir um perfil privado não dá acesso às suas atividades.
 
-Resenhas de outros usuários podem ser curtidas e descurtidas na aba Comunidade ou no perfil compartilhado. Avaliações só com nota não recebem curtidas. Perfil privado, bloqueio, suspensão, moderação ou exclusão impedem o acesso. As listas personalizadas continuam particulares. Preferências de visualização são mantidas durante a sessão; os dados do diário, perfil, feed e curtidas são persistidos no banco.
+Resenhas de outros usuários podem ser curtidas e descurtidas na aba Comunidade ou no perfil compartilhado. Avaliações só com nota não recebem curtidas. Perfil privado, bloqueio, suspensão, moderação ou exclusão impedem o acesso. As listas personalizadas seguem o controle de compartilhamento nas configurações do perfil. Preferências de visualização são mantidas durante a sessão; os dados do diário, perfil, feed e curtidas são persistidos no banco.
 
 Uso das funções atuais do CritPlay. Para instalação, consulte o [README](../README.md). O histórico fica no [CHANGELOG](../CHANGELOG.md).
 
@@ -26,7 +36,7 @@ Se o nome configurado já pertence a um usuário comum, o bootstrap preserva seu
 
 - **Perfil:** edite nome/bio/foto. Para acrescentar ou alterar o e-mail, informe sua senha atual. As resenhas aparecem abaixo, com botão para editar a experiência do jogo.
 - **Desejos:** marque a opção no diário. Ela não muda seu status de jogando/finalizado. Registros antigos com “Quero jogar” são incluídos automaticamente durante a migração.
-- **Listas:** crie coleções e adicione jogos no painel de detalhes. Cada conta só vê/edita suas listas; excluir uma lista não apaga notas ou resenhas.
+- **Listas:** crie coleções e adicione jogos no painel de detalhes. Cada conta edita apenas suas listas; listas compartilhadas podem ser vistas no perfil; excluir uma lista não apaga notas ou resenhas.
 - **Editar jogo:** ADMIN abre o detalhe e clica em Editar jogo. O ID é preservado, mantendo as referências dos diários/listas. Steam App IDs repetidos são recusados.
 - **Importar:** ADMIN seleciona um JSON no formato de `examples/catalogo.json`; de 1 a 50 jogos. O lote inteiro é validado e qualquer conflito cancela a gravação de todos. Essa opção JSON é separada da importação RAWG.
 - **Imagens:** PNG/JPEG até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; a visibilidade do perfil/resenhas segue sua configuração de privacidade.
@@ -58,7 +68,7 @@ Login (40), registro (20) e recuperação (5) têm limites por IP/rota a cada 10
 
 ## Comunidade e privacidade
 
-Em **Perfil → Privacidade e segurança**, escolha **Somente eu**, **Amigos aceitos** ou **Todos, inclusive visitantes**. Ative **Aparecer na busca de usuários** para que seu nome, @usuário e foto apareçam na Comunidade. Contas novas aparecem na busca por padrão, mas começam com resenhas privadas. Contas anteriores à v0.4 migraram privadas e fora da busca; atualizações seguintes preservam suas preferências. E-mail e dados de segurança nunca aparecem no perfil compartilhado; listas personalizadas continuam particulares.
+Em **Perfil → Privacidade e segurança**, escolha **Somente eu**, **Amigos aceitos** ou **Todos, inclusive visitantes**. Ative **Aparecer na busca de usuários** para que seu nome, @usuário e foto apareçam na Comunidade. Contas novas aparecem na busca por padrão e começam com perfil público; as configurações permitem restringir o acesso. Contas anteriores à v0.4 migraram privadas e fora da busca; atualizações seguintes preservam suas preferências. E-mail e dados de segurança nunca aparecem no perfil compartilhado; listas personalizadas seguem seus controles de compartilhamento.
 
 **Seguir** é unilateral e não libera um perfil restrito a amigos. **Adicionar amigo** envia um pedido; só o destinatário pode aceitar ou recusar. O remetente pode cancelar e qualquer amigo pode desfazer a amizade. A aba Comunidade reúne os pedidos e suas conexões. Perfis públicos podem ser compartilhados pelo link `/#profile=nome_de_usuario`. Desativar a busca impede visitantes e desconhecidos de abrir o perfil; amigos aceitos continuam podendo acessá-lo conforme a visibilidade.
 

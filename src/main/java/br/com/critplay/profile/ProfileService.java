@@ -26,7 +26,7 @@ public class ProfileService {
         profile.put("id",user.getId());profile.put("username",user.getUsername());profile.put("displayName",user.getDisplayName());
         profile.put("bannerUrl",user.getBannerUrl());profile.put("featuredGames",featuredGames(user.getId()));
         profile.put("bio",user.getBio());profile.put("email",user.getEmail());profile.put("avatarUrl",user.getAvatarUrl());
-        profile.put("visibility",user.getVisibility());profile.put("discoverable",user.isDiscoverable());
+        profile.put("collectionPrivacy",user.collectionPrivacy());profile.put("visibility",user.getVisibility());profile.put("discoverable",user.isDiscoverable());
         profile.put("role",user.getRole());profile.put("createdAt",user.getCreatedAt());
         var reviews=entries.stream().filter(e->e.getReview()!=null&&!e.getReview().isBlank())
             .sorted(Comparator.comparing(DiaryEntry::getUpdatedAt).reversed())
