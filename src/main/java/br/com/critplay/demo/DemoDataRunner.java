@@ -18,8 +18,9 @@ public class DemoDataRunner implements CommandLineRunner {
     @Override public void run(String... args) {
         if(!enabled)return;
         boolean created=service.seed(titles);
+        int updated=service.diversifyLegacyReviews();
         org.slf4j.LoggerFactory.getLogger(getClass()).info(created?
             "Demonstração criada: 16 perfis fictícios. Desative DEMO_DATA_ENABLED após a carga.":
-            "Demonstração já carregada; nenhum dado foi alterado.");
+            "Demonstração já carregada; "+updated+" avaliações antigas diversificadas. Desative DEMO_DATA_ENABLED após a carga.");
     }
 }

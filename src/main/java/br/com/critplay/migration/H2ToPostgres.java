@@ -46,10 +46,15 @@ public final class H2ToPostgres {
             }}
             for(String table:TABLES){try(var statement=target.createStatement();var rows=statement.executeQuery("SELECT COUNT(*) FROM "+table)){rows.next();if(rows.getLong(1)!=totals.get(table))throw new SQLException("Contagem divergente.");}}
             // Preserve one-time fixture state when moving a populated local database.
-            try(var read=source.createStatement();var row=read.executeQuery("SELECT completed FROM demo_seed_runs WHERE name='community-v1'")) {
-                if(!row.next())throw new SQLException("Atualize a versão do banco de origem antes da migração.");
-                try(var write=target.prepareStatement("UPDATE demo_seed_runs SET completed=? WHERE name='community-v1'")) {
-                    write.setBoolean(1,row.getBoolean(1));write.executeUpdate();
+            for(String fixture:List.of("community-v1","community-variety-v2")) {
+                try(var read=source.prepareStatement("SELECT completed FROM demo_seed_runs WHERE name=?")) {
+                    read.setString(1,fixture);
+                    try(var row=read.executeQuery()) {
+                        if(!row.next())throw new SQLException("Atualize a versão do banco de origem antes da migração.");
+                        try(var write=target.prepareStatement("UPDATE demo_seed_runs SET completed=? WHERE name=?")) {
+                            write.setBoolean(1,row.getBoolean(1));write.setString(2,fixture);write.executeUpdate();
+                        }
+                    }
                 }
             }
             target.commit();return totals;
