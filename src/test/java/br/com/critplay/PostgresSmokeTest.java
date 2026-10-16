@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("postgres")
 @SpringBootTest(properties={"spring.config.import=","ggdeals.api-key=","app.admin.username=","app.admin.password=","app.security.rate-limit-enabled=false"})
 class PostgresSmokeTest {
+    @Autowired jakarta.persistence.EntityManager entityManager;
     @Autowired br.com.critplay.demo.DemoDataService demo;
     @Autowired JdbcTemplate jdbc;
     @Autowired UserService users;
@@ -33,6 +34,15 @@ class PostgresSmokeTest {
     @Test @org.springframework.transaction.annotation.Transactional void seedsDemoOnPostgresOnce() {
         assertTrue(demo.seed("Hades,Celeste"));
         assertFalse(demo.seed(""));
+        long luna=accounts.findByUsername("demo_luna").orElseThrow().getId();
+        long hades=jdbc.queryForObject("SELECT id FROM games WHERE title='Hades'",Long.class);
+        String legacy="[Resenha fictícia de demonstração] As armas e os diálogos fazem cada tentativa de fuga ter algo novo para descobrir. Gostei, mas não entrou entre meus favoritos. Vale experimentar com calma.";
+        entityManager.flush();
+        jdbc.update("UPDATE diary_entries SET review=?,rating=3 WHERE user_id=? AND game_id=?",legacy,luna,hades);
+        entityManager.clear();
+        assertEquals(1,demo.diversifyLegacyReviews());
+        assertNotEquals(legacy,jdbc.queryForObject("SELECT review FROM diary_entries WHERE user_id=? AND game_id=?",String.class,luna,hades));
+        assertNotEquals(3.0,jdbc.queryForObject("SELECT rating FROM diary_entries WHERE user_id=? AND game_id=?",Double.class,luna,hades));
         assertEquals(0,demo.diversifyLegacyReviews());
         assertTrue(jdbc.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-variety-v2'",Boolean.class));
         assertTrue(jdbc.queryForObject("SELECT COUNT(DISTINCT rating) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class)>=5);

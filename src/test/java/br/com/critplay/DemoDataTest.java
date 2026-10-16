@@ -98,6 +98,20 @@ class DemoDataTest {
         assertEquals(entries,count("diary_entries"));assertEquals(events,count("activity_events"));assertEquals(likes,count("review_likes"));
         assertEquals(0,seed.diversifyLegacyReviews());
     }
+    @Test void upgradesOriginalRatingsWithoutInventingReviews() {
+        seed.seed("");
+        long luna=users.findByUsername("demo_luna").orElseThrow().getId();
+        long entry=db.queryForObject("SELECT id FROM diary_entries WHERE user_id=? AND status='PLAYING'",Long.class,luna);
+        entityManager.flush();
+        db.update("UPDATE diary_entries SET rating=3 WHERE id=?",entry);
+        entityManager.clear();
+        long events=count("activity_events");
+        assertEquals(1,seed.diversifyLegacyReviews());
+        assertEquals("",db.queryForObject("SELECT review FROM diary_entries WHERE id=?",String.class,entry));
+        assertEquals("PLAYING",db.queryForObject("SELECT status FROM diary_entries WHERE id=?",String.class,entry));
+        assertEquals(1,db.queryForObject("SELECT row_version FROM diary_entries WHERE id=?",Long.class,entry));
+        assertEquals(events,count("activity_events"));
+    }
     @Test void refusesUnknownGamesBeforeCreatingAccounts() {
         assertThrows(IllegalStateException.class,()->seed.seed("Hades,Jogo inexistente"));
         assertEquals(0,count("app_users"));assertEquals(0,count("diary_entries"));
