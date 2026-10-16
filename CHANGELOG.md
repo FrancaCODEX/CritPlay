@@ -73,6 +73,15 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 
 
+### Perfis compartilhados e botão de compartilhar
+
+- Perfil de outros jogadores reorganizado com banner (ou fundo padrão), avatar sobreposto, nome em destaque, bio, contadores sociais e estatísticas agrupadas; identidade deixa de ser um botão desativado e apagado.
+- Seguir/amizade e Compartilhar ficam junto à identidade; bloquear e denunciar perfil passam ao rodapé. Destaques vazios deixam de ocupar uma seção inteira; coleções ganham capas maiores e estados vazios/privados, com resenhas em seção própria.
+- Campo com URL aparente substituído por botão Compartilhar com ícone. Usa o compartilhamento nativo quando disponível, ou copia o link com confirmação; cancelamento não gera erro nem copia automaticamente, falhas permitem nova tentativa e há alternativa de cópia para navegadores sem Clipboard API.
+- Link temporário usado pela alternativa de cópia fica fora da área visível, dentro do diálogo para compatibilidade com foco modal, e é removido logo após a ação. Conteúdo privado continua condicionado à resposta autorizada da API.
+- Layout responsivo, rótulo acessível do diálogo, feedback de compartilhamento e retorno ao topo ao abrir outro perfil; avatar/banner GIF e movimento reduzido preservados.
+- Testes de navegador ampliados para apresentação, celular, compartilhamento nativo, cancelamento, cópia/alternativa/falha e perfil privado; guia de funcionalidades atualizado.
+
 Histórico das entregas do CritPlay. O [README](README.md) descreve a instalação e as funcionalidades atuais; detalhes de uso ficam em [Funcionalidades](docs/FUNCIONALIDADES.md).
 
 ## 0.5.3

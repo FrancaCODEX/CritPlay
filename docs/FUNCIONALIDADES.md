@@ -140,3 +140,10 @@ Capas próprias têm prioridade, seguidas dos pôsteres verticais da Steam e das
 Ao entrar no Perfil, aparecem sua apresentação, estatísticas e resenhas. **Editar perfil** abre os formulários de perfil, privacidade e segurança; **Fechar configurações** os recolhe sem apagar rascunhos. Entrar novamente na seção começa com os formulários recolhidos.
 
 A página inicial alterna até seis jogos com imagem, selecionados da ordem do catálogo completo. Setas, indicadores e gesto lateral em telas de toque trocam o destaque; **Explorar** abre o jogo exibido. A troca automática ocorre a cada oito segundos, pausando ao interagir, abrir um diálogo, sair da seção ou ocultar a aba. Também é possível pausar pelo botão e a preferência de reduzir movimento desativa o avanço automático. Filtros do catálogo não mudam os destaques.
+
+
+## Visualizar e compartilhar outros perfis
+
+Os perfis compartilhados reúnem banner, avatar, nome, bio e conexões no cabeçalho, com estatísticas, destaques, coleções e resenhas abaixo. Sem banner, aparece o fundo padrão do CritPlay; sem destaques, essa seção é omitida. As coleções têm capas maiores e mensagens próprias quando estão vazias ou privadas. Seguir e amizade ficam próximos à identidade; bloquear e denunciar perfil ficam ao final.
+
+O botão **Compartilhar** substitui o campo que exibia a URL. Em aparelhos/navegadores compatíveis, abre o compartilhamento do sistema. Nos demais, copia o link e mostra “Link copiado!”. Cancelar o compartilhamento não copia o endereço. Se o navegador impedir a ação, a tela informa a falha e permite tentar novamente. O endereço compartilhado mantém a privacidade configurada pelo titular.
