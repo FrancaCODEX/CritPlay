@@ -28,8 +28,7 @@ async function refreshWorkspace(view) {
 function renderProfile(profile) {
   const user=profile.user;renderGamerProfile(user);const summary=$('#profile-summary');summary.replaceChildren();
   const avatar=el('div','avatar');
-  if(user.avatarUrl) {const image=el('img');image.src=user.avatarUrl;image.alt='Foto de '+user.displayName;avatar.append(image);}
-  else avatar.textContent=user.displayName.slice(0,2).toUpperCase();
+  renderAvatar(avatar,user);
   const info=el('div');info.append(el('h2',null,user.displayName),el('p','muted','@'+user.username+(user.role==='ADMIN'?' · Administrador':'')),el('p','profile-bio',user.bio||'Sua próxima história começa aqui.'));
   summary.append(avatar,info);
   const labels={library:'Jogos no diário',completed:'Finalizados',favorites:'Favoritos',wishlist:'Na lista de desejos',reviews:'Resenhas'};
@@ -108,18 +107,19 @@ $('#profile-form').addEventListener('submit',async e=>{
   try {
     const profile=await api('/api/profile',{method:'PUT',body:JSON.stringify({displayName:$('#profile-name').value.trim(),bio:$('#profile-bio').value,
       email:$('#profile-email').value.trim()||null,avatarUrl:state.profileAvatarUrl,currentPassword:$('#profile-current-password').value||null})});
-    state.user.displayName=profile.user.displayName;state.profile=profile;state.profileDirty=false;renderProfile(profile);updateAccountUi();$('#profile-message').textContent='Perfil atualizado.';
+    state.user.displayName=profile.user.displayName;state.user.avatarUrl=profile.user.avatarUrl;state.profile=profile;state.profileDirty=false;renderProfile(profile);updateAccountUi();$('#profile-message').textContent='Perfil atualizado.';
   }catch(error){$('#profile-message').textContent=error.message;}
   finally{workspaceBusy=false;busy($('#profile-form'),false);}
 });
-async function uploadImage(file) {
-  if(!file||file.size>2*1024*1024)throw new Error('Escolha uma imagem PNG ou JPEG de até 2 MB.');
+async function uploadImage(file,allowGif=false) {
+  if(!file||file.size>2*1024*1024)throw new Error('Escolha uma imagem '+(allowGif?'PNG, JPEG ou GIF':'PNG ou JPEG')+' de até 2 MB.');
+  if(!allowGif&&(file.type==='image/gif'||/\.gif$/i.test(file.name)))throw new Error('Use PNG ou JPEG para a capa do jogo.');
   const body=new FormData();body.append('file',file);return api('/api/images',{method:'POST',body});
 }
 $('#profile-avatar-file').addEventListener('change',async()=>{
   if(workspaceBusy)return;const file=$('#profile-avatar-file').files[0];if(!file)return;
   workspaceBusy=true;busy($('#profile-form'),true);
-  try{state.profileAvatarUrl=(await uploadImage(file)).url;state.profileDirty=true;$('#profile-message').textContent='Foto enviada. Clique em Salvar perfil para aplicá-la.';}
+  try{state.profileAvatarUrl=(await uploadImage(file,true)).url;state.profileDirty=true;$('#profile-message').textContent='Foto enviada. Clique em Salvar perfil para aplicá-la.';}
   catch(error){$('#profile-message').textContent=error.message;}
   finally{workspaceBusy=false;busy($('#profile-form'),false);$('#profile-avatar-file').value='';}
 });

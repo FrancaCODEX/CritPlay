@@ -122,7 +122,7 @@ Antes de produção: migrar para PostgreSQL com migrações próprias, normaliza
 | GET/POST | `/api/lists` | Listar/criar coleções da conta |
 | GET/PUT/DELETE | `/api/lists/{id}` | Ler/editar/excluir somente a coleção própria |
 | PUT/DELETE | `/api/lists/{id}/games/{gameId}` | Adicionar/remover jogos da coleção própria |
-| POST | `/api/images` | Conta autenticada, multipart `file`, PNG/JPEG até 2 MB |
+| POST | `/api/images` | Conta autenticada, multipart `file`, PNG/JPEG/GIF até 2 MB |
 | GET | `/media/{arquivo}` | Imagem pública pelo link, nome gerado pelo servidor |
 | PUT | `/api/games/{id}` | ADMIN; mantém ID e referências |
 | POST | `/api/games/import` | ADMIN; JSON `{games:[...]}`, lote de 1 a 50, transacional |
@@ -200,3 +200,12 @@ ADMIN e CSRF obrigatórios. `POST /api/admin/steam/resolve` com `{ "title": "Had
 `GET /api/people/{username}` inclui `collections` somente quando o perfil é visível. Cada chave é omitida se a coleção for privada (o titular tem acesso às próprias coleções). Biblioteca retorna objetos `{game,status,rating}`; notas moderadas são omitidas. Favoritos/desejos retornam `{game}`. Listas retornam nome, descrição e jogos; os endpoints `/api/lists` continuam exclusivos do titular para leitura e edição. Contagens de biblioteca/concluídos, favoritos e desejos também são omitidas conforme os controles. Não são serializadas entidades de diário, datas pessoais, e-mail ou texto moderado nessas coleções.
 
 H2 V8 e PostgreSQL V6 adicionam as quatro preferências. Linhas existentes recebem `false`, preservando o caráter particular anterior das coleções; novos usuários recebem `true` e visibilidade geral `PUBLIC`. Visibilidade e descoberta já configuradas são preservadas. A migração H2 → PostgreSQL copia esses campos junto às demais colunas dos usuários.
+
+
+## GIF em avatar/banner e foto na sessão
+
+A projeção `UserView` de cadastro e `/api/auth/me` inclui `avatarUrl`, sem dados de segurança. O cliente atualiza a foto do cabeçalho ao salvar e usa iniciais se não houver uma imagem válida.
+
+`POST /api/images` reconhece PNG/JPEG/GIF pelo conteúdo decodificado, independentemente da extensão informada. GIF é reencodificado por sequência com ImageIO nativo do JDK, preservando descritores, paletas, transparência, descarte, tempos e o bloco de repetição NETSCAPE; comentários, texto e outras aplicações são descartados. Limites: entrada/saída de até 2 MB, até 120 quadros, tela até 4096×4096 e 8 megapixels, área da tela × número de quadros até 60 milhões. Todo quadro precisa caber na tela. Falhas removem saídas parciais.
+
+Cada `/media/{owner}-{uuid}.gif` gera `/media/{owner}-{uuid}.png` com o primeiro quadro composto na tela lógica. O cliente usa esse PNG para imagens de identidade sob `prefers-reduced-motion`; mudanças da preferência atualizam imagens existentes. A limpeza de imagens reconhece GIF e preserva o PNG associado a GIF referenciado em avatar, banner ou capa. Arquivos sem referências mantêm a carência de 24 horas e as travas existentes.

@@ -17,10 +17,11 @@ public class ImageCleanupService {
         db.query("SELECT cover_url FROM games WHERE cover_url IS NOT NULL",rs->{used.add(rs.getString(1));});
         db.query("SELECT avatar_url FROM app_users WHERE avatar_url IS NOT NULL",rs->{used.add(rs.getString(1));});
         db.query("SELECT banner_url FROM app_users WHERE banner_url IS NOT NULL",rs->{used.add(rs.getString(1));});
+        for(String url:List.copyOf(used))if(url.endsWith(".gif"))used.add(url.substring(0,url.length()-4)+".png");
         Path directory=images.directory();if(!Files.isDirectory(directory))return List.of();
         var cutoff=Instant.now().minus(Duration.ofHours(24));
         try(var files=Files.list(directory)){
-            return files.filter(p->p.getFileName().toString().matches("[0-9]+-[0-9a-f-]{36}\\.(png|jpg)"))
+            return files.filter(p->p.getFileName().toString().matches("[0-9]+-[0-9a-f-]{36}\\.(png|jpg|gif)"))
                 .filter(p->Files.isRegularFile(p,LinkOption.NOFOLLOW_LINKS))
                 .filter(p->!used.contains("/media/"+p.getFileName()))
                 .filter(p->{try{return Files.getLastModifiedTime(p,LinkOption.NOFOLLOW_LINKS).toInstant().isBefore(cutoff);}catch(IOException e){return false;}})

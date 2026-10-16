@@ -33,7 +33,7 @@ function renderFeaturedGames(container,games){
 }
 function renderGamerProfile(user){
   const banner=$('#profile-banner');banner.replaceChildren();
-  if(user.bannerUrl){const image=el('img');image.src=user.bannerUrl;image.alt='Banner de '+user.displayName;banner.append(image);}
+  if(user.bannerUrl){const image=identityImage(user.bannerUrl,'Banner de '+user.displayName);banner.append(image);}
   else banner.append(el('span',null,'CADA JOGO, UMA NOVA HISTÓRIA'));
   renderFeaturedGames($('#profile-featured'),user.featuredGames);
   if(state.gamerDirty)return;
@@ -61,7 +61,7 @@ $('#gamer-form').addEventListener('submit',async event=>{
 $('#profile-banner-file').addEventListener('change',async()=>{
   if(workspaceBusy)return;const file=$('#profile-banner-file').files[0];if(!file)return;
   workspaceBusy=true;busy($('#gamer-form'),true);
-  try{state.profileBannerUrl=(await uploadImage(file)).url;state.gamerDirty=true;$('#gamer-message').textContent='Banner enviado. Salve a identidade gamer para aplicar.';}
+  try{state.profileBannerUrl=(await uploadImage(file,true)).url;state.gamerDirty=true;$('#gamer-message').textContent='Banner enviado. Salve a identidade gamer para aplicar.';}
   catch(error){$('#gamer-message').textContent=error.message;}
   finally{workspaceBusy=false;busy($('#gamer-form'),false);$('#profile-banner-file').value='';}
 });

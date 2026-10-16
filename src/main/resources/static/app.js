@@ -13,6 +13,20 @@ function gameCoverImage(game,onMissing) {
   image.addEventListener('error',()=>{if(++index<sources.length)selectSource();else {image.remove();onMissing?.();}});
   selectSource();return image;
 }
+const profileMotion=matchMedia('(prefers-reduced-motion: reduce)');
+function identityImage(url,alt='') {
+  const image=el('img','identity-image');image.dataset.identityImage=url;image.alt=alt;image.decoding='async';
+  image.src=profileMotion.matches&&url.endsWith('.gif')?url.slice(0,-4)+'.png':url;
+  image.addEventListener('error',()=>image.remove(),{once:true});return image;
+}
+profileMotion.addEventListener('change',()=>document.querySelectorAll('img[data-identity-image]').forEach(image=>{
+  const url=image.dataset.identityImage;image.src=profileMotion.matches&&url.endsWith('.gif')?url.slice(0,-4)+'.png':url;
+}));
+function renderAvatar(container,user) {
+  const initials=user.displayName.trim().split(/\s+/).slice(0,2).map(part=>Array.from(part)[0]).join('').toLocaleUpperCase('pt-BR');
+  const fallback=el('span','avatar-initials',initials);fallback.setAttribute('aria-hidden','true');container.replaceChildren(fallback);
+  if(user.avatarUrl)container.append(identityImage(user.avatarUrl,''));
+}
 const statusLabels = { WANT_TO_PLAY: 'Quero jogar', PLAYING: 'Jogando', COMPLETED: 'Finalizado', DROPPED: 'Abandonado' };
 const state = { games: [], diary: new Map(), view: 'catalog', selected: null, searchSequence: 0, detailSequence: 0, communitySequence: 0, saving: false, user: null, csrf: null, authMode: 'login', authenticating: false, addingGame: false, quickSaving: new Set(), lists: [], profile: null, profileDirty: false, gamerDirty: false, profileBannerUrl: null, profileGames: [], catalogSort: 'default', librarySort: 'updated', libraryStatus: '', libraryLayout: 'grid', editGameId: null, gameCoverUrl: null, profileAvatarUrl: null, workspaceSequence: 0 };
 async function csrfToken() {
@@ -395,8 +409,8 @@ function updateAccountUi() {
   $('#account-login').hidden = !!state.user;
   $('#account-logout').hidden = !state.user;
   $('#account-name').hidden = !state.user;
-  $('#account-name').textContent = state.user ? state.user.displayName : '';
-  $('#account-name').title = state.user?.role === 'ADMIN' ? 'Administrador' : 'Usuário';
+  const account=$('#account-name');account.replaceChildren();
+  if(state.user){renderAvatar(account,state.user);account.title='Abrir perfil de '+state.user.displayName;account.setAttribute('aria-label',account.title);}else{account.removeAttribute('aria-label');account.removeAttribute('title');}
   $('#add-game').hidden = state.user?.role !== 'ADMIN';
   $('#import-games').hidden=state.user?.role!=='ADMIN';$('#metadata-import').hidden=state.user?.role!=='ADMIN';$('#admin-nav').hidden=state.user?.role!=='ADMIN';
 }
