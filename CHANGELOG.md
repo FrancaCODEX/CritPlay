@@ -8,7 +8,7 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 - Ausência de configuração de e-mail passa a mostrar um estado explícito de indisponibilidade, em vez de solicitar dados em um formulário com “Enviar link” desativado.
 - Ações “Verificar novamente” e “Voltar ao login”; falhas ao consultar o serviço podem ser tentadas novamente sem reabrir a página. Com envio habilitado, o formulário é liberado normalmente.
-- Consulta de disponibilidade identifica respostas antigas para não interferirem após fechar a janela ou abrir um link de redefinição; redefinir por link válido continua independente da disponibilidade de envio.
+- Links de redefinição também abrem ao navegar para `#reset=` na aba já carregada, sem exigir recarregar a página. Consulta de disponibilidade identifica respostas antigas para não interferirem após fechar a janela ou abrir um link de redefinição; redefinir por link válido continua independente da disponibilidade de envio.
 - Botões mostram envio/salvamento em andamento, preservam os dados após falha e voltam a funcionar para nova tentativa. Proteções de token, CSRF e resposta genérica permanecem.
 - Testes de navegador para envio não configurado, falha de consulta, nova tentativa, falha/sucesso de solicitação e redefinição com confirmação de senha; guia de configuração SMTP/Gmail e exemplo de ambiente documentados. A entrega real depende das credenciais SMTP do operador e não foi executada com e-mail real.
 

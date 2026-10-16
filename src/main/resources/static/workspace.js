@@ -227,6 +227,7 @@ function openResetFromLink() {
   $('#recovery-username').required=false;$('#recovery-email').required=false;$('#recovery-new-password').required=true;$('#recovery-confirm-password').required=true;
   $('#recovery-submit').textContent='Salvar nova senha';$('#recovery-submit').disabled=false;$('#recovery-message').textContent='';$('#recovery-dialog').showModal();
 }
+window.addEventListener('hashchange',openResetFromLink);
 openResetFromLink();
 
 function closeProfileSettings(){
