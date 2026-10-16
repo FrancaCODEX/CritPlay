@@ -139,7 +139,7 @@ public class DemoDataService {
             int owner=0;while(!accounts.get(owner).getId().equals(entry.getUserId()))owner++;
             community.like(accounts.get((owner+offset)%14).getUsername(),entry.getId(),true);
         }
-        db.update("UPDATE demo_seed_runs SET completed=TRUE WHERE name='community-v1'");
+        db.update("UPDATE demo_seed_runs SET completed=TRUE WHERE name IN ('community-v1','community-variety-v2')");
         return true;
     }
     /** Upgrade only exact legacy fixture reviews; leave customized reviews/ratings and real users alone. */
@@ -176,6 +176,7 @@ public class DemoDataService {
         return changed;
     }
     private int replaceLegacy(DiaryEntry entry,double rating,String review) {
+        if(Objects.equals(entry.getRating(),rating)&&entry.getReview().equals(review))return 0;
         // Preserve all other fields and the historical timestamp; stale form submissions cannot overwrite this change.
         return db.update("UPDATE diary_entries SET rating=?,review=?,row_version=row_version+1 WHERE id=? AND rating=? AND review=? AND updated_at=?",
             rating,review,entry.getId(),entry.getRating(),entry.getReview(),java.sql.Timestamp.from(entry.getUpdatedAt()));

@@ -40,6 +40,7 @@ class PostgresSmokeTest {
         entityManager.flush();
         jdbc.update("UPDATE diary_entries SET review=?,rating=3 WHERE user_id=? AND game_id=?",legacy,luna,hades);
         entityManager.clear();
+        jdbc.update("UPDATE demo_seed_runs SET completed=FALSE WHERE name='community-variety-v2'");
         assertEquals(1,demo.diversifyLegacyReviews());
         assertNotEquals(legacy,jdbc.queryForObject("SELECT review FROM diary_entries WHERE user_id=? AND game_id=?",String.class,luna,hades));
         assertNotEquals(3.0,jdbc.queryForObject("SELECT rating FROM diary_entries WHERE user_id=? AND game_id=?",Double.class,luna,hades));

@@ -9,6 +9,7 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Corrigida correlação entre escolha do jogo e nota, que repetia as opiniões dos perfis para o mesmo título. Notas de 1,5 a 5 passam a depender da pessoa, do jogo e de afinidades de gênero, sem depender da posição na seleção.
 - Resenhas com vozes e prioridades individuais, observações por jogo e críticas coerentes com notas baixas; textos distintos para diferentes autores do mesmo jogo.
 - Atualização opcional da carga já instalada ao reativar `DEMO_DATA_ENABLED`: reconhece textos/notas originais, preserva avaliações editadas e não recria contas, conexões, curtidas ou atividades. Atualiza apenas nota/texto com controle de concorrência, mantendo datas/status/favoritos e histórico de atividades.
+- Cargas novas já registram a variedade aplicada; atualizações ignoram entradas cujo resultado não mudaria, evitando gravações e contagens artificiais.
 - Migrações H2 V10/PostgreSQL V8 criam marca da atualização sem alterar resenhas automaticamente; ferramenta H2 → PostgreSQL preserva ambas as marcas.
 - Guia de demonstração atualizado; testes cobrem variedade por jogo, seleção de um único jogo, preservação de edições, atualização única, contagens e execução em PostgreSQL.
 

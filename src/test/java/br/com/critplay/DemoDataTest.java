@@ -88,6 +88,7 @@ class DemoDataTest {
         var original=db.queryForMap("SELECT updated_at,start_date,finish_date,favorite,row_version FROM diary_entries WHERE user_id=?",luna);
         // JDBC upgrade does not depend on the persisted titles option being provided again.
         entityManager.clear();
+        db.update("UPDATE demo_seed_runs SET completed=FALSE WHERE name='community-variety-v2'");
         assertEquals(1,seed.diversifyLegacyReviews());
         var changed=db.queryForMap("SELECT review,updated_at,start_date,finish_date,favorite,row_version FROM diary_entries WHERE user_id=?",luna);
         assertNotEquals(legacy,changed.get("review"));
@@ -106,6 +107,7 @@ class DemoDataTest {
         db.update("UPDATE diary_entries SET rating=3 WHERE id=?",entry);
         entityManager.clear();
         long events=count("activity_events");
+        db.update("UPDATE demo_seed_runs SET completed=FALSE WHERE name='community-variety-v2'");
         assertEquals(1,seed.diversifyLegacyReviews());
         assertEquals("",db.queryForObject("SELECT review FROM diary_entries WHERE id=?",String.class,entry));
         assertEquals("PLAYING",db.queryForObject("SELECT status FROM diary_entries WHERE id=?",String.class,entry));
