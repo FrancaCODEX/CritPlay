@@ -11,7 +11,7 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Seleção opcional de jogos por título via `DEMO_GAME_TITLES`; seleção padrão dos jogos originais, com distribuição determinística e textos de exemplo identificados.
 - Migrações H2 V9/PostgreSQL V7 criam apenas controle de execução; carga transacional com trava, marca persistente e recusa a colisões de nomes, sem duplicar ou sobrescrever edições em reinicializações.
 - Ferramenta H2 → PostgreSQL preserva a marca da carga ao migrar um banco já populado, com teste de regressão.
-- Guia de execução pelo `.env`/IntelliJ, backup, roteiro de apresentação e limites da remoção; README e `.env.example` atualizados. Testes H2/PostgreSQL cobrem ativação, seleção, integridade, preservação e repetição.
+- Guia de execução pelo `.env`/IntelliJ, backup, roteiro de apresentação e limites da remoção; README e `.env.example` atualizados. Testes H2/PostgreSQL cobrem ativação, seleção, integridade, preservação, repetição e rollback integral após falha durante as interações.
 
 
 

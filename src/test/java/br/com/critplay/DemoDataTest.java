@@ -18,7 +18,7 @@ class DemoDataTest {
     @Autowired UserRepository users;
     @Autowired JdbcTemplate db;
     @Autowired SocialService social;
-    @Autowired CommunityService community;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean CommunityService community;
     long count(String table){return db.queryForObject("SELECT COUNT(*) FROM "+table,Long.class);}
 
     @Test void remainsOffUntilExplicitlyEnabled() {
@@ -64,6 +64,18 @@ class DemoDataTest {
         assertThrows(IllegalStateException.class,()->seed.seed("Hades,Jogo inexistente"));
         assertEquals(0,count("app_users"));assertEquals(0,count("diary_entries"));
         assertFalse(db.queryForObject("SELECT completed FROM demo_seed_runs",Boolean.class));
+    }
+    @Test @Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void rollsBackTheWholeFixtureIfAnInteractionFails() {
+        org.mockito.Mockito.doThrow(new IllegalStateException("Falha simulada na curtida"))
+            .when(community).like(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.eq(true));
+        try {
+            assertThrows(IllegalStateException.class,()->seed.seed("Hades"));
+            for(String table:java.util.List.of("app_users","diary_entries","game_lists","game_list_items",
+                    "profile_featured_games","activity_events","user_follows","friendships","review_likes"))
+                assertEquals(0,count(table),table+" não pode ficar parcialmente carregada");
+            assertFalse(db.queryForObject("SELECT completed FROM demo_seed_runs",Boolean.class));
+        } finally {org.mockito.Mockito.reset(community);}
     }
     @Test void neverAdoptsExistingAccountsWithDemoNames() {
         var existing=users.saveAndFlush(new AppUser("demo_otto","Conta existente","unusable",Role.USER));
