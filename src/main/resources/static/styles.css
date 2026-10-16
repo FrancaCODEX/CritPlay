@@ -176,3 +176,26 @@ img.cover-loading{background:linear-gradient(100deg,#292333,#3b304b,#292333);bac
 .public-profile-tools .text-button{font-size:11px;color:var(--muted)}
 .public-profile-dialog .source-link{display:block;margin:20px 30px 0;font-size:10px}.public-profile-dialog #public-profile-message{margin:0 30px}
 @media(max-width:600px){.public-profile-dialog{width:96vw;max-height:94dvh;border-radius:16px}.public-profile-header .profile-banner{height:150px}.public-profile-header .public-profile-identity{padding:0 18px 8px;gap:14px}.public-profile-identity .avatar{width:82px;height:82px;margin-top:-30px;border-width:5px;font-size:26px}.public-name-row h3{font-size:23px}.public-name-row{gap:7px}.public-identity-info{padding-top:12px}.public-profile-header .public-profile-bio{margin:12px 18px 0}.public-social-counts{gap:16px;padding:16px 18px 20px}.public-profile-actions{padding:18px;gap:12px}.public-share-group{align-items:flex-start}.public-share-feedback{text-align:left}.public-profile-dialog .public-profile-stats{margin:0 18px 20px;gap:8px}.public-profile-stats .stat{padding:12px;flex-basis:90px;max-width:none}.public-profile-stats .stat strong{font-size:23px}.public-profile-section{margin:0 18px;padding-top:20px}.public-profile-dialog .shared-games{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.public-profile-section .featured-games{gap:10px}.public-profile-private{margin:0 18px 20px}.public-profile-tools{margin:18px 18px 0}.public-profile-dialog .source-link{margin:20px 18px 0}.public-profile-header .public-banner-signature{padding:24px 18px;font-size:9px;max-width:80%;line-height:1.7}.public-profile-actions .primary,.public-profile-actions .secondary{padding:10px 13px;font-size:12px}.public-profile-dialog #public-profile-message{margin:0 18px}}
+
+/* Symmetric vector stars: the midpoint never depends on font glyph spacing. */
+.rating-stars{width:5em;height:1em;line-height:1;letter-spacing:0;vertical-align:middle}
+.stars-empty,.stars-fill{position:absolute;inset:0;display:flex;overflow:hidden;line-height:1}
+.rating-stars svg{display:block;width:1em;height:1em;flex:0 0 1em;fill:currentColor}
+.picker-star{--picker-size:48px;width:var(--picker-size);flex-basis:var(--picker-size)}
+.picker-star-empty,.picker-star-fill{display:flex;align-items:center;justify-content:flex-start}
+.picker-star svg{display:block;width:var(--picker-size);height:var(--picker-size);flex:0 0 var(--picker-size);fill:currentColor}
+@media(max-width:680px){.picker-star{--picker-size:42px}}
+
+.profile-follow-counts{align-items:center}
+.follow-count{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--muted);padding:5px 0;font-size:12px;border-bottom:1px solid transparent}
+.follow-count:hover{color:var(--text);border-bottom-color:var(--accent)}
+.follow-count strong{color:var(--text)}
+#profile-social .profile-follow-counts{padding:0 24px 20px;gap:24px}
+.follow-list-dialog{width:min(520px,94vw);max-height:85dvh}
+.follow-list-items{display:grid;gap:10px;margin:12px 0 18px}
+.follow-list-items .person-card{padding:14px;background:#ffffff03;border-color:#ffffff10}
+.follow-list-items .person-card>div:last-child{min-width:0}
+.follow-list-items .skeleton-person{min-height:84px;display:grid;grid-template-columns:48px 1fr;gap:8px 14px;align-items:center;padding:14px}
+.skeleton-person .skeleton-picture{height:48px;width:48px;border-radius:50%;grid-row:span 2}
+.skeleton-person .skeleton-line{margin:0}.skeleton-person .skeleton-line.short{margin:0}
+@media(max-width:600px){#profile-social .profile-follow-counts{padding:0 8px 18px;gap:20px}}

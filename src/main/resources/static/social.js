@@ -1,14 +1,14 @@
 'use strict';
 let privacyDirty=false;
-let publicUsername=null,publicSequence=0,socialBusy=false;
+let publicUsername=null,publicSequence=0,socialBusy=false,followList=null,followSequence=0;
 const visibilityLabels={PUBLIC:'Público',FRIENDS:'Só amigos',PRIVATE:'Privado'};
-function identityCard(user) {
-  const card=button('','surface person-card',()=>openPublicProfile(user.username));
+function identityCard(user,onOpen) {
+  const card=button('','surface person-card',onOpen||(()=>openPublicProfile(user.username)));
   const avatar=el('div','avatar');renderAvatar(avatar,user);
   const info=el('div');info.append(el('strong',null,user.displayName),el('p','muted','@'+user.username),el('p','price-note',visibilityLabels[user.visibility]));card.append(avatar,info);return card;
 }
 function resetSocial() {
-  privacyDirty=false;++publicSequence;publicUsername=null;
+  privacyDirty=false;++publicSequence;publicUsername=null;closeFollowList();$('#profile-social').replaceChildren();
   $('#public-profile-dialog').close();
   for(const id of ['people-results','social-connections','public-profile-content'])$('#'+id).replaceChildren();
   $('#people-search-form').reset();$('#privacy-form').reset();$('#privacy-message').textContent='';$('#people-message').textContent='';
@@ -111,11 +111,7 @@ async function openPublicProfile(username){
     name.append(el('h3',null,user.displayName),el('span','public-visibility',visibilityLabels[user.visibility]));
     info.append(name,el('p','public-username','@'+user.username));identity.append(avatar,info);header.append(identity);
     if(profile.visible&&user.bio)header.append(el('p','profile-bio public-profile-bio',user.bio));
-    if(profile.visible){const social=el('div','public-social-counts');
-      for(const [key,label]of Object.entries({followers:'seguidores',following:'seguindo',friends:'amigos'})){
-        const item=el('span');item.append(el('strong',null,String(profile.social[key])),document.createTextNode(' '+label));social.append(item);
-      }header.append(social);
-    }
+    if(profile.visible)header.append(followCounts(user,profile.social));
     content.append(header);
     const actions=el('div','social-actions public-profile-actions'),connections=el('div','public-connect-actions'),tools=el('div','public-profile-tools');
     if(state.user&&state.user.username!==username){
@@ -164,3 +160,40 @@ function renderPublicCollections(content,collections) {
   for(const [key,label]of Object.entries(labels)){const control=button(label,'profile-nav-button',()=>select(key));control.dataset.collection=key;navigation.append(control);}
   section.append(navigation,panel);content.append(section);select('library');
 }
+
+function followCounts(user,counts) {
+  const row=el('div','public-social-counts profile-follow-counts');
+  for(const [key,label]of [['followers','seguidores'],['following','seguindo']]) {
+    const count=Number(counts[key]||0);const control=button('','follow-count',()=>openFollowList(user,key));control.dataset.followList=key;
+    control.append(el('strong',null,String(count)),el('span',null,label));control.setAttribute('aria-label',count+' '+label+' · '+user.displayName);row.append(control);
+  }
+  if(counts.friends!==undefined){const friends=el('span');friends.append(el('strong',null,String(counts.friends)),document.createTextNode(' amigos'));row.append(friends);}
+  return row;
+}
+function closeFollowList(){++followSequence;followList=null;$('#follow-list-dialog').close();$('#follow-list-items').replaceChildren();}
+$('#close-follow-list').addEventListener('click',closeFollowList);
+$('#follow-list-dialog').addEventListener('cancel',()=>{++followSequence;followList=null;});
+function openFollowList(user,kind) {
+  followList={username:user.username,kind,cursor:null,busy:false};
+  $('#follow-list-title').textContent=(kind==='followers'?'Seguidores de ':'Seguindo · ')+user.displayName;
+  $('#follow-list-items').replaceChildren();$('#follow-list-message').textContent='';$('#follow-list-more').hidden=true;
+  if(!$('#follow-list-dialog').open)$('#follow-list-dialog').showModal();$('#follow-list-dialog').scrollTop=0;loadFollowList(false);
+}
+async function loadFollowList(append) {
+  const listing=followList;if(!listing||listing.busy)return;const sequence=++followSequence;listing.busy=true;
+  $('#follow-list-more').disabled=true;$('#follow-list-message').textContent='Carregando perfis…';
+  if(!append)showSkeletons($('#follow-list-items'),3,'person');
+  try {
+    const result=await api('/api/people/'+encodeURIComponent(listing.username)+'/'+listing.kind+(append&&listing.cursor?'?after='+listing.cursor:''));
+    if(sequence!==followSequence||followList!==listing||!$('#follow-list-dialog').open)return;
+    const content=$('#follow-list-items');finishLoading(content);if(!append)content.replaceChildren();
+    for(const user of result.items){const card=identityCard(user,()=>{closeFollowList();openPublicProfile(user.username);});content.append(card);}
+    listing.cursor=result.nextCursor;$('#follow-list-more').hidden=!listing.cursor;$('#follow-list-more').textContent='Carregar mais';
+    $('#follow-list-message').textContent=result.total+' '+(result.total===1?'perfil disponível':'perfis disponíveis');
+    if(!content.children.length){const empty=el('div','public-profile-empty');empty.append(el('span','public-empty-icon','✦'),el('p','muted',listing.kind==='followers'?'Ainda não há seguidores para mostrar.':'Ainda não segue nenhum perfil visível.'));content.append(empty);}
+  }catch(error){
+    if(sequence!==followSequence||followList!==listing)return;finishLoading($('#follow-list-items'));if(!append)$('#follow-list-items').replaceChildren();
+    $('#follow-list-message').textContent=error.message;$('#follow-list-more').hidden=false;$('#follow-list-more').textContent='Tentar novamente';listing.retryAppend=append;
+  }finally{if(sequence===followSequence&&followList===listing){listing.busy=false;$('#follow-list-more').disabled=false;}}
+}
+$('#follow-list-more').addEventListener('click',()=>{const retry=followList?.retryAppend;if(followList)delete followList.retryAppend;loadFollowList(retry??true);});

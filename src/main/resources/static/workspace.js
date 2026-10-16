@@ -31,6 +31,7 @@ function renderProfile(profile) {
   renderAvatar(avatar,user);
   const info=el('div');info.append(el('h2',null,user.displayName),el('p','muted','@'+user.username+(user.role==='ADMIN'?' · Administrador':'')),el('p','profile-bio',user.bio||'Sua próxima história começa aqui.'));
   summary.append(avatar,info);
+  $('#profile-social').replaceChildren(followCounts(user,profile.social||{}));
   const labels={library:'Jogos no diário',completed:'Finalizados',favorites:'Favoritos',wishlist:'Na lista de desejos',reviews:'Resenhas'};
   $('#profile-stats').replaceChildren(...Object.entries(labels).map(([key,label])=>{
     const node=el('div','stat');node.append(el('strong',null,String(profile.stats[key])),el('span',null,label));return node;

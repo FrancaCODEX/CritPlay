@@ -124,9 +124,13 @@ function render() {
   $('#games').classList.toggle('compact-library',state.view!=='catalog'&&state.libraryLayout==='compact');
   $('#games').replaceChildren(...games.map(renderGameCard));
 }
+function starIcon() {
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+  const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d','M12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26Z');svg.append(path);return svg;
+}
 function ratingDisplay(value,suffix='') {
   const node=el('p','personal-rating');const stars=el('span','rating-stars');stars.setAttribute('aria-hidden','true');
-  stars.append(el('span','stars-empty','★★★★★'));const fill=el('span','stars-fill','★★★★★');fill.style.width=(value/5*100)+'%';stars.append(fill);
+  const empty=el('span','stars-empty'),fill=el('span','stars-fill');for(let i=0;i<5;i++){empty.append(starIcon());fill.append(starIcon());}stars.append(empty);fill.style.width=(value/5*100)+'%';stars.append(fill);
   const label=value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'/5';node.append(stars,el('span',null,label+(suffix?' · '+suffix:'')));return node;
 }
 function paintRatingPicker(value,preview=false) {
@@ -144,8 +148,8 @@ function setRating(value) {
 function focusRatingPicker(){($('#rating-track input:checked')||$('#rating-track input'))?.focus();}
 for(let index=0;index<5;index++) {
   const star=el('span','picker-star');
-  const empty=el('span','picker-star-empty','★');empty.setAttribute('aria-hidden','true');
-  const fill=el('span','picker-star-fill','★');fill.setAttribute('aria-hidden','true');star.append(empty,fill);
+  const empty=el('span','picker-star-empty');empty.setAttribute('aria-hidden','true');
+  const fill=el('span','picker-star-fill');fill.setAttribute('aria-hidden','true');empty.append(starIcon());fill.append(starIcon());star.append(empty,fill);
   for(const half of [0.5,1]) {
     const value=index+half;const hit=el('label','rating-hit '+(half===0.5?'rating-half':'rating-full'));
     const input=el('input');input.type='radio';input.name='rating-choice';input.value=String(value);

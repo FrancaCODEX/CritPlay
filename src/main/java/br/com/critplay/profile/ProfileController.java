@@ -11,13 +11,15 @@ import java.util.Map;
 @RequestMapping("/api/profile")
 public class ProfileController {
     private final ProfileService service;
-    public ProfileController(ProfileService service) { this.service=service; }
-    @GetMapping public Map<String,Object> get(Principal principal) { return service.get(principal.getName()); }
+    private final br.com.critplay.social.SocialService social;
+    public ProfileController(ProfileService service,br.com.critplay.social.SocialService social) { this.service=service;this.social=social; }
+    private Map<String,Object> view(String username) {var result=new java.util.LinkedHashMap<String,Object>(service.get(username));result.put("social",social.ownSocial(username));return result;}
+    @GetMapping public Map<String,Object> get(Principal principal) { return view(principal.getName()); }
     @PutMapping public Map<String,Object> update(Principal principal,@Valid @RequestBody ProfileUpdateRequest request) {
-        service.update(principal.getName(),request);return service.get(principal.getName());
+        service.update(principal.getName(),request);return view(principal.getName());
     }
     @PutMapping("/gamer") public Map<String,Object> gamer(Principal principal,@Valid @RequestBody GamerProfileRequest body) {
-        service.updateGamer(principal.getName(),body);return service.get(principal.getName());
+        service.updateGamer(principal.getName(),body);return view(principal.getName());
     }
     @PutMapping("/password") public Map<String,String> password(Principal principal,@Valid @RequestBody PasswordChangeRequest body,
         HttpServletRequest request,HttpServletResponse response) {
