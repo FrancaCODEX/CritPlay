@@ -4,7 +4,7 @@ let publicUsername=null,publicSequence=0,socialBusy=false;
 const visibilityLabels={PUBLIC:'Público',FRIENDS:'Só amigos',PRIVATE:'Privado'};
 function identityCard(user) {
   const card=button('','surface person-card',()=>openPublicProfile(user.username));
-  const avatar=el('div','avatar');if(user.avatarUrl){const image=el('img');image.src=user.avatarUrl;image.alt='';avatar.append(image);}else avatar.textContent=user.displayName.slice(0,2).toUpperCase();
+  const avatar=el('div','avatar');renderAvatar(avatar,user);
   const info=el('div');info.append(el('strong',null,user.displayName),el('p','muted','@'+user.username),el('p','price-note',visibilityLabels[user.visibility]));card.append(avatar,info);return card;
 }
 function resetSocial() {
@@ -67,7 +67,7 @@ async function openPublicProfile(username){
     const user=profile.user;const content=$('#public-profile-content');finishLoading(content);content.replaceChildren();const head=el('div','profile-summary');const identity=identityCard(user);identity.disabled=true;head.append(identity);content.append(head);
     $('#public-profile-title').textContent='Perfil de '+user.displayName;content.append(el('p','price-note','Visibilidade: '+visibilityLabels[user.visibility]));
     if(profile.visible){
-      if(user.bannerUrl){const banner=el('div','profile-banner');const image=el('img');image.src=user.bannerUrl;image.alt='Banner de '+user.displayName;banner.append(image);content.prepend(banner);}
+      if(user.bannerUrl){const banner=el('div','profile-banner');const image=identityImage(user.bannerUrl,'Banner de '+user.displayName);banner.append(image);content.prepend(banner);}
       const featured=el('div','featured-games');renderFeaturedGames(featured,user.featuredGames);content.append(el('h3',null,'Jogos em destaque'),featured);
       content.append(el('p','profile-bio',user.bio||'Ainda sem bio.'));
       const stats=el('div','stats-grid');const labels={library:'Jogos no diário',completed:'Finalizados',favorites:'Favoritos',wishlist:'Desejos',reviews:'Resenhas'};

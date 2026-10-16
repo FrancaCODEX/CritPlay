@@ -4,6 +4,7 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+
 ### Perfil como central de coleções
 
 - Navegação superior reduzida: biblioteca, favoritos, desejos e listas ficam dentro do Perfil, com visão geral, banner, identidade, estatísticas e resenhas; configurações continuam recolhidas.
@@ -59,6 +60,18 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Detalhes exibem notas/resenhas da comunidade e média de 1 a 5, respeitando privacidade, amizades, bloqueios e moderação.
 - Cards com zoom suave e atalhos para favoritos/desejos, acessíveis por teclado e toque.
 - Favicon CritPlay em ICO/PNG e ícone para dispositivos Apple.
+
+### Avatar no cabeçalho e identidade com GIF
+
+- Foto do usuário substitui o nome no cabeçalho e abre o perfil; círculo com iniciais quando não há foto ou o arquivo falha. Rótulo acessível preserva o nome; foto atualiza ao salvar, remover e recarregar a sessão.
+- Respostas de autenticação incluem somente a URL do avatar como novo campo da projeção segura de usuário.
+- Avatar e banner aceitam GIF animado, além de PNG/JPEG, até 2 MB. Quadros, posição, transparência, descarte, tempos e repetição são preservados ao reencodificar; comentários, texto e extensões de aplicação não necessárias são removidos.
+- GIFs limitados a 120 quadros, dimensões de até 4096 pixels/8 megapixels e 60 milhões de pixels de tela acumulados; quadros fora da tela e arquivos inválidos são recusados. Saída acima de 2 MB é recusada e arquivos incompletos são removidos.
+- Primeiro quadro composto em PNG para avatar/banner quando a preferência de reduzir movimento estiver ativa; mudanças nessa preferência atualizam as imagens sem recarregar.
+- URLs de GIF seguem a verificação de propriedade; limpeza preserva GIFs e versões estáticas em uso e inclui ambos após ficarem sem referência por mais de 24 horas.
+- Testes de API para animação, metadados, limites, propriedade, tipos de mídia, projeção de sessão e limpeza; navegador valida foto no topo, persistência, GIF em perfis compartilhados e movimento reduzido. Guias e seletores de upload atualizados.
+
+
 
 Histórico das entregas do CritPlay. O [README](README.md) descreve a instalação e as funcionalidades atuais; detalhes de uso ficam em [Funcionalidades](docs/FUNCIONALIDADES.md).
 

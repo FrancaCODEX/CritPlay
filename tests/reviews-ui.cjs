@@ -36,7 +36,7 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
       }
     });
     const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base);await page.locator('#games[aria-busy=true] .skeleton-game').first().waitFor();assert.equal(await page.locator('#games .skeleton-game').count(),8);await page.locator('.card').waitFor();assert.equal(await page.locator('#games').getAttribute('aria-busy'),null);delayGames=false;
+    await page.goto(base);await page.locator('#account-name .avatar-initials').waitFor();assert.equal(await page.locator('#account-name img').count(),0);assert.equal(await page.locator('#account-name').getAttribute('aria-label'),'Abrir perfil de Tester');await page.locator('#games[aria-busy=true] .skeleton-game').first().waitFor();assert.equal(await page.locator('#games .skeleton-game').count(),8);await page.locator('.card').waitFor();assert.equal(await page.locator('#games').getAttribute('aria-busy'),null);delayGames=false;
     await page.locator('.game-card').hover();await page.waitForTimeout(250);
     assert.notEqual(await page.locator('.game-card').evaluate(n=>getComputedStyle(n).transform),'none');
     await page.getByRole('button',{name:'Adicionar a favoritos: Jogo de teste',exact:true}).click();

@@ -413,6 +413,58 @@ class ApiIntegrationTest {
         assertEquals(400,first.upload("<svg><script>alert(1)</script></svg>".getBytes(),"avatar.png","image/png").statusCode());
         assertEquals(400,first.send("PUT","/api/profile",profileJson("Pessoa",null,null,"/media/../../.env")).statusCode());
     }
+    byte[] animatedGif(int frames) throws Exception {
+  var bytes=new java.io.ByteArrayOutputStream();var writer=javax.imageio.ImageIO.getImageWritersByFormatName("gif").next();
+  try(var out=javax.imageio.ImageIO.createImageOutputStream(bytes)){writer.setOutput(out);writer.prepareWriteSequence(null);
+   for(int i=0;i<frames;i++){
+    var image=new java.awt.image.BufferedImage(10,10,java.awt.image.BufferedImage.TYPE_INT_RGB);var g=image.createGraphics();g.setColor(i==0?java.awt.Color.RED:java.awt.Color.BLUE);g.fillRect(0,0,10,10);g.dispose();
+    var meta=writer.getDefaultImageMetadata(javax.imageio.ImageTypeSpecifier.createFromRenderedImage(image),null);var tree=(javax.imageio.metadata.IIOMetadataNode)meta.getAsTree("javax_imageio_gif_image_1.0");
+    var control=(javax.imageio.metadata.IIOMetadataNode)tree.getElementsByTagName("GraphicControlExtension").item(0);control.setAttribute("delayTime","12");
+    var comments=new javax.imageio.metadata.IIOMetadataNode("CommentExtensions");var comment=new javax.imageio.metadata.IIOMetadataNode("CommentExtension");comment.setAttribute("value","RemoveMe");comments.appendChild(comment);tree.appendChild(comments);
+    if(i==0){var apps=new javax.imageio.metadata.IIOMetadataNode("ApplicationExtensions");var ext=new javax.imageio.metadata.IIOMetadataNode("ApplicationExtension");ext.setAttribute("applicationID","NETSCAPE");ext.setAttribute("authenticationCode","2.0");ext.setUserObject(new byte[]{1,0,0});apps.appendChild(ext);tree.appendChild(apps);}
+    meta.setFromTree("javax_imageio_gif_image_1.0",tree);writer.writeToSequence(new javax.imageio.IIOImage(image,null,meta),null);
+   }writer.endWriteSequence();
+  }finally{writer.dispose();}
+        return bytes.toByteArray();
+    }
+    @Test void gifAvatarAndBannerPreserveAnimationOwnershipAndCleanup() throws Exception {
+        var owner=user();var other=user();var administrator=admin();byte[] gif=animatedGif(2);
+        var response=owner.upload(gif,"profile.gif","image/gif");assertEquals(200,response.statusCode(),response.body());
+        String url=mapper.readTree(response.body()).path("url").asText();assertTrue(url.endsWith(".gif"));
+        var file=MEDIA.resolve(url.substring("/media/".length()));var poster=MEDIA.resolve(file.getFileName().toString().replace(".gif",".png"));
+        assertTrue(java.nio.file.Files.exists(poster));
+        try(var input=javax.imageio.ImageIO.createImageInputStream(file.toFile())) {
+            var reader=javax.imageio.ImageIO.getImageReaders(input).next();reader.setInput(input,false,false);
+            try {
+                assertEquals(2,reader.getNumImages(true));assertNotEquals(reader.read(0).getRGB(0,0),reader.read(1).getRGB(0,0));
+                var metadata=(javax.imageio.metadata.IIOMetadataNode)reader.getImageMetadata(0).getAsTree("javax_imageio_gif_image_1.0");
+                assertEquals("12",((org.w3c.dom.Element)metadata.getElementsByTagName("GraphicControlExtension").item(0)).getAttribute("delayTime"));
+                assertEquals(1,metadata.getElementsByTagName("ApplicationExtension").getLength());assertEquals(0,metadata.getElementsByTagName("CommentExtensions").getLength());
+            } finally {reader.dispose();}
+        }
+        assertFalse(java.nio.file.Files.readString(file,java.nio.charset.StandardCharsets.ISO_8859_1).contains("RemoveMe"));
+        assertEquals(200,owner.send("PUT","/api/profile",profileJson("Pessoa GIF",null,null,url)).statusCode());
+        assertEquals(url,owner.json("/api/auth/me").path("user").path("avatarUrl").asText());
+        assertEquals(200,owner.send("PUT","/api/profile/gamer",mapper.writeValueAsString(Map.of("bannerUrl",url,"featuredGameIds",List.of()))).statusCode());
+        assertEquals(400,other.send("PUT","/api/profile/gamer",mapper.writeValueAsString(Map.of("bannerUrl",url,"featuredGameIds",List.of()))).statusCode());
+        var media=new Session().send("GET",url,null);assertEquals(200,media.statusCode());assertTrue(media.headers().firstValue("Content-Type").orElse("").startsWith("image/gif"));
+        assertEquals(200,new Session().send("GET",url.replace(".gif",".png"),null).statusCode());
+        var stale=java.nio.file.attribute.FileTime.from(Instant.now().minusSeconds(172800));java.nio.file.Files.setLastModifiedTime(file,stale);java.nio.file.Files.setLastModifiedTime(poster,stale);
+        administrator.send("POST","/api/admin/images/cleanup","{\"confirm\":true}");assertTrue(java.nio.file.Files.exists(file));assertTrue(java.nio.file.Files.exists(poster));
+        owner.send("PUT","/api/profile",profileJson("Pessoa GIF",null,null,null));
+        administrator.send("POST","/api/admin/images/cleanup","{\"confirm\":true}");assertTrue(java.nio.file.Files.exists(file));assertTrue(java.nio.file.Files.exists(poster));
+        owner.send("PUT","/api/profile/gamer","{\"bannerUrl\":null,\"featuredGameIds\":[]}");
+        administrator.send("POST","/api/admin/images/cleanup","{\"confirm\":true}");assertFalse(java.nio.file.Files.exists(file));assertFalse(java.nio.file.Files.exists(poster));
+    }
+    @Test void gifRejectsInvalidDataExcessiveFramesAndCanvasBudget() throws Exception {
+        var owner=user();
+        assertEquals(400,owner.upload("GIF89a-invalid".getBytes(),"invalid.gif","image/gif").statusCode());
+        assertEquals(400,owner.upload(animatedGif(121),"frames.gif","image/gif").statusCode());
+        byte[] oversized=animatedGif(2);oversized[6]=(byte)0xff;oversized[7]=(byte)0xff;
+        assertEquals(400,owner.upload(oversized,"wide.gif","image/gif").statusCode());
+        byte[] budget=animatedGif(16);budget[6]=(byte)0xd0;budget[7]=7;budget[8]=(byte)0xd0;budget[9]=7;
+        assertEquals(400,owner.upload(budget,"budget.gif","image/gif").statusCode());
+    }
     @Test void passwordChangeRevokesOtherSessionsAndRequiresCurrentPassword() throws Exception {
         var first=user();String username=accountName(first);var other=new Session();other.login(username,"UserTestPassword42!");
         assertEquals(400,first.send("PUT","/api/profile/password","{\"currentPassword\":\"wrong\",\"newPassword\":\"NewStrongPassword42!\"}").statusCode());

@@ -1,5 +1,13 @@
 # Guia de funcionalidades
 
+## Foto no topo e GIF no perfil
+
+A foto salva aparece no círculo do cabeçalho; clique nela para abrir seu perfil. Sem foto, aparecem suas iniciais. Salvar ou remover a foto atualiza esse círculo imediatamente, e a sessão mantém a imagem após recarregar.
+
+Em Editar perfil, os campos Foto do perfil e Banner aceitam PNG, JPEG e GIF de até 2 MB. Escolha o arquivo e salve o perfil ou a identidade gamer para aplicar. GIFs mantêm a animação no próprio perfil, no cabeçalho e nos perfis compartilhados. Prefira animações curtas: até 120 quadros; arquivos de alta resolução podem precisar ser reduzidos. O servidor também limita dimensões a 4096 pixels/8 megapixels e a soma das áreas da tela de todos os quadros a 60 milhões de pixels.
+
+Quando o navegador/sistema pede movimento reduzido, avatar e banner usam uma versão estática do primeiro quadro. As imagens continuam com URLs públicas; compartilhamento do perfil segue as configurações existentes. Capas de jogos continuam oferecendo PNG/JPEG no seletor.
+
 ## Perfil e coleções
 
 A navegação principal reúne Descobrir, Perfil, Comunidade e Atividades (Administração aparece para administradores). Dentro do Perfil, use Visão geral, Minha biblioteca, Favoritos, Desejos e Listas. A visão geral apresenta identidade, destaques e resenhas; as coleções mantêm busca, filtros e modos de visualização. Editar perfil continua abrindo as configurações sob demanda.
@@ -39,7 +47,7 @@ Se o nome configurado já pertence a um usuário comum, o bootstrap preserva seu
 - **Listas:** crie coleções e adicione jogos no painel de detalhes. Cada conta edita apenas suas listas; listas compartilhadas podem ser vistas no perfil; excluir uma lista não apaga notas ou resenhas.
 - **Editar jogo:** ADMIN abre o detalhe e clica em Editar jogo. O ID é preservado, mantendo as referências dos diários/listas. Steam App IDs repetidos são recusados.
 - **Importar:** ADMIN seleciona um JSON no formato de `examples/catalogo.json`; de 1 a 50 jogos. O lote inteiro é validado e qualquer conflito cancela a gravação de todos. Essa opção JSON é separada da importação RAWG.
-- **Imagens:** PNG/JPEG até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; a visibilidade do perfil/resenhas segue sua configuração de privacidade.
+- **Imagens:** PNG/JPEG (e GIF para avatar/banner) até 2 MB, no máximo 4096 pixels e 8 megapixels. Avatares e capas ficam em `data/uploads/`, fora do Git. Após enviar, salve o perfil/jogo para aplicar a imagem. URLs das imagens podem ser abertas por quem tiver seu link; a visibilidade do perfil/resenhas segue sua configuração de privacidade.
 - **Consoles:** continuam no catálogo e podem ter links para lojas oficiais; não há consulta automática de preços de consoles.
 
 Contas podem ser suspensas/reativadas e seus papéis administrados; não há exclusão definitiva de contas/jogos pela interface. **Perfil** continua sendo sua área de edição; **Comunidade** permite encontrar e abrir perfis compartilhados.

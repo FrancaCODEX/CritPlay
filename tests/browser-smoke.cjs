@@ -46,7 +46,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#profile-avatar-file').setInputFiles({name:'avatar.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAFElEQVR4nGN0yzNiwA2Y8MiNYGkAIi0A+uIAXFoAAAAASUVORK5CYII=','base64')});
     await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('Foto enviada'));
     await page.locator('#profile-form button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('atualizado'));
-    assert.equal(await page.locator('#profile-summary h2').textContent(),'Jogador de teste');assert.equal(await page.locator('#profile-summary img').count(),1);
+    assert.equal(await page.locator('#profile-summary h2').textContent(),'Jogador de teste');assert.equal(await page.locator('#profile-summary img').count(),1);assert.equal(await page.locator('#account-name img').count(),1);assert.equal(await page.locator('#account-name img').getAttribute('src'),await page.locator('#profile-summary img').getAttribute('src'));
     const qa=process.env.CRITPLAY_QA_DIR||process.env.GAMESHELF_QA_DIR;if(qa){fs.mkdirSync(qa,{recursive:true});await page.screenshot({path:path.join(qa,'profile-desktop.png'),fullPage:true});}
     await page.locator('[data-view=admin]').click();await page.locator('.account-card').first().waitFor();
     await page.locator('#preview-cleanup').click();await page.waitForFunction(()=>document.querySelector('#cleanup-message').textContent.includes('24 horas'));assert(await page.locator('#run-cleanup').isDisabled());
