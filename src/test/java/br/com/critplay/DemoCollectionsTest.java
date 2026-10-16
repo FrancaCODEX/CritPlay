@@ -45,6 +45,12 @@ class DemoCollectionsTest {
         assertTrue(favoriteSets.size()>=10,"Favoritos precisam variar");assertTrue(wishSets.size()>=10,"Desejos precisam variar");
         assertTrue(featuredSets.size()>=10);assertTrue(statuses.size()>=8);
         assertEquals(27,count("game_lists"));assertEquals(27,db.queryForObject("SELECT COUNT(DISTINCT name) FROM game_lists",Long.class));
+        var listSelections=new HashSet<List<Long>>();
+        for(long list:db.queryForList("SELECT id FROM game_lists",Long.class)) {
+            var selection=db.queryForList("SELECT game_id FROM game_list_items WHERE list_id=? ORDER BY game_id",Long.class,list);
+            assertTrue(selection.size()>=2&&selection.size()<=5);listSelections.add(selection);
+        }
+        assertTrue(listSelections.size()>=20,"As listas precisam variar também nos jogos, não apenas no nome");
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM diary_entries WHERE finish_date IS NOT NULL AND (start_date IS NULL OR finish_date<start_date)",Long.class));
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM diary_entries WHERE user_id IN (?,?)",Long.class,id("demo_sol"),id("demo_noah")));
         var before=db.queryForList("SELECT * FROM diary_entries ORDER BY id");
@@ -66,6 +72,17 @@ class DemoCollectionsTest {
         assertEquals(List.of(12L),db.queryForList("SELECT game_id FROM profile_featured_games WHERE user_id=? ORDER BY position",Long.class,bia));
         assertEquals("Jogador real",users.findById(real.getId()).orElseThrow().getDisplayName());
         assertTrue(games(real.getId(),"").isEmpty());
+    }
+    @Test void preservesChangedWishlistAndRemovedGames() {
+        seed.seed("");entityManager.flush();entityManager.clear();
+        long nina=id("demo_nina"),theo=id("demo_theo");
+        db.update("UPDATE diary_entries SET wishlist=TRUE WHERE user_id=? AND status='COMPLETED'",nina);
+        db.update("DELETE FROM diary_entries WHERE user_id=? AND status='WANT_TO_PLAY'",theo);
+        var ninaBefore=db.queryForList("SELECT * FROM diary_entries WHERE user_id=? ORDER BY id",nina);
+        var theoBefore=db.queryForList("SELECT * FROM diary_entries WHERE user_id=? ORDER BY id",theo);
+        assertEquals(12,collections.personalize(""));
+        assertEquals(ninaBefore,db.queryForList("SELECT * FROM diary_entries WHERE user_id=? ORDER BY id",nina));
+        assertEquals(theoBefore,db.queryForList("SELECT * FROM diary_entries WHERE user_id=? ORDER BY id",theo));
     }
     @Test void respectsExplicitGameScopeAndWorksWithOneTitle() {
         seed.seed("Hades");entityManager.flush();entityManager.clear();
