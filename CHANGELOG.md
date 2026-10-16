@@ -82,6 +82,14 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Layout responsivo, rótulo acessível do diálogo, feedback de compartilhamento e retorno ao topo ao abrir outro perfil; avatar/banner GIF e movimento reduzido preservados.
 - Testes de navegador ampliados para apresentação, celular, compartilhamento nativo, cancelamento, cópia/alternativa/falha e perfil privado; guia de funcionalidades atualizado.
 
+### Meias estrelas alinhadas e conexões pelo perfil
+
+- Estrelas do seletor e das notas/médias substituídas por SVG simétrico, eliminando a diferença entre largura do caractere da fonte e área de preenchimento. Cada meia estrela termina no centro geométrico também no celular; seleção por mouse, toque e teclado preservada.
+- Perfil próprio e compartilhado exibem contadores clicáveis de Seguidores e Seguindo. Um diálogo lista nome, usuário e avatar, permite abrir cada perfil e carregar páginas seguintes; inclui carregamento, estado vazio, falha e nova tentativa.
+- GET `/api/people/{username}/followers` e `/following` com cursor `after`, páginas de 30, total e próximo cursor; GET/PUT do perfil e atualização gamer passam a incluir contagens sociais.
+- Listas seguem visibilidade geral do perfil, descoberta, amizades e bloqueios. Membros suspensos ou bloqueados para o visitante são omitidos; perfis fora da busca só aparecem para o próprio titular, amigos autorizados ou nas conexões do dono da lista. Contagens de seguidores/seguindo usam os mesmos filtros das listas e não expõem dados de conta.
+- Testes de API para contagens, paginação, privacidade, descoberta, amizades, bloqueios e suspensão; navegador verifica o centro do preenchimento no desktop/celular e navegação por seguidores/seguindo. Documentação atualizada; sem alterações de esquema.
+
 Histórico das entregas do CritPlay. O [README](README.md) descreve a instalação e as funcionalidades atuais; detalhes de uso ficam em [Funcionalidades](docs/FUNCIONALIDADES.md).
 
 ## 0.5.3

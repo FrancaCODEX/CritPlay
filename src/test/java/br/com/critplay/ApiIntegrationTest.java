@@ -558,6 +558,39 @@ class ApiIntegrationTest {
         for(String section:List.of("library","favorites","wishlist","lists"))assertTrue(user.path("collectionPrivacy").path(section).asBoolean());
         assertTrue(new Session().json("/api/people/"+name).path("visible").asBoolean());
     }
+    @Test void profileFollowListsAndCountsFilterHiddenBlockedAndSuspendedMembers() throws Exception {
+        var owner=user();var first=user();var reader=user();String target=accountName(owner),a=accountName(first),b=accountName(reader);
+        owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true));
+        first.send("PUT","/api/people/"+target+"/follow",null);reader.send("PUT","/api/people/"+target+"/follow",null);owner.send("PUT","/api/people/"+b+"/follow",null);
+        var visitor=new Session();String path="/api/people/"+target;
+        assertEquals(2,owner.json("/api/profile").path("social").path("followers").asInt());assertEquals(1,owner.json("/api/profile").path("social").path("following").asInt());
+        assertEquals(2,visitor.json(path+"/followers").path("total").asInt());assertEquals(b,visitor.json(path+"/following").path("items").get(0).path("username").asText());
+        var person=visitor.json(path+"/followers").path("items").get(0);assertFalse(person.has("email"));assertFalse(person.has("role"));assertFalse(person.has("bio"));
+        first.send("PUT","/api/profile/privacy",privacy("PRIVATE",false));
+        assertEquals(1,visitor.json(path+"/followers").path("total").asInt());assertEquals(2,owner.json(path+"/followers").path("total").asInt());
+        first.send("PUT","/api/profile/privacy",privacy("PRIVATE",true));reader.send("PUT","/api/blocks/"+a,null);
+        assertEquals(1,reader.json(path+"/followers").path("total").asInt());assertEquals(1,reader.json(path).path("social").path("followers").asInt());
+        reviewDb.update("UPDATE app_users SET enabled=FALSE WHERE username=?",a);
+        assertEquals(1,owner.json(path+"/followers").path("total").asInt());
+    }
+    @Test void followListsHonorOwnerPrivacyDiscoveryFriendshipAndBlocks() throws Exception {
+        var owner=user();var reader=user();String target=accountName(owner),viewer=accountName(reader);String path="/api/people/"+target+"/followers";
+        assertEquals(404,new Session().send("GET",path,null).statusCode());assertEquals(200,owner.send("GET",path,null).statusCode());
+        owner.send("PUT","/api/profile/privacy",privacy("FRIENDS",true));assertEquals(404,reader.send("GET",path,null).statusCode());
+        reader.send("PUT","/api/people/"+target+"/friendship","{\"action\":\"REQUEST\"}");owner.send("PUT","/api/people/"+viewer+"/friendship","{\"action\":\"ACCEPT\"}");assertEquals(200,reader.send("GET",path,null).statusCode());
+        owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",false));assertEquals(404,new Session().send("GET",path,null).statusCode());assertEquals(200,reader.send("GET",path,null).statusCode());
+        owner.send("PUT","/api/blocks/"+viewer,null);assertEquals(404,reader.send("GET",path,null).statusCode());
+        reviewDb.update("UPDATE app_users SET enabled=FALSE WHERE username=?",target);assertEquals(404,new Session().send("GET",path,null).statusCode());
+    }
+    @Test void followListsUseCursorPaginationWithoutDuplicates() throws Exception {
+        var owner=user();String target=accountName(owner);owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true));
+        long id=users.findByUsername(target).orElseThrow().getId();
+        for(int i=0;i<31;i++){var member=users.saveAndFlush(new AppUser("connection_"+UUID.randomUUID().toString().replace("-","").substring(0,12),"Conexão de teste","unused",Role.USER));reviewDb.update("INSERT INTO user_follows(follower_id,followed_id) VALUES (?,?)",member.getId(),id);}
+        var visitor=new Session();String path="/api/people/"+target+"/followers";var first=visitor.json(path);assertEquals(31,first.path("total").asInt());assertEquals(30,first.path("items").size());
+        var second=visitor.json(path+"?after="+first.path("nextCursor").asLong());assertEquals(1,second.path("items").size());assertTrue(second.path("nextCursor").isNull());
+        var ids=new HashSet<Long>();for(var item:first.path("items"))ids.add(item.path("id").asLong());assertTrue(ids.add(second.path("items").get(0).path("id").asLong()));assertEquals(31,ids.size());
+        assertEquals(400,visitor.send("GET",path+"?after=-1",null).statusCode());
+    }
     @Test void privacySearchAndPublicSharingNeverExposeEmail() throws Exception {
         var owner=user();var reader=user();String target=accountName(owner);
         assertEquals(200,owner.send("PUT","/api/profile",profileJson("Pessoa pública",target+"@example.test","UserTestPassword42!",null)).statusCode());

@@ -209,3 +209,12 @@ A projeção `UserView` de cadastro e `/api/auth/me` inclui `avatarUrl`, sem dad
 `POST /api/images` reconhece PNG/JPEG/GIF pelo conteúdo decodificado, independentemente da extensão informada. GIF é reencodificado por sequência com ImageIO nativo do JDK, preservando descritores, paletas, transparência, descarte, tempos e o bloco de repetição NETSCAPE; comentários, texto e outras aplicações são descartados. Limites: entrada/saída de até 2 MB, até 120 quadros, tela até 4096×4096 e 8 megapixels, área da tela × número de quadros até 60 milhões. Todo quadro precisa caber na tela. Falhas removem saídas parciais.
 
 Cada `/media/{owner}-{uuid}.gif` gera `/media/{owner}-{uuid}.png` com o primeiro quadro composto na tela lógica. O cliente usa esse PNG para imagens de identidade sob `prefers-reduced-motion`; mudanças da preferência atualizam imagens existentes. A limpeza de imagens reconhece GIF e preserva o PNG associado a GIF referenciado em avatar, banner ou capa. Arquivos sem referências mantêm a carência de 24 horas e as travas existentes.
+
+
+## Listas de seguidores e seguindo
+
+GET `/api/people/{username}/followers?after=0` e `/api/people/{username}/following?after=0` retornam `{items,total,nextCursor}`. Até 30 identidades por página, em ordem crescente de ID; `nextCursor` é o último ID da página quando há mais itens, ou `null`. `after` negativo é recusado. Identidades incluem somente ID, username, displayName, avatarUrl e visibility.
+
+A autorização do perfil é compartilhada com GET `/api/people/{username}`. Perfil inacessível, bloqueado, suspenso ou restrito ao qual o visitante não tem acesso retorna 404. Membros da lista são filtrados por conta ativa, bloqueios com o visitante e descoberta (com exceções para titular, próprio membro e amizades aceitas). Seguidores/seguindo na resposta do perfil usam exatamente esse filtro; a contagem é relativa ao visitante. O titular pode ver suas conexões fora da busca, mas isso não concede acesso adicional ao conteúdo do perfil dessas pessoas.
+
+GET/PUT `/api/profile` e PUT `/api/profile/gamer` incluem `social:{followers,following,friends}` para a própria conta. Implementação no controlador evita dependência circular entre serviços de perfil e comunidade. Não há migração de banco.

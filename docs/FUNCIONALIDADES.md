@@ -147,3 +147,12 @@ A página inicial alterna até seis jogos com imagem, selecionados da ordem do c
 Os perfis compartilhados reúnem banner, avatar, nome, bio e conexões no cabeçalho, com estatísticas, destaques, coleções e resenhas abaixo. Sem banner, aparece o fundo padrão do CritPlay; sem destaques, essa seção é omitida. As coleções têm capas maiores e mensagens próprias quando estão vazias ou privadas. Seguir e amizade ficam próximos à identidade; bloquear e denunciar perfil ficam ao final.
 
 O botão **Compartilhar** substitui o campo que exibia a URL. Em aparelhos/navegadores compatíveis, abre o compartilhamento do sistema. Nos demais, copia o link e mostra “Link copiado!”. Cancelar o compartilhamento não copia o endereço. Se o navegador impedir a ação, a tela informa a falha e permite tentar novamente. O endereço compartilhado mantém a privacidade configurada pelo titular.
+
+
+## Seguidores e seguindo no perfil
+
+No próprio perfil e nos perfis compartilhados, clique/toque nos contadores **seguidores** ou **seguindo** para abrir a lista. Cada item abre o perfil da pessoa; “Carregar mais” traz a próxima página. A janela oferece estados de carregamento, lista vazia e nova tentativa após erro.
+
+Listas de perfis privados são acessíveis somente ao titular; em perfis para amigos, somente amigos aceitos têm acesso. Perfis públicos podem mostrar as listas a visitantes. Bloqueios e suspensão continuam sendo aplicados. Pessoas que desativaram a descoberta não são reveladas a desconhecidos por essas listas; o titular continua podendo ver suas próprias conexões. Os totais de seguidores/seguindo consideram os perfis disponíveis para quem está visualizando, com os mesmos filtros da lista.
+
+As cinco estrelas usam agora formas vetoriais simétricas. O ponto de meia estrela coincide com o centro do desenho em qualquer tamanho de tela; a média continua com preenchimento proporcional e número ao lado.

@@ -31,7 +31,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
             .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/community.js", "/admin.js", "/bulk.js", "/steam.js", "/error", "/favicon.ico", "/favicon.png", "/apple-touch-icon.png").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/health", "/api/games", "/api/games/*", "/api/games/*/reviews", "/api/auth/csrf", "/api/auth/me").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/people/*").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/people/*", "/api/people/*/followers", "/api/people/*/following").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/auth/recovery-status", "/media/*").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
