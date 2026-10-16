@@ -33,6 +33,9 @@ class PostgresSmokeTest {
     @Test @org.springframework.transaction.annotation.Transactional void seedsDemoOnPostgresOnce() {
         assertTrue(demo.seed("Hades,Celeste"));
         assertFalse(demo.seed(""));
+        assertEquals(0,demo.diversifyLegacyReviews());
+        assertTrue(jdbc.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-variety-v2'",Boolean.class));
+        assertTrue(jdbc.queryForObject("SELECT COUNT(DISTINCT rating) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class)>=5);
         assertEquals(16,jdbc.queryForObject("SELECT COUNT(*) FROM app_users WHERE LEFT(username,5)='demo_'",Long.class));
         assertEquals(28,jdbc.queryForObject("SELECT COUNT(*) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
     }

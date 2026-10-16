@@ -31,11 +31,11 @@ ou no sistema, elas têm prioridade sobre o `.env`.
 - 16 perfis com nomes `demo_*`, nome visível com `[Demo]` e bio explicando que são
   fictícios; 14 têm biblioteca, um é público sem jogos e um é privado sem jogos.
 - Nos 12 jogos originais do catálogo: 112 entradas, 70 resenhas, 98 atividades,
-  notas entre 3 e 5 com meias estrelas, quatro status, favoritos e desejos.
+  notas entre 1,5 e 5 com meias estrelas, quatro status, favoritos e desejos.
 - 14 listas, destaques de jogos no perfil, 42 relações de seguir, sete amizades
   e 139 curtidas em resenhas. As conexões envolvem apenas os perfis fictícios.
 - Resenhas identificadas como fictícias, com observações específicas por jogo e
-  diferentes opiniões. São conteúdo de exemplo, sem importação de pessoas reais.
+  diferentes opiniões. Cada perfil tem preferências de gênero e uma voz própria; notas variam por pessoa e jogo, com elogios, ressalvas e críticas. São conteúdo de exemplo, sem importação de pessoas reais.
 
 As quantidades de entradas/resenhas diminuem se escolher menos jogos. Não são
 baixadas imagens, não são consultadas APIs externas e não é necessária chave
@@ -89,3 +89,20 @@ automática. Para voltar exatamente ao estado anterior, restaure o backup com a
 aplicação parada; isso também reverte alterações feitas depois do backup.
 A ferramenta de migração H2 → PostgreSQL preserva essa marca de controle.
 Não apague a marca de controle para tentar executar de novo num banco já populado.
+
+## Corrigir uma carga antiga com opiniões repetidas
+
+Depois de atualizar o projeto com a correção de variedade, ative novamente
+`DEMO_DATA_ENABLED=true` no `.env` e inicie a aplicação. Não apague o banco nem
+as marcas de execução. A carga original não é repetida: uma atualização separada
+reconhece os textos e notas exatos da primeira versão e diversifica essas entradas.
+Depois, volte a opção para `false`.
+
+Resenhas com texto ou nota editados são preservadas. Nas entradas sem texto,
+são reconhecidas apenas as combinações originais de nota e status Jogando/Abandonado.
+Não são criados usuários, curtidas ou atividades extras. Favoritos, listas, datas,
+status e conexões existentes permanecem como estão; favoritos antigos podem ter
+uma nota diferente depois dessa correção. Atividades históricas mantêm a nota
+registrada na época. O console informa quantas entradas antigas foram atualizadas.
+Essa atualização também é transacional e roda uma única vez. Nas cargas novas,
+as avaliações variadas já são criadas desde o início.

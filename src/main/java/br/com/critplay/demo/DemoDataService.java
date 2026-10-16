@@ -114,10 +114,8 @@ public class DemoDataService {
                     case 7 -> PlayStatus.WANT_TO_PLAY;
                     default -> PlayStatus.COMPLETED;
                 };
-                int opinion=(i+j)%OPINIONS.length;
-                Double rating=status==PlayStatus.WANT_TO_PLAY?null:3.0+opinion*0.5;
-                String review=j<5?"[Resenha fictícia de demonstração] "+OBSERVATIONS.getOrDefault(key(game),
-                    "Em "+game.getTitle()+", gostei de conhecer a proposta e explorar as possibilidades do jogo.")+" "+OPINIONS[opinion]:"";
+                Double rating=status==PlayStatus.WANT_TO_PLAY?null:DemoOpinions.rating(i,game);
+                String review=j<5?DemoOpinions.review(i,game):"";
                 LocalDate start=status==PlayStatus.WANT_TO_PLAY?null:LocalDate.now().minusDays(40+i+j);
                 LocalDate finish=status==PlayStatus.COMPLETED?start.plusDays(10+j):null;
                 var entry=diary.save(account.getId(),game.getId(),new DiaryRequest(status,rating,review,
@@ -143,6 +141,44 @@ public class DemoDataService {
         }
         db.update("UPDATE demo_seed_runs SET completed=TRUE WHERE name='community-v1'");
         return true;
+    }
+    /** Upgrade only exact legacy fixture reviews; leave customized reviews/ratings and real users alone. */
+    @Transactional
+    public int diversifyLegacyReviews() {
+        boolean seeded=Boolean.TRUE.equals(db.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-v1' FOR UPDATE",Boolean.class));
+        boolean done=Boolean.TRUE.equals(db.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-variety-v2' FOR UPDATE",Boolean.class));
+        if(!seeded||done)return 0;
+        int changed=0;
+        for(int i=0;i<14;i++) {
+            var account=users.findByUsername(PEOPLE.get(i).username()).orElse(null);
+            if(account==null)continue;
+            for(var entry:diary.list(account.getId())) {
+                if(entry.getRating()==null)continue;
+                var game=games.findById(entry.getGameId()).orElse(null);
+                if(game==null)continue;
+                if(entry.getReview().isBlank()) {
+                    int originalSlot=entry.getStatus()==PlayStatus.PLAYING?5:entry.getStatus()==PlayStatus.DROPPED?6:-1;
+                    if(originalSlot>=0&&entry.getRating()==3.0+((i+originalSlot)%5)*0.5)
+                        changed+=replaceLegacy(entry,DemoOpinions.rating(i,game),"");
+                    continue;
+                }
+                for(int opinion=0;opinion<OPINIONS.length;opinion++) {
+                    String legacy="[Resenha fictícia de demonstração] "+OBSERVATIONS.getOrDefault(key(game),
+                        "Em "+game.getTitle()+", gostei de conhecer a proposta e explorar as possibilidades do jogo.")+" "+OPINIONS[opinion];
+                    if(entry.getRating()==3.0+opinion*0.5&&entry.getReview().equals(legacy)) {
+                        changed+=replaceLegacy(entry,DemoOpinions.rating(i,game),DemoOpinions.review(i,game));
+                        break;
+                    }
+                }
+            }
+        }
+        db.update("UPDATE demo_seed_runs SET completed=TRUE WHERE name='community-variety-v2'");
+        return changed;
+    }
+    private int replaceLegacy(DiaryEntry entry,double rating,String review) {
+        // Preserve all other fields and the historical timestamp; stale form submissions cannot overwrite this change.
+        return db.update("UPDATE diary_entries SET rating=?,review=?,row_version=row_version+1 WHERE id=? AND rating=? AND review=? AND updated_at=?",
+            rating,review,entry.getId(),entry.getRating(),entry.getReview(),java.sql.Timestamp.from(entry.getUpdatedAt()));
     }
     private static String key(Game game){return game.getTitle().strip().toLowerCase(Locale.ROOT);}
 }
