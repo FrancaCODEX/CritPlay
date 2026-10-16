@@ -23,7 +23,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     const firstHero=await page.locator('#hero-title').textContent();await page.locator('#hero-next').click();assert.notEqual(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-prev').click();assert.equal(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-pause').click();assert.equal(await page.locator('#hero-pause').getAttribute('aria-pressed'),'true');
     await page.locator('#account-login').click();await page.locator('#username').fill('ui_admin');await page.locator('#password').fill('BrowserAdminPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#add-game').waitFor({state:'visible'});assert((await page.title()).startsWith('CritPlay'));assert.equal(await page.locator('.topbar .brand').textContent(),'CRITPLAYBETA');
-    await page.locator('[data-view=lists]').click();await page.locator('#create-list').click();await page.locator('#list-name').fill('Cooperativos');await page.locator('#list-description').fill('Para jogar com amigos');
+    await page.locator('[data-view=profile]').click();await page.locator('[data-view=lists]').click();await page.locator('#create-list').click();await page.locator('#list-name').fill('Cooperativos');await page.locator('#list-description').fill('Para jogar com amigos');
     await page.locator('#list-form button[type=submit]').click();await page.locator('#list-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Cooperativos',exact:true}).waitFor();
     await page.locator('[data-view=catalog]').click();await page.getByRole('button',{name:'Abrir Elden Ring',exact:true}).click();
     await page.locator('#start-date').fill('2026-01-01');await page.locator('#finish-date').fill('2026-02-01');
@@ -35,7 +35,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#review').fill('Rascunho descartado');await page.locator('#cancel-review-edit').click();
     assert.equal(await page.locator('#review').inputValue(),'Uma jornada que valeu cada descoberta.');
     await page.locator('#add-to-list').click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('adicionado à lista'));
-    await page.locator('#close-detail').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
+    await page.locator('#close-detail').click();await page.locator('[data-view=profile]').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
     await page.locator('[data-view=profile]').click();await page.locator('#profile-reviews').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     assert(await page.locator('#profile-settings').isHidden());await page.locator('#toggle-profile-settings').click();await page.locator('#profile-name').fill('Jogador de teste');await page.locator('#profile-bio').fill('Minha coleção de histórias.');
     await page.locator('.review-head .text-button').click();
@@ -66,7 +66,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.waitForFunction(()=>document.querySelector('#game-steam-id').value==='777456');
     await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo RAWG de teste',exact:true}).waitFor();assert.equal(importedBody.rawgId,9901);assert.equal(importedBody.game.steamAppId,777456);
     await page.unroute('**/api/admin/metadata/import');await page.unroute('**/api/admin/metadata/search?*');await page.unroute('**/api/admin/metadata/9901');
-    await page.locator('[data-view=lists]').click();await page.locator('.list-game-row').first().waitFor();assert.equal(await page.locator('.list-game-row').count(),1);
+    await page.locator('[data-view=profile]').click();await page.locator('[data-view=lists]').click();await page.locator('.list-game-row').first().waitFor();assert.equal(await page.locator('.list-game-row').count(),1);
     await page.locator('#add-game').click();await page.locator('#game-title').fill('Jogo criado no navegador');await page.locator('#game-genre').fill('Aventura');await page.locator('#game-description').fill('Um jogo cadastrado pelo administrador através da interface.');
     await page.locator('#game-submit').click();await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).waitFor();
     await page.locator('[data-view=admin]').click();
@@ -89,7 +89,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());assert(await page.locator('#admin-nav').isHidden());
     await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);
-    await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
+    await page.locator('[data-view=profile]').click();await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
     await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();
     await page.locator('#people-results').getByText('@ui_admin',{exact:true}).waitFor();await page.locator('#people-results button').click();
     await page.getByText('As resenhas e estatísticas estão disponíveis apenas para amigos aceitos.',{exact:true}).waitFor();

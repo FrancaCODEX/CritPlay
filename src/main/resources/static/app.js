@@ -6,9 +6,10 @@ function coverSources(game) {
 function coverFor(game) {return coverSources(game)[0]||null;}
 function gameCoverImage(game,onMissing) {
   const sources=coverSources(game);if(!sources.length)return null;
-  const image=el('img');image.alt='';image.loading='lazy';let index=0;
+  const image=el('img','cover-loading');image.alt='';image.loading='lazy';image.width=600;image.height=900;let index=0;
+  image.addEventListener('load',()=>image.classList.remove('cover-loading'));
   const steamCover=game.steamAppId?`https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/library_600x900.jpg`:null;
-  const selectSource=()=>{image.dataset.coverFit=sources[index]===steamCover?'contain':'fill';image.src=sources[index];};
+  const selectSource=()=>{image.classList.add('cover-loading');image.dataset.coverFit=sources[index]===steamCover?'contain':'fill';image.src=sources[index];};
   image.addEventListener('error',()=>{if(++index<sources.length)selectSource();else {image.remove();onMissing?.();}});
   selectSource();return image;
 }
@@ -43,29 +44,49 @@ function el(tag, className, text) {
   if (text != null) node.textContent = text; // Avaliações e títulos nunca viram HTML.
   return node;
 }
+function showSkeletons(container,count=3,kind='review') {
+  container.setAttribute('aria-busy','true');container.replaceChildren(...Array.from({length:count},()=>{
+    const card=el('div','skeleton-card skeleton-'+kind);card.setAttribute('aria-hidden','true');
+    card.append(el('div','skeleton skeleton-picture'),el('div','skeleton skeleton-line'),el('div','skeleton skeleton-line short'));return card;
+  }));
+}
+function finishLoading(container){container.removeAttribute('aria-busy');}
+const profileViews=['profile','library','favorites','wishlist','lists'];
+function isProfileView(view=state.view){return profileViews.includes(view);}
+function arrangeProfile() {
+  const collection=['library','favorites','wishlist'].includes(state.view),inProfile=isProfileView();
+  (collection?$('#profile-collection-slot'):$('#catalog-slot')).append($('#games-workspace'));
+  if(state.view==='lists')$('#profile-collection-slot').append($('#lists-section'));
+  $('#profile-overview-content').hidden=state.view!=='profile';$('#profile-review-section').hidden=state.view!=='profile';
+  $('#profile-navigation').querySelectorAll('button').forEach(node=>{
+    const active=(node.dataset.view||'profile')===state.view;node.classList.toggle('active',active);node.setAttribute('aria-pressed',String(active));
+  });
+  $('#profile-section').hidden=!inProfile;$('#games-workspace').hidden=state.view!=='catalog'&&!collection;
+}
 async function loadGames() {
   const sequence = ++state.searchSequence;
   const params = new URLSearchParams({ q: $('#search').value, genre: $('#genre').value, platform: $('#platform').value });
-  $('#catalog-message').textContent = 'Buscando jogos…';
+  $('#catalog-message').textContent = 'Buscando jogos…';$('#games-empty').hidden=true;showSkeletons($('#games'),8,'game');
   try {
     const games = await api('/api/games?' + params);
     if (sequence !== state.searchSequence) return;
-    state.games = games;
+    state.games = games;finishLoading($('#games'));
     for(const game of games){if(![...$('#genre').options].some(o=>o.value===game.genre))$('#genre').append(el('option',null,game.genre));}
     if(!params.get('q')&&!params.get('genre')&&!params.get('platform'))updateHeroGames(games);
     render();
   } catch (error) {
     if (sequence !== state.searchSequence) return;
-    $('#games').replaceChildren(); $('#count').textContent = '';
+    finishLoading($('#games'));$('#games').replaceChildren(); $('#count').textContent = '';
     $('#catalog-message').textContent = error.message;
   }
 }
 function render() {
   const personal=['profile','lists','people','admin','feed'].includes(state.view);
-  $('.workspace:not(.personal-workspace)').hidden=personal;
-  $('.hero').hidden=personal;$('.journey').hidden=personal;scheduleHero();
+  arrangeProfile();
+  $('#games-workspace').hidden=personal;
+  $('.hero').hidden=state.view!=='catalog';$('.journey').hidden=state.view!=='catalog';scheduleHero();
   $('#feed-section').hidden=state.view!=='feed';
-  $('#admin-section').hidden=state.view!=='admin';$('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=state.view!=='profile';$('#lists-section').hidden=state.view!=='lists';
+  $('#admin-section').hidden=state.view!=='admin';$('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=!isProfileView();$('#lists-section').hidden=state.view!=='lists';
   if(personal) {if(state.view==='feed')refreshFeed();else if(state.view==='people')refreshPeople();else if(state.view==='admin')refreshAdmin();else refreshWorkspace(state.view);return;}
   let games = state.games.filter(game => state.view === 'catalog' ||
     (state.view === 'library' ? state.diary.has(game.id) : state.view==='wishlist'?state.diary.get(game.id)?.wishlist:state.diary.get(game.id)?.favorite));
@@ -176,9 +197,10 @@ function setView(view) {
   if(state.view!==view)closeProfileSettings();
   state.view = view;
   ++state.workspaceSequence;
-  document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view;
+  document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view || button.dataset.view==='profile'&&isProfileView(view);
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
-  render(); (view==='feed'?$('#feed-section'):view==='profile'?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if(isProfileView(view)&&view!=='profile')refreshWorkspace('profile');
+  render(); (view==='feed'?$('#feed-section'):isProfileView(view)?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game, editing = false) {
   if (state.saving || state.quickSaving.has(game.id)) return;
@@ -275,11 +297,11 @@ $('#cancel-review-edit').addEventListener('click', () => {
 async function loadCommunity(gameId, sequence) {
   const request = ++state.communitySequence;
   const container = $('#community-reviews');
-  $('#community-average').textContent = 'Carregando avaliações…'; container.replaceChildren();
+  $('#community-average').textContent = 'Carregando avaliações…'; showSkeletons(container);
   try {
     const summary = await api(`/api/games/${gameId}/reviews`);
     if (request !== state.communitySequence || sequence !== state.detailSequence || !$('#detail').open) return;
-    renderAverageRating(summary);
+    finishLoading(container);renderAverageRating(summary);
     // Your complete review is already shown in the personal summary.
     const reviews = summary.reviews.filter(review => review.username !== state.user?.username);
     container.replaceChildren(...reviews.map(review => {
@@ -294,7 +316,7 @@ async function loadCommunity(gameId, sequence) {
     if (!reviews.length) container.append(el('p', 'muted', 'Ainda não há avaliações de outros usuários visíveis para você.'));
     if (summary.ratingCount > 50 || summary.reviewCount > 50) container.append(el('p', 'price-note', 'Mostrando as 50 avaliações mais recentes. A média considera todas as notas visíveis.'));
   } catch (error) {
-    if (request === state.communitySequence && sequence === state.detailSequence && $('#detail').open) $('#community-average').textContent = error.message;
+    if (request === state.communitySequence && sequence === state.detailSequence && $('#detail').open) {finishLoading(container);container.replaceChildren();$('#community-average').textContent = error.message;}
   }
 }
 async function quickToggle(game, field) {
@@ -362,7 +384,7 @@ $('#remove-entry').addEventListener('click', async () => {
 $('#close-detail').addEventListener('click', () => $('#detail').close());
 $('#detail').addEventListener('cancel', event => { if (state.saving) event.preventDefault(); });
 $('#detail').addEventListener('close', () => ++state.detailSequence);
-document.querySelectorAll('.nav').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
 $('#open-library').addEventListener('click', () => setView('library'));
 $('#journey-library').addEventListener('click', () => setView('library'));
 $('#featured').addEventListener('click',()=>{const game=heroGames[heroIndex];if(game)openDetail(game);});

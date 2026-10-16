@@ -18,8 +18,19 @@ public class AppUser {
     private String bannerUrl;
     @Column(nullable = false) private int sessionVersion;
     @Enumerated(EnumType.STRING) @Column(nullable=false, length=20)
-    private br.com.critplay.social.ProfileVisibility visibility = br.com.critplay.social.ProfileVisibility.PRIVATE;
+    private br.com.critplay.social.ProfileVisibility visibility = br.com.critplay.social.ProfileVisibility.PUBLIC;
     @Column(nullable=false) private boolean discoverable = true;
+    @Column(nullable=false) private boolean libraryPublic=true;
+    @Column(nullable=false) private boolean favoritesPublic=true;
+    @Column(nullable=false) private boolean wishlistPublic=true;
+    @Column(nullable=false) private boolean listsPublic=true;
+    public java.util.Map<String,Boolean> collectionPrivacy() {
+        return java.util.Map.of("library",libraryPublic,"favorites",favoritesPublic,"wishlist",wishlistPublic,"lists",listsPublic);
+    }
+    public void updateCollections(Boolean library,Boolean favorites,Boolean wishlist,Boolean lists) {
+        if(library!=null)libraryPublic=library;if(favorites!=null)favoritesPublic=favorites;
+        if(wishlist!=null)wishlistPublic=wishlist;if(lists!=null)listsPublic=lists;
+    }
     @Column(nullable=false) private boolean enabled=true;
     @Version @Column(nullable=false) private long rowVersion;
     protected AppUser() {}

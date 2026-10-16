@@ -4,6 +4,16 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Perfil como central de coleções
+
+- Navegação superior reduzida: biblioteca, favoritos, desejos e listas ficam dentro do Perfil, com visão geral, banner, identidade, estatísticas e resenhas; configurações continuam recolhidas.
+- Coleções de outros jogadores podem ser consultadas no perfil compartilhado, com controles independentes de compartilhamento para biblioteca/status, favoritos, desejos e listas. A visibilidade geral (público/amigos/privado), descoberta, bloqueios, suspensão e moderação continuam sendo aplicadas no servidor.
+- Coleções privadas e suas contagens são omitidas das respostas públicas; dados compartilhados usam campos explícitos, sem expor diário completo, e-mail, datas pessoais ou conteúdo moderado.
+- Novas contas começam públicas, encontráveis e com coleções compartilháveis. Migrações H2 V8/PostgreSQL V6 preservam visibilidade existente e mantêm as coleções antigas particulares até o titular optar por compartilhar.
+- Blocos de prévia no catálogo, avaliações, perfil inicial e listas; capas reservam espaço e mostram fundo de carregamento. Falhas limpam placeholders, perfil/listas permitem tentar novamente, e preferência por movimento reduzido é respeitada.
+- Testes de API ampliados para padrão público, privacidade por coleção e bloqueios; testes de navegador adaptados à navegação e ampliados para carregamento lento/falha, compartilhamento e celular. Documentação atualizada.
+
+
 ### Estrelas interativas nas avaliações
 
 - Campo de nota substituído por cinco estrelas com duas áreas de seleção em cada uma, permitindo escolher de 0,5 a 5 por clique ou toque.

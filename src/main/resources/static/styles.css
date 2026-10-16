@@ -86,3 +86,32 @@
 .rating-fieldset .price-note{max-width:440px;margin:4px 0 0}#community-average{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:18px}#community-average .rating-stars{font-size:23px}
 @media(max-width:680px){.picker-star{flex-basis:42px;width:42px;height:48px;font-size:42px;line-height:48px}.star-picker-track{gap:3px}.star-picker{padding:6px}#community-average{font-size:14px;gap:6px}#community-average .rating-stars{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.picker-star-fill{transition:none}}
+
+/* Profile collections and stable loading placeholders */
+.profile-navigation{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0;padding:8px;background:var(--surface,#191624);border:1px solid #ffffff12;border-radius:16px}
+.profile-nav-button{border:0;border-radius:10px;padding:11px 16px;background:transparent;color:var(--muted,#aca4ba);font:inherit;cursor:pointer}
+.profile-nav-button:hover,.profile-nav-button.active{background:#a47cf529;color:#e4d6ff}
+.profile-nav-button:focus-visible{outline:2px solid #b58aff;outline-offset:3px}
+#profile-section{padding-top:30px}
+#profile-section .profile-banner{border-radius:20px;min-height:160px}
+#profile-summary{position:relative;margin-top:-28px;padding:0 24px 18px;min-height:120px}
+#profile-summary .avatar{border:5px solid var(--bg,#110f1b);box-shadow:0 8px 24px #0004}
+#profile-stats .stat{border:1px solid #ffffff0d;border-radius:14px;background:#ffffff03}
+#profile-collection-slot>.workspace{padding:0;margin:0;max-width:none;border:0}
+#profile-collection-slot .filters{margin-top:16px}
+.collection-privacy{border:1px solid #ffffff16;border-radius:12px;margin:18px 0;padding:14px}
+.collection-privacy legend{padding:0 6px;color:#d8c6fa}
+.shared-games{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:16px}
+.shared-game{min-width:0}.shared-list{margin:16px 0}.shared-list h4{font-size:1.1rem;margin:0 0 8px}
+.shared-collection-panel{min-height:190px}.shared-collections{margin-top:28px}
+.skeleton-card{min-width:0;overflow:hidden;pointer-events:none;border:1px solid #ffffff0c;border-radius:14px;background:#ffffff02;padding:16px}
+.skeleton{background:linear-gradient(100deg,#ffffff06 20%,#ffffff0f 45%,#ffffff06 70%);background-size:250% 100%;animation:skeleton-shimmer 1.6s ease-in-out infinite;border-radius:7px}
+.skeleton-line{height:14px;margin-top:16px;width:85%}.skeleton-line.short{width:55%;margin-bottom:6px}
+.skeleton-game{padding:0 0 16px}.skeleton-game .skeleton-picture{aspect-ratio:2/3;border-radius:0}
+.skeleton-game .skeleton-line{margin-left:16px}.skeleton-review{min-height:160px;margin-bottom:14px}
+.skeleton-review .skeleton-picture{width:52px;height:52px;border-radius:50%}
+img.cover-loading{background:linear-gradient(100deg,#292333,#3b304b,#292333);background-size:250% 100%;animation:skeleton-shimmer 1.6s ease-in-out infinite}
+.cover{aspect-ratio:2/3}.cover img{width:100%;height:100%}
+@keyframes skeleton-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+@media(max-width:600px){.profile-nav-button{padding:10px 12px;font-size:.85rem}.profile-navigation{gap:4px}#profile-summary{padding:0 8px 12px;flex-wrap:wrap}#profile-section .profile-banner{min-height:120px}.shared-games{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.skeleton,img.cover-loading{animation:none}}

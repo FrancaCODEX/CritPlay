@@ -8,20 +8,22 @@ function compactGame(game,action) {
   card.append(el('strong',null,game.title),el('span','muted',game.genre));return card;
 }
 async function refreshWorkspace(view) {
-  const sequence=++state.workspaceSequence;
+  const sequence=state.workspaceSequence;
+  if(view==='profile'&&!state.profile)showSkeletons($('#profile-summary'),1);
+  if(view==='lists')showSkeletons($('#lists-content'));
   try {
     if(view==='profile') {
       busy($('#privacy-form'),true);
       const [profile,games]=await Promise.all([api('/api/profile'),api('/api/games')]);
       if(sequence===state.workspaceSequence)state.profileGames=games;
-      if(sequence!==state.workspaceSequence||state.view!==view)return;
-      state.profile=profile;renderProfile(profile);renderPrivacy(profile.user);busy($('#privacy-form'),false);
+      if(sequence!==state.workspaceSequence||!(view==='profile'?isProfileView():state.view===view))return;
+      finishLoading($('#profile-summary'));state.profile=profile;renderProfile(profile);renderPrivacy(profile.user);busy($('#privacy-form'),false);
     } else {
       const lists=await api('/api/lists');
-      if(sequence!==state.workspaceSequence||state.view!==view)return;
-      state.lists=lists;renderLists();
+      if(sequence!==state.workspaceSequence||!(view==='profile'?isProfileView():state.view===view))return;
+      finishLoading($('#lists-content'));state.lists=lists;renderLists();
     }
-  } catch(error) {if(sequence===state.workspaceSequence) toast(error.message);}
+  } catch(error) {if(sequence===state.workspaceSequence){for(const id of ['profile-summary','lists-content']){const node=$('#'+id);if(node.hasAttribute('aria-busy')){finishLoading(node);node.replaceChildren(el('p','muted',error.message),button('Tentar novamente','secondary',()=>refreshWorkspace(view)));}}busy($('#privacy-form'),false);toast(error.message);}}
 }
 function renderProfile(profile) {
   const user=profile.user;renderGamerProfile(user);const summary=$('#profile-summary');summary.replaceChildren();
@@ -211,3 +213,5 @@ $('#toggle-profile-settings').addEventListener('click',()=>{
   const show=$('#profile-settings').hidden;$('#profile-settings').hidden=!show;
   $('#toggle-profile-settings').setAttribute('aria-expanded',String(show));$('#toggle-profile-settings').textContent=show?'Fechar configurações':'Editar perfil';
 });
+
+$('#profile-overview').addEventListener('click',()=>setView('profile'));

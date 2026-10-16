@@ -89,7 +89,7 @@ class ApiIntegrationTest {
         String username="user_"+UUID.randomUUID().toString().replace("-","").substring(0,10);
         var body=mapper.writeValueAsString(Map.of("username",username,"displayName","Pessoa de teste","password","UserTestPassword42!"));
         assertEquals(201,session.send("POST","/api/auth/register",body).statusCode());
-        session.login(username,"UserTestPassword42!");return session;
+        session.login(username,"UserTestPassword42!");session.send("PUT","/api/profile/privacy",privacy("PRIVATE",true));return session;
     }
     Session admin() throws Exception {
         var session=new Session();session.login("test_admin","AdminTestPassword42!");return session;
@@ -470,6 +470,41 @@ class ApiIntegrationTest {
         assertFalse(reader.json("/api/people/"+target).path("visible").asBoolean());
         assertEquals(1,owner.json("/api/social").path("followers").size());
         assertEquals(viewer,owner.json("/api/social").path("followers").get(0).path("username").asText());
+    }
+    @Test void sharedCollectionsRespectEachSwitchAndProfilePrivacy() throws Exception {
+        var owner=user();String name=accountName(owner);var visitor=new Session();
+        owner.send("PUT","/api/diary/1","{\"status\":\"PLAYING\",\"rating\":4.5,\"review\":\"Uma resenha\",\"favorite\":true,\"wishlist\":true}");
+        var list=mapper.readTree(owner.send("POST","/api/lists","{\"name\":\"Minha coleção\"}").body());
+        owner.send("PUT","/api/lists/"+list.path("id").asLong()+"/games/1",null);
+        String settings="{\"visibility\":\"PUBLIC\",\"discoverable\":true,\"libraryPublic\":true,\"favoritesPublic\":true,\"wishlistPublic\":true,\"listsPublic\":true}";
+        assertEquals(200,owner.send("PUT","/api/profile/privacy",settings).statusCode());
+        var profile=visitor.json("/api/people/"+name);
+        for(String section:List.of("library","favorites","wishlist","lists"))assertEquals(1,profile.path("collections").path(section).size());
+        assertEquals("PLAYING",profile.path("collections").path("library").get(0).path("status").asText());
+        assertFalse(profile.path("collections").toString().contains("Uma resenha"));
+        assertFalse(profile.path("collections").toString().contains("userId"));
+        for(String section:List.of("library","favorites","wishlist","lists")) {
+            owner.send("PUT","/api/profile/privacy",settings.replace("\""+section+"Public\":true","\""+section+"Public\":false"));
+            var hidden=visitor.json("/api/people/"+name);assertFalse(hidden.path("collections").has(section));
+            assertEquals(3,hidden.path("collections").size());
+            if(!section.equals("lists"))assertFalse(hidden.path("stats").has(section));
+            assertTrue(owner.json("/api/people/"+name).path("collections").has(section));
+        }
+        owner.send("PUT","/api/profile/privacy",settings.replace("PUBLIC","FRIENDS"));
+        assertFalse(visitor.json("/api/people/"+name).has("collections"));
+        owner.send("PUT","/api/profile/privacy",settings.replace("PUBLIC","PRIVATE"));
+        assertFalse(visitor.json("/api/people/"+name).has("collections"));
+        owner.send("PUT","/api/profile/privacy",settings);
+        var reader=user();owner.send("PUT","/api/blocks/"+accountName(reader),null);
+        assertEquals(404,reader.send("GET","/api/people/"+name,null).statusCode());
+    }
+    @Test void registrationStartsPublicWithShareableCollections() throws Exception {
+        var session=new Session();String name="public_"+UUID.randomUUID().toString().replace("-", "").substring(0,12);
+        assertEquals(201,session.send("POST","/api/auth/register",mapper.writeValueAsString(Map.of("username",name,"displayName","Novo jogador","password","UserTestPassword42!"))).statusCode());
+        session.login(name,"UserTestPassword42!");var user=session.json("/api/profile").path("user");
+        assertEquals("PUBLIC",user.path("visibility").asText());assertTrue(user.path("discoverable").asBoolean());
+        for(String section:List.of("library","favorites","wishlist","lists"))assertTrue(user.path("collectionPrivacy").path(section).asBoolean());
+        assertTrue(new Session().json("/api/people/"+name).path("visible").asBoolean());
     }
     @Test void privacySearchAndPublicSharingNeverExposeEmail() throws Exception {
         var owner=user();var reader=user();String target=accountName(owner);
