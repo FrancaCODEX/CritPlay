@@ -91,3 +91,7 @@ No Linux, use `./mvnw`. Testes locais usam dados fictícios; o CI também verifi
 ## Fontes dos dados
 
 Metadados: [RAWG](https://rawg.io/apidocs). Preços de PC: [GG.deals](https://gg.deals/api/). O catálogo inicial é editorial; importações exigem configuração. Respeite condições, atribuição e cotas dos provedores. Capas externas não são redistribuídas no repositório. Não há preços automáticos de consoles.
+
+### Dados para apresentação
+
+Carga opcional de perfis e resenhas fictícios no banco atual, desligada por padrão e sem duplicação: [guia de demonstração](docs/DADOS_DEMONSTRACAO.md).

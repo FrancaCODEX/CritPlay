@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("postgres")
 @SpringBootTest(properties={"spring.config.import=","ggdeals.api-key=","app.admin.username=","app.admin.password=","app.security.rate-limit-enabled=false"})
 class PostgresSmokeTest {
+    @Autowired br.com.critplay.demo.DemoDataService demo;
     @Autowired JdbcTemplate jdbc;
     @Autowired UserService users;
     @Autowired CatalogService catalog;
@@ -29,6 +30,12 @@ class PostgresSmokeTest {
     @Autowired br.com.critplay.social.BlockService blocks;
     @Autowired br.com.critplay.metadata.ImportJobStore imports;
     @org.springframework.test.context.bean.override.mockito.MockitoBean br.com.critplay.metadata.RawgClient rawg;
+    @Test @org.springframework.transaction.annotation.Transactional void seedsDemoOnPostgresOnce() {
+        assertTrue(demo.seed("Hades,Celeste"));
+        assertFalse(demo.seed(""));
+        assertEquals(16,jdbc.queryForObject("SELECT COUNT(*) FROM app_users WHERE LEFT(username,5)='demo_'",Long.class));
+        assertEquals(28,jdbc.queryForObject("SELECT COUNT(*) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
+    }
     @Test void migratesRealPostgresAndPersistsRelations() {
         assertTrue(jdbc.queryForObject("select version()",String.class).startsWith("PostgreSQL"));
         var user=users.register(new RegisterRequest("postgres_test","Teste PostgreSQL","PostgresTestPassword42!"));

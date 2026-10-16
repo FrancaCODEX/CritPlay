@@ -4,6 +4,16 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Dados fictícios para demonstração
+
+- Carga local opcional por `DEMO_DATA_ENABLED`, desligada por padrão, no banco atual H2/PostgreSQL, executada após catálogo e bootstrap do administrador.
+- 16 perfis identificados como fictícios (14 com conteúdo, um vazio e um privado), bibliotecas com quatro status, notas de meia estrela, resenhas por jogo, favoritos, desejos, listas, destaques, seguidores, amizades, atividades e curtidas; sem senhas compartilhadas, e-mails, chamadas externas ou alterações em contas existentes.
+- Seleção opcional de jogos por título via `DEMO_GAME_TITLES`; seleção padrão dos jogos originais, com distribuição determinística e textos de exemplo identificados.
+- Migrações H2 V9/PostgreSQL V7 criam apenas controle de execução; carga transacional com trava, marca persistente e recusa a colisões de nomes, sem duplicar ou sobrescrever edições em reinicializações.
+- Ferramenta H2 → PostgreSQL preserva a marca da carga ao migrar um banco já populado, com teste de regressão.
+- Guia de execução pelo `.env`/IntelliJ, backup, roteiro de apresentação e limites da remoção; README e `.env.example` atualizados. Testes H2/PostgreSQL cobrem ativação, seleção, integridade, preservação, repetição e rollback integral após falha durante as interações.
+
+
 
 ### Perfil como central de coleções
 

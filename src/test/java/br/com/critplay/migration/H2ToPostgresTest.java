@@ -22,6 +22,7 @@ class H2ToPostgresTest {
                 try(var source=DriverManager.getConnection(h2,"sa","");var target=DriverManager.getConnection(targetUrl,user,password)){
                     try(var insert=source.prepareStatement("INSERT INTO app_users(id,username,display_name,password_hash,role,created_at) VALUES (77,'migration_user','Migração',?,'ADMIN',CURRENT_TIMESTAMP)")){insert.setString(1,hash);insert.executeUpdate();}
                     try(var data=source.createStatement()){
+                        data.execute("UPDATE demo_seed_runs SET completed=TRUE WHERE name='community-v1'");
                         data.execute("INSERT INTO games(id,title,genre,platforms,release_year,description) VALUES (3010,'Migração de teste','RPG','PC',2026,'Descrição fictícia de migração.')");
                         data.execute("INSERT INTO diary_entries(id,user_id,game_id,status,review,favorite,wishlist,updated_at,start_date,finish_date) VALUES (101,77,3010,'COMPLETED','Resenha preservada',TRUE,TRUE,CURRENT_TIMESTAMP,'2026-01-01','2026-02-01')");
                         data.execute("UPDATE diary_entries SET rating=4.5 WHERE id=101");
@@ -35,6 +36,7 @@ class H2ToPostgresTest {
                     try(var read=target.createStatement();var rows=read.executeQuery("SELECT password_hash,session_version FROM app_users WHERE id=77")){assertTrue(rows.next());assertTrue(encoder.matches("MigrationPassword42!",rows.getString(1)));assertEquals(1,rows.getInt(2));}
                     try(var read=target.createStatement();var rows=read.executeQuery("SELECT finish_date,rating FROM diary_entries WHERE user_id=77")){rows.next();assertEquals("2026-02-01",rows.getString(1));assertEquals(4.5,rows.getDouble(2));}
                     try(var insert=target.createStatement();var rows=insert.executeQuery("INSERT INTO games(title,genre,platforms,release_year,description) VALUES ('Novo','RPG','PC',2026,'Descrição fictícia para teste') RETURNING id")){rows.next();assertTrue(rows.getLong(1)>3010);}
+                    try(var read=target.createStatement();var rows=read.executeQuery("SELECT completed FROM demo_seed_runs WHERE name='community-v1'")){assertTrue(rows.next());assertTrue(rows.getBoolean(1));}
                     assertThrows(SQLException.class,()->H2ToPostgres.migrate(source,target));
                     try(var read=target.createStatement();var rows=read.executeQuery("SELECT COUNT(*) FROM games")){rows.next();assertEquals(2,rows.getLong(1));}
                 }
