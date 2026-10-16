@@ -28,19 +28,20 @@ ou no sistema, elas têm prioridade sobre o `.env`.
 
 ## O que aparece
 
-- 16 perfis com nomes `demo_*`, nome visível com `[Demo]` e bio explicando que são
-  fictícios; 14 têm biblioteca, um é público sem jogos e um é privado sem jogos.
-- Nos 12 jogos originais do catálogo: 112 entradas, 70 resenhas, 98 atividades,
-  notas entre 1,5 e 5 com meias estrelas, quatro status, favoritos e desejos.
-- 14 listas, destaques de jogos no perfil, 42 relações de seguir, sete amizades
-  e 139 curtidas em resenhas. As conexões envolvem apenas os perfis fictícios.
-- Resenhas identificadas como fictícias, com observações específicas por jogo e
-  diferentes opiniões. Cada perfil tem preferências de gênero e uma voz própria; notas variam por pessoa e jogo, com elogios, ressalvas e críticas. São conteúdo de exemplo, sem importação de pessoas reais.
+- 16 perfis identificados como fictícios: 14 com conteúdo, um público vazio e um privado vazio.
+- Cada perfil ativo mantém suas cinco resenhas variadas dos jogos originais (quando há jogos suficientes), com gostos individuais e notas de meia estrela.
+- Bibliotecas com **7 a 11 jogos**, combinando experiências já avaliadas e outras seleções individuais do catálogo; status, favoritos, desejos e destaques diferentes entre as pessoas.
+- **Uma a três listas temáticas por perfil**, 27 no conjunto padrão, com nomes e jogos próprios: histórias, desafios, descanso, exploração, backlog e conquistas.
+- Favoritos selecionados entre experiências bem avaliadas; desejos variam em jogos e quantidade; dois a quatro destaques por pessoa. O perfil vazio e o privado são mantidos para demonstrar esses estados.
+- Seguidores, amizades, curtidas e resenhas existentes são preservados. A reorganização remove apenas entradas sem resenha que reconhece como geradas e as substitui pelas seleções pessoais, com atividades dos novos status.
 
-As quantidades de entradas/resenhas diminuem se escolher menos jogos. Não são
-baixadas imagens, não são consultadas APIs externas e não é necessária chave
-RAWG. Os perfis usam o avatar de iniciais e o fundo padrão do site; capas já
-cadastradas continuam sendo usadas.
+As quantidades são menores quando a seleção contém poucos jogos. Se escolher apenas
+um jogo, não haverá como diferenciar a seleção de títulos entre as pessoas, embora
+os nomes das listas, as notas, opiniões e algumas preferências continuem diferentes.
+Por padrão, as seleções adicionais podem usar **todo o catálogo já cadastrado**, sem
+baixar jogos novos ou consultar APIs externas. Não é necessária chave RAWG.
+Os perfis usam o avatar de iniciais e o fundo padrão; capas já cadastradas continuam
+sendo usadas. As marcações de demonstração continuam visíveis no nome, bio e resenhas.
 
 ## Escolher jogos específicos
 
@@ -106,3 +107,31 @@ uma nota diferente depois dessa correção. Atividades históricas mantêm a not
 registrada na época. O console informa quantas entradas antigas foram atualizadas.
 Essa atualização também é transacional e roda uma única vez. Nas cargas novas,
 as avaliações variadas já são criadas desde o início.
+
+## Diversificar bibliotecas, favoritos, desejos, listas e destaques já carregados
+
+Depois de atualizar o projeto, ative novamente `DEMO_DATA_ENABLED=true`, inicie e
+aguarde o console informar quantas bibliotecas foram personalizadas. Volte a opção
+para `false`. Não apague o banco nem as marcas de controle. Se usou uma seleção
+específica em `DEMO_GAME_TITLES`, mantenha a mesma seleção durante essa atualização.
+
+A aplicação reconhece o padrão da carga anterior e personaliza cada biblioteca
+uma única vez. As resenhas e suas curtidas são mantidas; não são recriadas contas,
+amizades ou relações de seguir. Somente entradas sem resenha reconhecidas como
+geradas são substituídas. As datas de início das experiências avaliadas ficam
+preservadas; datas de conclusão acompanham o novo status. Eventos antigos de
+resenha continuam como histórico da experiência; entradas vazias removidas levam
+suas atividades de status, e novos status geram atividades correspondentes.
+
+Se detectar biblioteca alterada (resenha, nota, favorito, desejo, status, datas,
+jogo extra/removido ou versão incompatível), a atualização preserva aquela
+biblioteca e suas coleções. Listas genéricas só são substituídas quando nome,
+descrição e jogos ainda correspondem ao padrão original; listas editadas e
+adicionadas manualmente são preservadas. Destaques manuais também são mantidos.
+A execução é transacional, com controle independente de versão; a migração
+H2 → PostgreSQL preserva essa marca. Novas instalações recebem a personalização
+no mesmo fluxo de ativação da demonstração.
+
+Para o vídeo, compare `demo_luna`, `demo_rafa` e `demo_nina`: os temas das listas,
+as seleções e os planos de cada pessoa ficam diferentes. Você pode continuar
+usando seu próprio perfil personalizado para abrir e encerrar a gravação.

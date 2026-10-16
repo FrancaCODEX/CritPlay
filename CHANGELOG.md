@@ -4,6 +4,16 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Coleções demo com identidade e crédito do autor
+
+- Bibliotecas demo com 7 a 11 jogos e seleções independentes por pessoa, usando o catálogo já cadastrado (ou a seleção explícita), com status, favoritos, desejos e dois a quatro destaques variados. Resenhas existentes e suas curtidas são preservadas; perfis vazio e privado continuam disponíveis.
+- Uma a três listas temáticas por pessoa, 27 no conjunto padrão, com nomes, tamanhos e jogos diferentes, substituem as listas genéricas repetidas. Ordenação determinística usa hash por pessoa/coleção/título para evitar correlação entre seleções.
+- Personalização opcional e única da carga instalada ao reativar `DEMO_DATA_ENABLED`: verifica o padrão anterior, preserva bibliotecas modificadas, listas editadas/adicionadas e destaques manuais; não recria usuários, seguidores ou amizades. Entradas vazias geradas são substituídas; eventos de resenhas são mantidos e novos status geram atividades.
+- Migrações H2 V11/PostgreSQL V9 adicionam controle de execução sem alterar coleções automaticamente. Migração H2 → PostgreSQL transporta as três marcas; guia de demonstração atualizado com ativação, preservação e roteiro de comparação para o vídeo.
+- Rodapé com “Criado por Vinicius Azeredo França” e contato clicável `vfranca.dev@gmail.com`, com layout responsivo e atribuições das fontes mantidas.
+- Testes de integração ampliados para diversidade das coleções, preservação de edições/contagens, escopo de um único jogo, execução única, fluxo de inicialização e personalização em PostgreSQL; testes anteriores adaptados ao novo fluxo.
+
+
 ### Variedade nas avaliações de demonstração
 
 - Corrigida correlação entre escolha do jogo e nota, que repetia as opiniões dos perfis para o mesmo título. Notas de 1,5 a 5 passam a depender da pessoa, do jogo e de afinidades de gênero, sem depender da posição na seleção.

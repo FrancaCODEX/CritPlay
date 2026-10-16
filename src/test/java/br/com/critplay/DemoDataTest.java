@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 class DemoDataTest {
     @Autowired jakarta.persistence.EntityManager entityManager;
+    @Autowired DemoCollectionsService collections;
     @Autowired DemoDataService seed;
     @Autowired UserRepository users;
     @Autowired JdbcTemplate db;
@@ -24,13 +25,13 @@ class DemoDataTest {
 
     @Test void remainsOffUntilExplicitlyEnabled() {
         assertEquals(0,count("app_users"));
-        new DemoDataRunner(seed,false,"").run();
+        new DemoDataRunner(seed,collections,false,"").run();
         assertEquals(0,count("app_users"));
         assertFalse(db.queryForObject("SELECT completed FROM demo_seed_runs WHERE name='community-v1'",Boolean.class));
     }
     @Test void seedsPublicCommunityAndPreservesChangesOnRepeat() {
         var real=users.saveAndFlush(new AppUser("real_player","Real player","unusable",Role.USER));
-        new DemoDataRunner(seed,true,"").run();
+        assertTrue(seed.seed(""));
         assertEquals(17,count("app_users"));
         assertEquals(112,count("diary_entries"));
         assertEquals(14,count("game_lists"));
