@@ -15,7 +15,7 @@ public final class H2ToPostgres {
         target.setAutoCommit(false);var totals=new LinkedHashMap<String,Long>();
         try {
             // Trava todo o destino até o commit. Não aceita uma base já utilizada.
-            try(var statement=target.createStatement()){statement.execute("LOCK TABLE "+String.join(",",TABLES)+" IN ACCESS EXCLUSIVE MODE");}
+            try(var statement=target.createStatement()){statement.execute("LOCK TABLE "+String.join(",",TABLES)+",demo_seed_runs IN ACCESS EXCLUSIVE MODE");}
             for(String table:TABLES){try(var statement=target.createStatement();var rows=statement.executeQuery("SELECT COUNT(*) FROM "+table)){rows.next();if(rows.getLong(1)!=0)throw new SQLException("O destino precisa estar vazio.");}}
             for(String table:TABLES){
                 try(var read=source.createStatement();var rows=read.executeQuery("SELECT * FROM "+table)){
@@ -45,6 +45,13 @@ public final class H2ToPostgres {
                 try(var alter=target.createStatement()){alter.execute("ALTER TABLE "+table+" ALTER COLUMN id RESTART WITH "+next);}
             }}
             for(String table:TABLES){try(var statement=target.createStatement();var rows=statement.executeQuery("SELECT COUNT(*) FROM "+table)){rows.next();if(rows.getLong(1)!=totals.get(table))throw new SQLException("Contagem divergente.");}}
+            // Preserve one-time fixture state when moving a populated local database.
+            try(var read=source.createStatement();var row=read.executeQuery("SELECT completed FROM demo_seed_runs WHERE name='community-v1'")) {
+                if(!row.next())throw new SQLException("Atualize a versão do banco de origem antes da migração.");
+                try(var write=target.prepareStatement("UPDATE demo_seed_runs SET completed=? WHERE name='community-v1'")) {
+                    write.setBoolean(1,row.getBoolean(1));write.executeUpdate();
+                }
+            }
             target.commit();return totals;
         }catch(SQLException|RuntimeException failure){target.rollback();throw failure;}finally{target.setAutoCommit(true);}
     }
