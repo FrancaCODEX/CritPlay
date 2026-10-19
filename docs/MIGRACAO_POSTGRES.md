@@ -4,7 +4,7 @@ Esta ferramenta é local e não tem endpoint HTTP. Ela não inicia o servidor Ja
 
 1. Atualize o código e inicie uma vez a versão mais recente com seu H2 atual para aplicar também V7 (meia estrela e comunidade). Depois pare o Java e faça backup de `data/` e do `.env` por meios protegidos.
 2. Prepare um PostgreSQL novo e vazio, acessível à máquina que fará a cópia. Não inicie o CritPlay nesse destino antes da migração: o catálogo inicial tornaria o banco ocupado.
-3. Configure `DB_URL` em formato JDBC, `DB_USERNAME` e `DB_PASSWORD` no ambiente ou `.env`. Mantenha usuário/senha fora da URL. O profile local H2 continua ignorando essas configurações até você ativar o profile postgres.
+3. Configure `DB_URL` em formato JDBC, `DB_USERNAME` e `DB_PASSWORD` no ambiente ou `.env`. Mantenha usuário/senha fora da URL. O profile local H2 continua ignorando as variáveis de PostgreSQL até você ativar o profile postgres; seu caminho é configurado por `CRITPLAY_LOCAL_DB_URL`.
 4. Empacote com `./mvnw package` (Windows: `.\mvnw.cmd package`).
 5. Execute, pela raiz do projeto:
 
@@ -12,7 +12,9 @@ Esta ferramenta é local e não tem endpoint HTTP. Ela não inicia o servidor Ja
 java -jar target/critplay-0.5.3.jar --migrate-h2-to-postgres
 ```
 
-A origem padrão é `jdbc:h2:file:./data/gameshelf`. Para uma cópia em outro local, configure `H2_SOURCE_URL` com uma URL `jdbc:h2:file:` sem parâmetros adicionais; usuário padrão `sa`, senha vazia. Origem deve estar parada, atualizada e existente. É aberta em modo somente leitura.
+Se estiver atualizando uma instalação com nomes anteriores, veja [a atualização dos nomes](ATUALIZACAO_NOMES.md).
+
+A origem padrão é `jdbc:h2:file:./data/critplay`. Para uma cópia em outro local, configure `H2_SOURCE_URL` com uma URL `jdbc:h2:file:` sem parâmetros adicionais; usuário padrão `sa`, senha vazia. Origem deve estar parada, atualizada e existente. É aberta em modo somente leitura.
 
 A ferramenta aplica as migrações PostgreSQL, verifica que as tabelas de negócio estão vazias, trava o destino e copia tudo em uma transação. Compara colunas e contagens e reposiciona as sequências. Se falhar, nenhuma linha de negócio é copiada parcialmente; as tabelas/migrações vazias do destino podem permanecer. O H2 não é apagado nem alterado.
 

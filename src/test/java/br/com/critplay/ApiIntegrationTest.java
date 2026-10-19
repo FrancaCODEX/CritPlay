@@ -71,7 +71,7 @@ class ApiIntegrationTest {
             return mapper.readTree(response.body());
         }
         HttpResponse<String> upload(byte[] data,String filename,String mime) throws Exception {
-            String boundary="gameshelf-test-boundary";
+            String boundary="critplay-test-boundary";
             var bytes=new java.io.ByteArrayOutputStream();
             bytes.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"; filename=\""+filename+"\"\r\nContent-Type: "+mime+"\r\n\r\n").getBytes());
             bytes.write(data);bytes.write(("\r\n--"+boundary+"--\r\n").getBytes());

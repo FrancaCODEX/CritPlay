@@ -65,7 +65,7 @@ public final class H2ToPostgres {
             if(Files.exists(Path.of(".env")))try(var reader=Files.newBufferedReader(Path.of(".env"))){properties.load(reader);}
             String url=value(properties,"DB_URL",""),user=value(properties,"DB_USERNAME",""),password=value(properties,"DB_PASSWORD","");
             if(!url.startsWith("jdbc:postgresql:")||url.toLowerCase(Locale.ROOT).contains("password=")||url.toLowerCase(Locale.ROOT).contains("user=")||user.isBlank())throw new IllegalArgumentException("Configure DB_URL, DB_USERNAME e DB_PASSWORD para o destino.");
-            String sourceUrl=value(properties,"H2_SOURCE_URL","jdbc:h2:file:./data/gameshelf");
+            String sourceUrl=value(properties,"H2_SOURCE_URL","jdbc:h2:file:./data/critplay");
             if(!sourceUrl.startsWith("jdbc:h2:file:")||sourceUrl.contains(";"))throw new IllegalArgumentException("Informe apenas uma URL jdbc:h2:file para a origem.");
             Flyway.configure().dataSource(url,user,password).locations("classpath:db/postgresql").load().migrate();
             try(var source=DriverManager.getConnection(sourceUrl+";IFEXISTS=TRUE;ACCESS_MODE_DATA=r",value(properties,"H2_SOURCE_USERNAME","sa"),value(properties,"H2_SOURCE_PASSWORD",""));var target=DriverManager.getConnection(url,user,password)){
