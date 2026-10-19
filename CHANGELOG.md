@@ -75,15 +75,6 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 - Testes de API para meia estrela, identidade/privacidade, feed, curtidas e exclusão; testes de migração e navegador ampliados para ordenação, status, modo compacto, abas, banner, destaques, feed, curtidas e celular.
 - README e guias de funcionalidades, API e migração atualizados; toda preparação Oracle continua isolada na branch oracle-cloud.
 
-
-### Reversão da hospedagem Oracle — 14/10/2026
-
-- Revertido na `main` o merge do PR #2 (`c87f519`), adiando a preparação Oracle Cloud por solicitação do responsável.
-- Removidos da `main` os arquivos específicos Oracle, scripts de backup/atualização, profile, CI e guias adicionados pelo PR; Dockerfile, regras Git, README e guias gerais voltam ao estado anterior ao merge.
-- Todo o trabalho de hospedagem permanece preservado na branch `oracle-cloud`, sem alterações; a branch `local` também permanece intacta.
-- Avaliações, notas da comunidade, atalhos nos cards e favicon do PR #1 permanecem na `main`.
-- Para retomar a incorporação futura, reverta este commit de reversão em uma nova branch e abra um novo PR; um merge simples da antiga branch não reaplica os commits já presentes no histórico.
-
 ### Avaliações e interface
 
 - Avaliação salva vira um resumo com opção de editar e cancelar a edição.
