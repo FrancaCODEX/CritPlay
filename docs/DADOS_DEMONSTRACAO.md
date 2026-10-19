@@ -7,7 +7,7 @@ senhas e arquivos locais de usuários continuam fora do Git.
 ## Como carregar
 
 1. Com a aplicação parada, faça um backup do banco que você já usa. No H2 local,
-   copie `data/gameshelf.mv.db` para um local seguro. Se usa imagens enviadas,
+   copie `data/critplay.mv.db` para um local seguro. Se usa imagens enviadas,
    guarde também `data/uploads`.
 2. Depois de integrar a branch e atualizar seu projeto, adicione ao `.env` da raiz:
 

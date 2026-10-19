@@ -1,12 +1,12 @@
 # Trabalhar com o repositório no FrancaCODEX
 
-Repositório: https://github.com/FrancaCODEX/gameshelf.
+Repositório: https://github.com/FrancaCODEX/CritPlay.
 
 ## Baixar a versão atual
 
 ```bash
-git clone https://github.com/FrancaCODEX/gameshelf.git
-cd gameshelf
+git clone https://github.com/FrancaCODEX/CritPlay.git
+cd CritPlay
 ```
 
 Copie `.env.example` para `.env`, preencha sua chave e os dados do administrador e siga o README. A chave não está no GitHub.

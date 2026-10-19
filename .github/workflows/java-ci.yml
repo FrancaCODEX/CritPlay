@@ -11,19 +11,19 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: gameshelf
-          POSTGRES_USER: gameshelf
-          POSTGRES_PASSWORD: gameshelf-ci-only
+          POSTGRES_DB: critplay
+          POSTGRES_USER: critplay
+          POSTGRES_PASSWORD: critplay-ci-only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U gameshelf -d gameshelf"
+          --health-cmd "pg_isready -U critplay -d critplay"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       TEST_POSTGRES: 'true'
-      DB_URL: jdbc:postgresql://localhost:5432/gameshelf
-      DB_USERNAME: gameshelf
-      DB_PASSWORD: gameshelf-ci-only
+      DB_URL: jdbc:postgresql://localhost:5432/critplay
+      DB_USERNAME: critplay
+      DB_PASSWORD: critplay-ci-only
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -37,8 +37,8 @@ jobs:
           ./mvnw --batch-mode clean verify
       - name: Verificar interface no navegador
         run: |
-          npm install --prefix "$RUNNER_TEMP/gameshelf-ui" playwright@1.58.2 --no-audit --no-fund
-          node "$RUNNER_TEMP/gameshelf-ui/node_modules/playwright/cli.js" install --with-deps chromium
-          NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/reviews-ui.cjs
-          NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/browser-smoke.cjs
-          NODE_PATH="$RUNNER_TEMP/gameshelf-ui/node_modules" node tests/community-browser.cjs
+          npm install --prefix "$RUNNER_TEMP/critplay-ui" playwright@1.58.2 --no-audit --no-fund
+          node "$RUNNER_TEMP/critplay-ui/node_modules/playwright/cli.js" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/reviews-ui.cjs
+          NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/browser-smoke.cjs
+          NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/community-browser.cjs

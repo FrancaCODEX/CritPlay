@@ -4,6 +4,15 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Padronização completa do nome CritPlay
+
+- Referências textuais, links do GitHub, exemplos, testes, CI e configurações passam a usar CritPlay/critplay, com ajustes na redação do histórico para manter o sentido das alterações anteriores.
+- Variáveis antigas da aplicação e alias de capturas de QA removidos; configuração passa a usar apenas `CRITPLAY_*`. Documentação explica como transferir valores locais para as chaves atuais, sem modificar `.env` ou credenciais existentes.
+- Arquivo H2 padrão e origem padrão da migração passam a `data/critplay`; `CRITPLAY_LOCAL_DB_URL` permite apontar para um arquivo existente. Verificação anterior à criação dos beans do banco bloqueia abrir um padrão vazio quando há outro `.mv.db` na pasta, sem mover/apagar/sobrescrever arquivos.
+- Exemplos PostgreSQL e banco temporário de CI usam `critplay`. Compose exige `DB_NAME` e `POSTGRES_VOLUME_NAME` explícitos para reutilizar recursos existentes sem criar um volume vazio durante a troca de nome; uploads continuam no mesmo diretório.
+- Guia de atualização dos nomes, README, exemplos e migração atualizados. Testes cobrem instalação nova, banco existente, URL explícita, bancos em memória/PostgreSQL e bloqueio antes de criar o datasource. Histórico Git e outras branches são preservados.
+
+
 ### Coleções demo com identidade e crédito do autor
 
 - Bibliotecas demo com 7 a 11 jogos e seleções independentes por pessoa, usando o catálogo já cadastrado (ou a seleção explícita), com status, favoritos, desejos e dois a quatro destaques variados. Resenhas existentes e suas curtidas são preservadas; perfis vazio e privado continuam disponíveis.
@@ -153,7 +162,7 @@ A importação de 500 registros foi validada com fixtures. Isso não significa q
 
 ## 0.5
 
-- Nome alterado de GameShelf para CritPlay, incluindo pacote Java e artefato Maven, mantendo compatibilidade com dados e variáveis anteriores.
+- Identidade consolidada como CritPlay, incluindo pacote Java e artefato Maven, mantendo compatibilidade com dados e variáveis anteriores.
 - Importação RAWG individual com prévia, revisão e atualização preservando IDs.
 - Administração de contas e papéis, suspensão/reativação e revogação de sessões.
 - Limpeza de uploads sem uso, com prévia, confirmação e preservação de arquivos vinculados/recentes.

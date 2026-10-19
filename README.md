@@ -66,7 +66,11 @@ Configure `RAWG_API_KEY`, reinicie e entre como administrador. Em **Administraç
 
 Pare o Java, faça backup de `data/` e preserve seu `.env`. Atualize a `main` por **Git → Pull** ou `git pull --ff-only` e reinicie. Salve alterações locais em commit/stash antes do Pull. Não substitua seu `.env` pelo exemplo.
 
-O H2 permanece em `data/gameshelf.mv.db`, e uploads em `data/uploads/`. O nome antigo do arquivo/repositório foi mantido para compatibilidade. Variáveis `GAMESHELF_*` antigas continuam aceitas. Migrações Flyway atualizam o esquema; mudar para PostgreSQL não transfere automaticamente os dados.
+O H2 padrão fica em `data/critplay.mv.db`, e uploads em `data/uploads/`. **Se você já tinha um banco local com outro nome**, pare o Java e, após fazer backup, renomeie seu arquivo `.mv.db` para `critplay.mv.db` na mesma pasta. Alternativamente, configure `CRITPLAY_LOCAL_DB_URL=jdbc:h2:file:./data/nome_atual` no `.env` (sem o sufixo `.mv.db`). Uma verificação bloqueia a criação silenciosa de um banco novo quando encontra outro `.mv.db` na pasta e o arquivo padrão ainda não existe.
+
+Use as variáveis `CRITPLAY_*` do exemplo atual, copiando os valores da configuração anterior quando necessário. Não troque senhas de contas existentes pelo `.env`. Para PostgreSQL, preserve `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` que já conectam ao seu banco. No Docker Compose, configure também o nome real do banco em `DB_NAME` e o volume existente em `POSTGRES_VOLUME_NAME`; veja [a atualização dos nomes](docs/ATUALIZACAO_NOMES.md).
+
+Migrações Flyway atualizam o esquema; mudar para PostgreSQL não transfere automaticamente os dados.
 
 ## Testar e empacotar
 
