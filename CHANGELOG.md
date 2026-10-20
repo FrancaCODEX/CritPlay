@@ -4,6 +4,16 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Refatoração de perfis, comunidade e moderação
+
+- `SocialService` passa a coordenar casos de uso; autorização/descoberta e validação de pares ficam em `SocialAccessService`, SQL de relações em `SocialGraphRepository` e projeção pública em `PublicProfileService`. Travas, regras de privacidade/bloqueio/suspensão, mensagens, paginação e contratos JSON são preservados.
+- Identidade pública compartilhada em `PersonIdentity`, estados de amizade tipados e estatísticas compartilhadas em `ProfileStats`; remoção dos casts de mapas privados ao montar perfis públicos, com lista explícita de campos e leitura única do diário.
+- Curtidas de perfis e avaliações consultadas em lote por `ReviewLikesRepository`, com até duas consultas independentemente do número de resenhas; visitantes usam uma e listas vazias não acessam o banco. Busca projeta identidades em uma consulta e conexões usam JOIN, em vez de buscar cada usuário separadamente; jogos repetidos são reutilizados apenas durante a montagem da resposta.
+- Regras de denúncias e resolução extraídas do controlador para `ModerationService`, com DTOs de validação próprios. Autorização reutiliza a política de perfil sem montar a resposta completa; listagem administrativa usa um JOIN para resenhas atuais/removidas.
+- Serviços e controladores envolvidos reorganizados e formatados com nomes e etapas explícitos. Feed e identidade gamer no JavaScript separam renderização, seletores e ações de formulário, preservando sequência, sessão e carregamento.
+- `.editorconfig`, README e arquitetura documentam responsabilidades e convenções. Testes ampliados para curtidas de contas ativas/inativas, quantidade constante de leituras, busca literal com curingas, campos públicos permitidos, denúncias de perfil/resenha privada/removida e curtidas no perfil em PostgreSQL. Sem novas migrações, alterações de dados ou dependências.
+
+
 ### Padronização completa do nome CritPlay
 
 - Referências textuais, links do GitHub, exemplos, testes, CI e configurações passam a usar CritPlay/critplay, com ajustes na redação do histórico para manter o sentido das alterações anteriores.

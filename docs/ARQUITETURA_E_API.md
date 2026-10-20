@@ -218,3 +218,32 @@ GET `/api/people/{username}/followers?after=0` e `/api/people/{username}/followi
 A autorização do perfil é compartilhada com GET `/api/people/{username}`. Perfil inacessível, bloqueado, suspenso ou restrito ao qual o visitante não tem acesso retorna 404. Membros da lista são filtrados por conta ativa, bloqueios com o visitante e descoberta (com exceções para titular, próprio membro e amizades aceitas). Seguidores/seguindo na resposta do perfil usam exatamente esse filtro; a contagem é relativa ao visitante. O titular pode ver suas conexões fora da busca, mas isso não concede acesso adicional ao conteúdo do perfil dessas pessoas.
 
 GET/PUT `/api/profile` e PUT `/api/profile/gamer` incluem `social:{followers,following,friends}` para a própria conta. Implementação no controlador evita dependência circular entre serviços de perfil e comunidade. Não há migração de banco.
+
+## Organização dos serviços sociais e de moderação
+
+Os endpoints e seus contratos JSON são preservados. As responsabilidades internas
+estão separadas para permitir manutenção sem misturar autorização, SQL e apresentação:
+
+| Componente | Responsabilidade |
+| --- | --- |
+| `SocialService` | Casos de uso de seguir, amizades, busca e privacidade; mantém a fachada usada pelos controladores e pela carga demo. |
+| `SocialAccessService` | Descoberta/visibilidade do perfil, bloqueios e validação de pares com travas em ordem consistente. A moderação reutiliza essa política sem montar o perfil público. |
+| `SocialGraphRepository` | Consultas e gravações de relações, paginação/contagens com o mesmo filtro, identidades por JOIN e estado de amizade tipado. |
+| `PersonIdentity` | Lista explícita de campos permitidos na identidade pública, compartilhada por busca, conexões e perfil. |
+| `PublicProfileService` | Projeção pública de coleções, resenhas e estatísticas, com omissão de conteúdo privado/moderado. Não consome o DTO privado do titular. |
+| `ProfileService` / `ProfileStats` | Operações do próprio perfil e cálculo compartilhado de estatísticas a partir do diário. |
+| `ReviewLikesRepository` | Curtidas em lote: até duas consultas para uma coleção de resenhas (uma para visitantes, nenhuma para uma coleção vazia), contando somente contas ativas e preservando a indicação de curtida do visitante. |
+| `ModerationService` | Regras e transações de denúncia/resolução; listagem com JOIN para tratar também resenhas removidas. `ReportController` trata apenas HTTP e validação. |
+
+Os caches de jogos são locais a cada montagem de perfil/página de feed; não há
+cache global que possa manter alterações administrativas antigas. O perfil público
+carrega o diário uma vez e monta as coleções a partir dessa mesma leitura, sem
+casts para mapas do perfil privado. A busca mantém o limite original de 30
+candidatos antes de remover bloqueados. Travas e limites de paginação existentes
+são preservados.
+
+No cliente, `community.js` separa criação dos cards/estado vazio do feed, montagem
+dos seletores de destaque e ações de salvar/enviar/remover banner. Os controles de
+sequência, sessão e carregamento continuam protegendo respostas assíncronas antigas.
+O `.editorconfig` define a convenção de edição: Java com quatro espaços e arquivos
+web com dois, mantendo CRLF nos scripts Windows.
