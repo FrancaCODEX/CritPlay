@@ -99,3 +99,11 @@ Metadados: [RAWG](https://rawg.io/apidocs). Preços de PC: [GG.deals](https://gg
 ### Dados para apresentação
 
 Carga opcional de perfis e resenhas fictícios no banco atual, desligada por padrão e sem duplicação: [guia de demonstração](docs/DADOS_DEMONSTRACAO.md).
+
+## Manutenção do código
+
+A organização de perfis, relações sociais, curtidas e moderação está descrita em
+[Arquitetura e API](docs/ARQUITETURA_E_API.md#organização-dos-serviços-sociais-e-de-moderação).
+O projeto inclui `.editorconfig` para manter a indentação e as terminações de linha
+consistentes entre editores. Ao alterar regras de acesso ou os contratos públicos,
+execute `./mvnw clean verify` e as suítes de navegador usadas no CI.

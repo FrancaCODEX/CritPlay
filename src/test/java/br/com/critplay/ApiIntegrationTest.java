@@ -605,6 +605,22 @@ class ApiIntegrationTest {
         assertEquals(401,anonymous.send("GET","/api/people?q=pe",null).statusCode());
         assertEquals(403,owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true),false,"application/json").statusCode());
     }
+    @Test void peopleSearchTreatsWildcardsLiterallyAndKeepsTheIdentityAllowlist() throws Exception {
+        var owner=user();var other=user();var reader=user();
+        String prefix="search"+UUID.randomUUID().toString().replace("-", "").substring(0,10);
+        String exact=prefix+"%_!";
+        assertEquals(200,owner.send("PUT","/api/profile",profileJson(exact,null,null,null)).statusCode());
+        assertEquals(200,other.send("PUT","/api/profile",profileJson(prefix+"AB!",null,null,null)).statusCode());
+        String path="/api/people?q="+URLEncoder.encode(exact,java.nio.charset.StandardCharsets.UTF_8);
+        var result=reader.json(path);
+        assertEquals(1,result.size());
+        assertEquals(accountName(owner),result.get(0).path("username").asText());
+        var fields=new HashSet<String>();result.get(0).fieldNames().forEachRemaining(fields::add);
+        assertEquals(Set.of("id","username","displayName","avatarUrl","visibility"),fields);
+        reader.send("PUT","/api/blocks/"+accountName(owner),null);
+        assertEquals(0,reader.json(path).size());
+    }
+
     @Test void friendshipCancellationRejectionAndSelfRequestsAreControlled() throws Exception {
         var first=user();var second=user();String a=accountName(first),b=accountName(second);
         assertEquals(400,first.send("PUT","/api/people/"+a+"/friendship","{\"action\":\"REQUEST\"}").statusCode());
@@ -734,6 +750,30 @@ class ApiIntegrationTest {
         assertEquals(200,administrator.send("PUT","/api/admin/reports/"+id,"{\"status\":\"RESOLVED\",\"hideReview\":false}").statusCode());
         assertEquals(1,new Session().json("/api/people/"+username).path("reviews").size());
     }
+    @Test void moderationSeparatesDiscoverableProfilesFromPrivateReviewsAndKeepsDeletedReviewReports() throws Exception {
+        var owner=user();var reporter=user();var administrator=admin();String username=accountName(owner);
+        String reason="Registro fictício para testar os limites da moderação.";
+        String profileReport=mapper.writeValueAsString(Map.of("username",username,"reason",reason));
+        assertEquals(200,reporter.send("POST","/api/reports",profileReport).statusCode());
+        String reviewReport=mapper.writeValueAsString(Map.of("username",username,"gameId",1,"reason",reason));
+        assertEquals(404,reporter.send("POST","/api/reports",reviewReport).statusCode());
+        owner.send("PUT","/api/profile/privacy",privacy("PUBLIC",true));
+        owner.send("PUT","/api/diary/1",diaryBody(4.5,"Resenha para testar remoção posterior",false));
+        assertEquals(200,reporter.send("POST","/api/reports",reviewReport).statusCode());
+        owner.send("DELETE","/api/diary/1",null);
+        JsonNode profile=null,review=null;
+        for(var report:administrator.json("/api/admin/reports"))if(report.path("username").asText().equals(username)) {
+            if(report.path("gameId").isNull())profile=report;else review=report;
+        }
+        assertNotNull(profile);assertNotNull(review);
+        assertTrue(review.path("review").isNull());assertFalse(review.path("reviewHidden").asBoolean());
+        String resolution=mapper.writeValueAsString(Map.of("status","RESOLVED","hideReview",true));
+        assertEquals(400,administrator.send("PUT","/api/admin/reports/"+profile.path("id").asLong(),resolution).statusCode());
+        assertEquals(404,administrator.send("PUT","/api/admin/reports/"+review.path("id").asLong(),resolution).statusCode());
+        owner.send("PUT","/api/blocks/"+accountName(reporter),null);
+        assertEquals(404,reporter.send("POST","/api/reports",profileReport).statusCode());
+    }
+
     @Test void bulkImportPersistsFiveHundredGamesAndResumeDoesNotDuplicate() throws Exception {
         long owner=users.findByUsername("test_admin").orElseThrow().getId();var job=jobs.create(owner,500);
         var first=new br.com.critplay.metadata.MetadataGame(900001L,"bulk-fixture-1","Bulk fixture 1","Adventure",Set.of(br.com.critplay.catalog.Platform.PC),2026,"Descrição fictícia para verificar importação em lote.",null);

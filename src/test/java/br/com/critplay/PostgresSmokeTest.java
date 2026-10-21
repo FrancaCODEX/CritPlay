@@ -51,6 +51,14 @@ class PostgresSmokeTest {
         entityManager.clear(); // Startup runners use separate transactions/persistence contexts.
         assertEquals(14,demoCollections.personalize("Hades,Celeste"));
         assertEquals(0,demoCollections.personalize("Hades,Celeste"));
+        var reviews=(java.util.List<?>)social.profile("demo_rafa","demo_luna").get("reviews");
+        assertEquals(2,reviews.size());
+        for(var item:reviews) {
+            var review=(java.util.Map<?,?>)item;
+            assertEquals(true,review.get("likedByMe"));
+            assertTrue(((Number)review.get("likeCount")).longValue()>=1);
+        }
+        assertFalse(social.profile(null,"demo_luna").toString().contains("passwordHash"));
         assertEquals(27,jdbc.queryForObject("SELECT COUNT(*) FROM game_lists l JOIN app_users u ON u.id=l.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
         assertEquals(16,jdbc.queryForObject("SELECT COUNT(*) FROM app_users WHERE LEFT(username,5)='demo_'",Long.class));
         assertEquals(28,jdbc.queryForObject("SELECT COUNT(*) FROM diary_entries d JOIN app_users u ON u.id=d.user_id WHERE LEFT(u.username,5)='demo_'",Long.class));
