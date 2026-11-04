@@ -1,0 +1,2 @@
+ALTER TABLE import_jobs ADD COLUMN lease_token VARCHAR(36);
+ALTER TABLE import_jobs ADD COLUMN lease_until TIMESTAMP(6) WITH TIME ZONE;
