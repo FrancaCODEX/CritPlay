@@ -4,8 +4,12 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: java-ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -29,7 +33,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
           cache: maven
       - name: Testar e empacotar
         run: |
@@ -42,3 +46,5 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/reviews-ui.cjs
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/browser-smoke.cjs
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/community-browser.cjs
+      - name: Construir imagem de produção
+        run: docker build -t critplay:ci .

@@ -1,5 +1,7 @@
 # Hospedagem do CritPlay — pesquisa de 13/10/2026
 
+> Atualização de 04/11/2026: a preparação atual de custo zero, incluindo Vercel Container Runtime beta e Neon Free, está em [DEPLOY_VERCEL_NEON.md](DEPLOY_VERCEL_NEON.md). As recomendações abaixo são históricas e pressupõem sessões/imagens locais; o profile prod agora mantém esses dados no PostgreSQL.
+
 Ainda não houve contratação nem deploy. Preços em moeda original, antes de domínio, impostos, câmbio e consumo adicional. Fontes oficiais:
 
 - Railway: https://railway.com/pricing e https://docs.railway.com/pricing/plans
