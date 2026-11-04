@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.User;
 import java.util.List;
 
 public class AccountPrincipal extends User {
+    private static final long serialVersionUID=1L;
     private final Long accountId;
     private final int sessionVersion;
     public AccountPrincipal(AppUser user) {

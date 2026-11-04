@@ -10,8 +10,8 @@ import java.io.IOException;
 
 @Service
 public class ImageCleanupService {
-    private final ImageService images;private final JdbcTemplate db;
-    public ImageCleanupService(ImageService images,JdbcTemplate db){this.images=images;this.db=db;}
+    private final ImageService images;private final JdbcTemplate db;private final DatabaseMediaStore store;
+    public ImageCleanupService(ImageService images,JdbcTemplate db,DatabaseMediaStore store){this.images=images;this.db=db;this.store=store;}
     private List<Path> candidates(){
         var used=new HashSet<String>();
         db.query("SELECT cover_url FROM games WHERE cover_url IS NOT NULL",rs->{used.add(rs.getString(1));});
@@ -29,11 +29,13 @@ public class ImageCleanupService {
         }catch(IOException e){throw new ServiceUnavailableException("Não foi possível examinar as imagens.");}
     }
     @Transactional public Map<String,Object> preview(){
+        if(images.database())return store.preview();
         images.lockReferences();var files=candidates();long bytes=0;
         for(var file:files)try{bytes+=Files.size(file);}catch(IOException ignored){}
         return Map.of("count",files.size(),"bytes",bytes,"graceHours",24,"limit",1000);
     }
     @Transactional public Map<String,Object> clean(){
+        if(images.database())return store.clean();
         images.lockReferences();int removed=0,failed=0;
         // Recalcula após obter a trava. Uma prévia antiga nunca decide a exclusão.
         for(var file:candidates())try{if(Files.deleteIfExists(file))removed++;}catch(IOException e){failed++;}

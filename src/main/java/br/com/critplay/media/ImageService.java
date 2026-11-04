@@ -12,7 +12,13 @@ import java.util.UUID;
 public class ImageService {
     private final Path directory;
     private final br.com.critplay.shared.DatabaseLock lock;
-    public ImageService(@Value("${app.media.directory}") String directory,br.com.critplay.shared.DatabaseLock lock) { this.lock=lock;this.directory=Path.of(directory).toAbsolutePath().normalize(); }
+    private final DatabaseMediaStore store;
+    private final boolean database;
+    public ImageService(@Value("${app.media.directory}") String directory,br.com.critplay.shared.DatabaseLock lock,
+            DatabaseMediaStore store,@Value("${app.media.storage:local}") String storage) {
+        this.lock=lock;this.directory=Path.of(directory).toAbsolutePath().normalize();this.store=store;this.database=storage.equals("database");
+    }
+    public boolean database(){return database;}
     public void lockReferences(){lock.acquire("media");}
     public Path directory() { return directory; }
     public String upload(Long userId, MultipartFile file) {
@@ -35,10 +41,13 @@ public class ImageService {
                     if(format.equals("gif"))GifEncoder.write(reader,target,poster);
                     else if(!ImageIO.write(reader.read(0),format,target.toFile()))throw new BadRequestException("Não foi possível converter a imagem.");
                     if(Files.size(target)>2*1024*1024)throw new BadRequestException("A imagem processada excede 2 MB. Use um arquivo menor.");
+                    if(format.equals("gif")&&Files.size(poster)>2*1024*1024)throw new BadRequestException("A prévia do GIF excede 2 MB. Use uma imagem menor.");
+                    if(database)store.save(userId,target,format.equals("gif")?poster:null);
                     complete=true;return "/media/"+filename;
-                } finally {if(!complete){Files.deleteIfExists(target);if(format.equals("gif"))Files.deleteIfExists(poster);}}
+                } finally {if(database||!complete){Files.deleteIfExists(target);if(format.equals("gif"))Files.deleteIfExists(poster);}}
             } finally { reader.dispose(); }
         } catch(BadRequestException ex) { throw ex; }
+        catch(br.com.critplay.shared.ServiceUnavailableException ex) { throw ex; }
         catch(Exception ex) { throw new BadRequestException("Não foi possível salvar a imagem."); }
     }
     static void validateDimensions(long width,long height) {
@@ -49,7 +58,8 @@ public class ImageService {
         if(value==null||value.isBlank()) return null;
         String prefix="/media/"+userId+"-";
         if(!value.startsWith(prefix)||!value.matches("/media/[0-9]+-[0-9a-f-]{36}\\.(png|jpg|gif)")
-            ||!Files.isRegularFile(directory.resolve(value.substring("/media/".length())),LinkOption.NOFOLLOW_LINKS))
+            ||!(database?store.owned(userId,value.substring("/media/".length())):
+                Files.isRegularFile(directory.resolve(value.substring("/media/".length())),LinkOption.NOFOLLOW_LINKS)))
             throw new BadRequestException("Escolha uma imagem enviada pela sua conta.");
         return value;
     }
