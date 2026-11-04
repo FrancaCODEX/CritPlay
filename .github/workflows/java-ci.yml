@@ -10,7 +10,8 @@ concurrency:
 jobs:
   test:
     timeout-minutes: 20
-    runs-on: ubuntu-latest
+    # Playwright 1.58.2 has no Ubuntu 26.04 browser/dependency bundle.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:17

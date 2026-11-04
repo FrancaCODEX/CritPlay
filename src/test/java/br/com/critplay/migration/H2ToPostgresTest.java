@@ -17,9 +17,10 @@ class H2ToPostgresTest {
             try {
                 String targetUrl=url+(url.contains("?")?"&":"?")+"currentSchema="+schema;
                 Flyway.configure().dataSource(h2,"sa","").locations("classpath:db/migration").load().migrate();
-                Flyway.configure().dataSource(targetUrl,user,password).locations("classpath:db/postgresql").load().migrate();
+                Flyway.configure().dataSource(targetUrl,user,password).schemas(schema).defaultSchema(schema).locations("classpath:db/postgresql").load().migrate();
                 var encoder=new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(4);String hash=encoder.encode("MigrationPassword42!");
                 try(var source=DriverManager.getConnection(h2,"sa","");var target=DriverManager.getConnection(targetUrl,user,password)){
+                    target.setSchema(schema);
                     try(var insert=source.prepareStatement("INSERT INTO app_users(id,username,display_name,password_hash,role,created_at) VALUES (77,'migration_user','Migração',?,'ADMIN',CURRENT_TIMESTAMP)")){insert.setString(1,hash);insert.executeUpdate();}
                     try(var data=source.createStatement()){
                         data.execute("UPDATE demo_seed_runs SET completed=TRUE WHERE name IN ('community-v1','community-variety-v2','community-collections-v3')");
