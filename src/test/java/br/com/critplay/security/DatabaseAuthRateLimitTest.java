@@ -13,7 +13,7 @@ class DatabaseAuthRateLimitTest {
         org.flywaydb.core.Flyway.configure().dataSource(source).locations("classpath:db/postgresql").load().migrate();
         var jdbc=new JdbcTemplate(source);var one=new DatabaseAuthRateLimitFilter(true,jdbc);var two=new DatabaseAuthRateLimitFilter(true,jdbc);
         String key="test-"+java.util.UUID.randomUUID();long now=System.currentTimeMillis();
-        assertTrue(one.accept(key,2,now));assertTrue(two.accept(key,2,now));assertFalse(one.accept(key,2,now));
-        assertTrue(two.accept(key,2,now+600_000));
+        assertTrue(one.increment(key,2,now));assertTrue(two.increment(key,2,now));assertFalse(one.increment(key,2,now));
+        assertTrue(two.increment(key,2,now+600_000));
     }
 }
