@@ -83,6 +83,7 @@ No Linux, use `./mvnw`. Testes locais usam dados fictícios; o CI também verifi
 
 ## Documentação
 
+- [Deploy Vercel Hobby + Neon Free: arquitetura, variáveis e validação](docs/DEPLOY_VERCEL_NEON.md)
 - [Guia das funcionalidades](docs/FUNCIONALIDADES.md)
 - [Primeiros passos](docs/PRIMEIROS_PASSOS.md)
 - [Arquitetura e API](docs/ARQUITETURA_E_API.md)

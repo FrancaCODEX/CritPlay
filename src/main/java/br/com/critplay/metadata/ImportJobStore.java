@@ -13,16 +13,20 @@ import java.util.*;
 public class ImportJobStore {
     private final JdbcTemplate db;private final DatabaseLock lock;private final CatalogService catalog;private final GameRepository games;
     public ImportJobStore(JdbcTemplate db,DatabaseLock lock,CatalogService catalog,GameRepository games){this.db=db;this.lock=lock;this.catalog=catalog;this.games=games;}
-    public ImportJob get(long id){return db.query("SELECT * FROM import_jobs WHERE id=?",(rs,n)->new ImportJob(rs.getLong("id"),rs.getString("status"),rs.getInt("target_count"),rs.getInt("processed"),rs.getInt("added"),rs.getInt("existing_count"),rs.getInt("skipped"),rs.getInt("page_number"),rs.getInt("item_index"),rs.getString("message"),rs.getLong("owner_id")),id).stream().findFirst().orElseThrow(()->new NotFoundException("Importação não encontrada."));}
-    public List<ImportJob> list(){return db.query("SELECT id FROM import_jobs ORDER BY id DESC LIMIT 20",(rs,n)->get(rs.getLong(1)));}
+    public ImportJob get(long id){return db.query("SELECT * FROM import_jobs WHERE id=?",(rs,n)->new ImportJob(rs.getLong("id"),rs.getString("status"),rs.getInt("target_count"),rs.getInt("processed"),rs.getInt("added"),rs.getInt("existing_count"),rs.getInt("skipped"),rs.getInt("page_number"),rs.getInt("item_index"),rs.getString("message"),rs.getLong("owner_id"),rs.getString("lease_token")),id).stream().findFirst().orElseThrow(()->new NotFoundException("Importação não encontrada."));}
+    public List<ImportJob> list(){recover();return db.query("SELECT id FROM import_jobs ORDER BY id DESC LIMIT 20",(rs,n)->get(rs.getLong(1)));}
     @Transactional public ImportJob create(long owner,int count){
-        lock.acquire("imports");if(db.queryForObject("SELECT COUNT(*) FROM import_jobs WHERE status='RUNNING'",Long.class)>0)throw new ConflictException("Já existe uma importação em andamento.");
+        lock.acquire("imports");recover();if(db.queryForObject("SELECT COUNT(*) FROM import_jobs WHERE status='RUNNING'",Long.class)>0)throw new ConflictException("Já existe uma importação em andamento.");
         var keys=new GeneratedKeyHolder();db.update(connection->{var statement=connection.prepareStatement("INSERT INTO import_jobs(owner_id,target_count,status,created_at) VALUES (?,?,'RUNNING',?)",new String[]{"id"});statement.setLong(1,owner);statement.setInt(2,count);statement.setObject(3,OffsetDateTime.now());return statement;},keys);
-        return get(keys.getKey().longValue());
+        long id=keys.getKey().longValue();claim(id);return get(id);
     }
-    @Transactional public ImportJob resume(long id,long owner){lock.acquire("imports");if(db.queryForObject("SELECT COUNT(*) FROM import_jobs WHERE status='RUNNING'",Long.class)>0)throw new ConflictException("Já existe uma importação em andamento.");var job=get(id);if(!job.status().equals("PAUSED"))throw new BadRequestException("Esta importação não pode ser retomada.");db.update("UPDATE import_jobs SET status='RUNNING',owner_id=?,message='' WHERE id=?",owner,id);return get(id);}
+    @Transactional public ImportJob resume(long id,long owner){lock.acquire("imports");recover();if(db.queryForObject("SELECT COUNT(*) FROM import_jobs WHERE status='RUNNING'",Long.class)>0)throw new ConflictException("Já existe uma importação em andamento.");var job=get(id);if(!job.status().equals("PAUSED"))throw new BadRequestException("Esta importação não pode ser retomada.");db.update("UPDATE import_jobs SET status='RUNNING',owner_id=?,message='' WHERE id=?",owner,id);claim(id);return get(id);}
+    private void claim(long id){db.update("UPDATE import_jobs SET lease_token=?,lease_until=? WHERE id=?",UUID.randomUUID().toString(),OffsetDateTime.now().plusMinutes(5),id);}
+    public boolean heartbeat(long id,String token){return db.update("UPDATE import_jobs SET lease_until=? WHERE id=? AND lease_token=? AND status='RUNNING' AND lease_until>?",OffsetDateTime.now().plusMinutes(5),id,token,OffsetDateTime.now())==1;}
+    public void pauseWorker(long id,String token,String message){db.update("UPDATE import_jobs SET status='PAUSED',message=? WHERE id=? AND lease_token=? AND status='RUNNING'",message,id,token);}
     @Transactional public void pause(long id,String message){db.queryForList("SELECT id FROM import_jobs WHERE id=? FOR UPDATE",id);db.update("UPDATE import_jobs SET status='PAUSED',message=? WHERE id=? AND status='RUNNING'",message,id);}
-    public void recover(){db.update("UPDATE import_jobs SET status='PAUSED',message='Servidor reiniciado. Retome pela Administração.' WHERE status='RUNNING'");}
+    public void recover(){db.update("UPDATE import_jobs SET status='PAUSED',message='Worker interrompido. Retome pela Administração.' WHERE status='RUNNING' AND (lease_until IS NULL OR lease_until<?)",OffsetDateTime.now());}
+    public void finishWorker(long id,String token,String message){db.update("UPDATE import_jobs SET status='COMPLETED',message=? WHERE id=? AND lease_token=? AND status='RUNNING'",message,id,token);}
     public boolean ownerActive(long id){return db.queryForObject("SELECT COUNT(*) FROM app_users WHERE id=? AND role='ADMIN' AND enabled=TRUE",Long.class,id)>0;}
     @Transactional public void finish(long id,String message){db.update("UPDATE import_jobs SET status='COMPLETED',message=? WHERE id=? AND status='RUNNING'",message,id);}
     public static String genre(String value){return switch(value.toLowerCase(Locale.ROOT)){
@@ -31,7 +35,7 @@ public class ImportJobStore {
     @Transactional public void consume(ImportJob snapshot,MetadataGame metadata,int pageSize,Long steamId){
         lock.acquire("media");if(steamId!=null && games.existsBySteamAppId(steamId))steamId=null;
         db.queryForList("SELECT id FROM import_jobs WHERE id=? FOR UPDATE",snapshot.id());var job=get(snapshot.id());
-        if(!job.status().equals("RUNNING")||job.page()!=snapshot.page()||job.index()!=snapshot.index())return;
+        if(!job.status().equals("RUNNING")||!Objects.equals(job.leaseToken(),snapshot.leaseToken())||job.page()!=snapshot.page()||job.index()!=snapshot.index())return;
         String counter="skipped";
         if(metadata!=null&&games.findByRawgId(metadata.id()).isPresent())counter="existing_count";
         else if(metadata!=null&&metadata.title().length()>=2&&metadata.releaseYear()!=null&&!metadata.platforms().isEmpty()){

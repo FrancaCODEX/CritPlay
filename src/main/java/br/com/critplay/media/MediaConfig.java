@@ -3,6 +3,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.*;
 
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="app.media.storage",havingValue="local",matchIfMissing=true)
 public class MediaConfig implements WebMvcConfigurer {
     private final ImageService images;
     public MediaConfig(ImageService images) { this.images=images; }

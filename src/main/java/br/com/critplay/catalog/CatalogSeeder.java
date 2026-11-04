@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.core.annotation.Order;
 
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="app.catalog.seed-enabled",havingValue="true",matchIfMissing=true)
 @Order(10)
 public class CatalogSeeder implements CommandLineRunner {
     private final GameRepository repository;

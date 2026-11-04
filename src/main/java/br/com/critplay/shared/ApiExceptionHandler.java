@@ -9,6 +9,10 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler({org.springframework.dao.DataAccessResourceFailureException.class,org.springframework.transaction.CannotCreateTransactionException.class})
+    public ResponseEntity<?> databaseUnavailable(Exception ex) {
+        return ResponseEntity.status(503).body(Map.of("message","Banco temporariamente indisponível. Tente novamente em instantes."));
+    }
     @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<?> concurrent(Exception ex){return ResponseEntity.status(409).body(Map.of("message","O registro foi alterado ao mesmo tempo. Recarregue e tente novamente."));}
     @ExceptionHandler(ServiceUnavailableException.class)

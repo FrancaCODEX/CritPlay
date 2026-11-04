@@ -26,7 +26,8 @@ public class SecurityConfig {
         };
     }
     @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository users,
-        @Value("${app.security.rate-limit-enabled}") boolean rateLimit) throws Exception {
+        @Value("${app.security.rate-limit-enabled}") boolean rateLimit,
+        org.springframework.core.env.Environment environment,org.springframework.jdbc.core.JdbcTemplate db) throws Exception {
         // CSRF permanece ligado. O frontend obtém um token de sessão antes das escritas.
         http.authorizeHttpRequests(auth -> auth
             .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/workspace.js", "/social.js", "/community.js", "/admin.js", "/bulk.js", "/steam.js", "/error", "/favicon.ico", "/favicon.png", "/apple-touch-icon.png").permitAll()
@@ -51,7 +52,7 @@ public class SecurityConfig {
                 .authenticationEntryPoint((request,response,exception) -> json(response,401,"Entre na sua conta para continuar."))
                 .accessDeniedHandler((request,response,exception) -> json(response,403,"Acesso negado ou token de segurança inválido.")));
         http.addFilterAfter(new AccountSessionFilter(users),SecurityContextHolderFilter.class);
-        http.addFilterBefore(new AuthRateLimitFilter(rateLimit),CsrfFilter.class);
+        http.addFilterBefore(environment.matchesProfiles("prod")?new DatabaseAuthRateLimitFilter(rateLimit,db):new AuthRateLimitFilter(rateLimit),CsrfFilter.class);
         return http.build();
     }
     private static void json(HttpServletResponse response, int status, String message) throws IOException {

@@ -6,6 +6,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
+@org.springframework.context.annotation.Profile("!prod")
 @Order(30) // Catalog and admin bootstrap run first.
 public class DemoDataRunner implements CommandLineRunner {
     private final DemoDataService service;

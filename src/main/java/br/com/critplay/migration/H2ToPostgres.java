@@ -7,7 +7,7 @@ import java.util.*;
 
 /** Ferramenta local. Não é exposta pela API e não inicia o servidor. */
 public final class H2ToPostgres {
-    private static final List<String> TABLES=List.of("games","app_users","diary_entries","game_lists","game_list_items","user_follows","friendships","user_blocks","content_reports","account_audit","import_jobs","profile_featured_games","review_likes","activity_events");
+    private static final List<String> TABLES=List.of("games","app_users","diary_entries","game_lists","game_list_items","user_follows","friendships","user_blocks","content_reports","account_audit","import_jobs","profile_featured_games","review_likes","activity_events","media_files");
     private static final Set<String> IDENTITIES=Set.of("games","app_users","diary_entries","game_lists","game_list_items","content_reports","account_audit","import_jobs","activity_events");
     private H2ToPostgres(){}
     public static Map<String,Long> migrate(Connection source,Connection target) throws SQLException {
@@ -29,6 +29,7 @@ public final class H2ToPostgres {
                         while(rows.next()){
                             for(int i=1;i<=columns.size();i++){
                                 Object value=rows.getObject(i);
+                                if(value instanceof Blob blob)value=blob.getBytes(1,Math.toIntExact(blob.length()));
                                 if(table.equals("app_users")&&columns.get(i-1).equals("session_version"))value=((Number)value).intValue()+1;
                                 if(table.equals("import_jobs")&&columns.get(i-1).equals("status")&&"RUNNING".equals(value))value="PAUSED";
                                 insert.setObject(i,value);
