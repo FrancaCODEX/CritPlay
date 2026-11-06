@@ -447,6 +447,8 @@ function setAuthMode(mode) {
   $('#auth-title').textContent = register ? 'Crie sua conta' : 'Entre no CritPlay';
   $('#auth-submit').textContent = register ? 'Criar conta' : 'Entrar';
   $('#display-name-label').hidden = !register; $('#display-name').required = register;
+  $('#register-email-label').hidden = !register;
+  $('#register-email').disabled = !register;
   $('#password-hint').hidden = !register; $('#password').minLength = register ? 10 : 1;
   $('#password').autocomplete = register ? 'new-password' : 'current-password';
   $('#login-tab').setAttribute('aria-pressed', String(!register));
@@ -473,14 +475,14 @@ $('#auth-form').addEventListener('submit', async event => {
   const controls = $('#auth-dialog').querySelectorAll('button,input'); controls.forEach(node => { node.disabled = true; });
   try {
     if (state.authMode === 'register') await api('/api/auth/register', {
-      method: 'POST', body: JSON.stringify({ username, password, displayName })
+      method: 'POST', body: JSON.stringify({ username, password, displayName, email: $('#register-email').value.trim() || null })
     });
     await api('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ username, password }).toString() });
     state.csrf = null; await csrfToken(); await syncSession();
-    $('#password').value = ''; $('#auth-dialog').close(); render(); toast('Bem-vindo ao CritPlay!');
+    $('#password').value = ''; $('#register-email').value = ''; $('#auth-dialog').close(); render(); toast('Bem-vindo ao CritPlay!');
   } catch (error) { $('#auth-message').textContent = error.message; }
-  finally { state.authenticating = false; controls.forEach(node => { node.disabled = false; }); }
+  finally { state.authenticating = false; controls.forEach(node => { node.disabled = false; }); $('#register-email').disabled=state.authMode!=='register'; }
 });
 $('#account-logout').addEventListener('click', async () => {
   if (state.saving || state.addingGame || workspaceBusy) return;

@@ -2,7 +2,7 @@
 let metadataSelectedId=null,metadataSequence=0,metadataCatalogue=[],adminBusy=false,cleanupPreview=null;
 function resetAdmin(){resetSteam();metadataSelectedId=null;++metadataSequence;metadataCatalogue=[];cleanupPreview=null;$('#metadata-dialog').close();$('#metadata-results').replaceChildren();$('#metadata-preview').replaceChildren();$('#accounts-results').replaceChildren();$('#accounts-search-form').reset();$('#run-cleanup').disabled=true;$('#cleanup-message').textContent='';$('#accounts-message').textContent='';}
 async function refreshAdmin(){
-  loadJobs();loadReports();
+  loadJobs();loadReports();refreshEmailStatus();
   const sequence=++state.workspaceSequence;$('#accounts-message').textContent='Carregando contas…';
   try{const accounts=await api('/api/admin/accounts?q='+encodeURIComponent($('#accounts-search').value));if(sequence!==state.workspaceSequence||state.view!=='admin')return;
     $('#accounts-message').textContent=accounts.length?`${accounts.length} conta(s)`:'Nenhuma conta encontrada.';
@@ -66,3 +66,6 @@ async function previewMetadata(id){
     }));$('#metadata-preview').replaceChildren(preview);$('#metadata-message').textContent='Prévia pronta. Ainda não foi salvo no catálogo.';
   }catch(error){if(sequence===metadataSequence)$('#metadata-message').textContent=error.message;}
 }
+
+async function refreshEmailStatus(){try{const data=await api("/api/admin/email/status");$("#email-status").textContent=(data.configured?"Provedor configurado":"Provedor não configurado")+" · "+data.pending+" aviso(s) pendente(s) · "+data.exhausted+" com limite de tentativas atingido.";$("#retry-account-emails").disabled=!data.configured||!data.pending;}catch(error){$("#email-status").textContent=error.message;}}
+$("#retry-account-emails").addEventListener("click",async()=>{const control=$("#retry-account-emails");control.disabled=true;try{await api("/api/admin/email/retry",{method:"POST"});await refreshEmailStatus();}catch(error){$("#email-status").textContent=error.message;}finally{await refreshEmailStatus();}});

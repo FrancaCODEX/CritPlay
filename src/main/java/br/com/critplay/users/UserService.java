@@ -10,16 +10,21 @@ import java.util.Locale;
 public class UserService {
     private final UserRepository repository;
     private final PasswordEncoder encoder;
-    public UserService(UserRepository repository, PasswordEncoder encoder) {
-        this.repository = repository; this.encoder = encoder;
+    private final AccountNotifications notifications;
+    public UserService(UserRepository repository, PasswordEncoder encoder,AccountNotifications notifications) {
+        this.repository = repository; this.encoder = encoder;this.notifications=notifications;
     }
+    @org.springframework.transaction.annotation.Transactional
     public UserView register(RegisterRequest request) {
         String username = normalize(request.username());
         validatePassword(request.password());
         if (repository.existsByUsername(username)) throw new ConflictException("Este nome de usuário já está em uso.");
         // A API pública nunca recebe nem decide um papel de administrador.
         var user = new AppUser(username, request.displayName().strip(), encoder.encode(request.password()), Role.USER);
-        return UserView.from(repository.save(user));
+        user.updateProfile(user.getDisplayName(),"",br.com.critplay.profile.ProfileService.normalizeEmail(request.email()),null);
+        repository.saveAndFlush(user);
+        notifications.queue(user.getEmail(),username,AccountNotifications.Kind.WELCOME);
+        return UserView.from(user);
     }
     public AppUser require(String username) {
         return repository.findByUsername(normalize(username))

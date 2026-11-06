@@ -33,9 +33,11 @@ public class ProfileService {
     private final ImageService images;
     private final PasswordResetRepository resets;
     private final JdbcTemplate db;
+    private final br.com.critplay.users.AccountNotifications notifications;
 
     public ProfileService(UserService users, UserRepository repository, PasswordEncoder encoder, DiaryService diary,
-                          CatalogService catalog, ImageService images, PasswordResetRepository resets, JdbcTemplate db) {
+                          CatalogService catalog, ImageService images, PasswordResetRepository resets, JdbcTemplate db,
+                          br.com.critplay.users.AccountNotifications notifications) {
         this.users = users;
         this.repository = repository;
         this.encoder = encoder;
@@ -44,6 +46,7 @@ public class ProfileService {
         this.images = images;
         this.resets = resets;
         this.db = db;
+        this.notifications=notifications;
     }
 
     @Transactional(readOnly = true)
@@ -108,6 +111,8 @@ public class ProfileService {
         if (!Objects.equals(email, user.getEmail())) {
             checkPassword(user, request.currentPassword());
             resets.revokeUserTokens(user.getId());
+            notifications.queue(user.getEmail(),user.getUsername(),br.com.critplay.users.AccountNotifications.Kind.EMAIL_REMOVED);
+            notifications.queue(email,user.getUsername(),br.com.critplay.users.AccountNotifications.Kind.EMAIL_ADDED);
         }
         String avatar = Objects.equals(request.avatarUrl(), user.getAvatarUrl())
             ? user.getAvatarUrl() : images.ownedUrl(user.getId(), request.avatarUrl());
@@ -123,6 +128,7 @@ public class ProfileService {
         user.changePassword(encoder.encode(request.newPassword()));
         repository.save(user);
         resets.revokeUserTokens(user.getId());
+        notifications.queue(user.getEmail(),user.getUsername(),br.com.critplay.users.AccountNotifications.Kind.PASSWORD_CHANGED);
     }
 
     private void checkPassword(AppUser user, String password) {
