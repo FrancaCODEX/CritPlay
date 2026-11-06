@@ -114,7 +114,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
     await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     await visitor.close();
-    await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();await page.locator('#people-results button').click();
+    await page.locator('[data-mobile-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();await page.locator('#people-results button').click();
     page.once('dialog',dialog=>dialog.accept('Uma denúncia fictícia de perfil para validar o fluxo.'));await page.getByRole('button',{name:'Denunciar perfil',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia enviada'));
     page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Bloquear',exact:true}).click();await page.locator('#public-profile-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Usuários bloqueados',exact:true}).waitFor();await page.getByRole('button',{name:'Desbloquear',exact:true}).waitFor();
     assert.equal(await page.locator('#people-results button').count(),0);await page.getByRole('button',{name:'Desbloquear',exact:true}).click();await page.locator('#people-results button').waitFor();
