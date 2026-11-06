@@ -9,10 +9,15 @@ for(const button of document.querySelectorAll('[data-mobile-view]')){
   button.querySelector('.mobile-nav-icon').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+mobilePaths[button.dataset.mobileView]+'</svg>';
   button.addEventListener('click',()=>{closeMobileMenu();setView(button.dataset.mobileView);});
 }
-for(const option of $('#genre').options){
+let mobileGenreSignature='';
+function renderMobileGenres(){
+ const signature=Array.from($('#genre').options,option=>option.value).join('|');
+ if(signature===mobileGenreSignature)return;mobileGenreSignature=signature;$('#mobile-genres').replaceChildren();
+ for(const option of $('#genre').options){
   const button=el('button','mobile-genre',option.value?option.textContent:'Todos');button.type='button';button.dataset.genre=option.value;
   button.addEventListener('click',()=>{$('#genre').value=option.value;syncMobileLayout();$('#genre').dispatchEvent(new Event('change',{bubbles:true}));});
   $('#mobile-genres').append(button);
+ }
 }
 function closeMobileMenu(){
   $('.topbar').classList.remove('mobile-menu-open');$('#mobile-menu-toggle').setAttribute('aria-expanded','false');
@@ -24,7 +29,6 @@ $('#mobile-main-menu').addEventListener('click',event=>{if(event.target.closest(
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('.topbar').classList.contains('mobile-menu-open')){closeMobileMenu();$('#mobile-menu-toggle').focus();}});
 function syncMobileLayout(){
   const discovery=mobileViewport.matches&&state.view==='catalog';
-  document.body.dataset.mobileView=state.view;
   $('#mobile-discovery').hidden=!discovery;
   if(discovery){if(mobileFilters.parentNode!==$('#mobile-search-slot'))$('#mobile-search-slot').append(mobileFilters);}
   else if(mobileFilters.previousSibling!==mobileFilterHome)mobileFilterHome.after(mobileFilters);
@@ -32,6 +36,7 @@ function syncMobileLayout(){
     const active=button.dataset.mobileView===state.view||button.dataset.mobileView==='people'&&state.view==='feed'||button.dataset.mobileView==='profile'&&['favorites','wishlist','lists'].includes(state.view);
     button.setAttribute('aria-current',active?'page':'false');
   }
+  renderMobileGenres();
   for(const button of $('#mobile-genres').children)button.setAttribute('aria-pressed',String(button.dataset.genre===$('#genre').value));
 }
 mobileViewport.addEventListener('change',()=>{closeMobileMenu();syncMobileLayout();});
