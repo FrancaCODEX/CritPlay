@@ -108,3 +108,7 @@ A organização de perfis, relações sociais, curtidas e moderação está desc
 O projeto inclui `.editorconfig` para manter a indentação e as terminações de linha
 consistentes entre editores. Ao alterar regras de acesso ou os contratos públicos,
 execute `./mvnw clean verify` e as suítes de navegador usadas no CI.
+
+### E-mails e edição do perfil
+
+A edição do perfil abre em uma janela acessível. Para ativar avisos de conta e recuperação de senha, siga o [guia de e-mail e configurações](docs/EMAIL_E_CONFIGURACOES.md). Há suporte a SMTP e Resend por HTTPS; os envios vêm desativados por padrão.

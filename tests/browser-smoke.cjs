@@ -13,8 +13,8 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
   let browser;
   try {
     let ready=false;
-    for(let i=0;i<100;i++){try{const r=await fetch(base+'/api/games');if(r.ok&&(await r.json()).length>=12){ready=true;break;}}catch{}if(app.exitCode!==null)throw new Error('Java encerrado: '+logs.slice(-2000));await pause(300);}
-    assert(ready,'Java não iniciou');
+    for(let i=0;i<300;i++){try{const r=await fetch(base+'/api/games');if(r.ok&&(await r.json()).length>=12){ready=true;break;}}catch{}if(app.exitCode!==null)throw new Error('Java encerrado: '+logs.slice(-2000));await pause(300);}
+    assert(ready,'Java não iniciou: '+logs.slice(-6000));
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     await context.route('**/api/admin/steam/resolve',route=>route.fulfill({json:{status:'FOUND',appId:777456,message:'Steam App ID encontrado.'}}));
@@ -38,17 +38,17 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#close-detail').click();await page.locator('[data-view=profile]').click();await page.locator('[data-view=wishlist]').click();assert.equal(await page.locator('.card').count(),1);
     await page.locator('[data-view=profile]').click();await page.locator('#profile-reviews').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     assert(await page.locator('#profile-settings').isHidden());await page.locator('#toggle-profile-settings').click();await page.locator('#profile-name').fill('Jogador de teste');await page.locator('#profile-bio').fill('Minha coleção de histórias.');
-    await page.locator('.review-head .text-button').click();
+    await page.locator('#close-profile-settings').click();await page.locator('.review-head .text-button').click();
     const profileRefresh=page.waitForResponse(response=>response.url().endsWith('/api/profile')&&response.status()===200);
     await page.locator('#diary-form button[type=submit]').click();await profileRefresh;
     await page.waitForFunction(()=>document.querySelector('#form-message').textContent.includes('salva'));
     await page.locator('#close-detail').click();assert.equal(await page.locator('#profile-name').inputValue(),'Jogador de teste','Editar uma resenha apagou o rascunho do perfil');
-    await page.locator('#profile-avatar-file').setInputFiles({name:'avatar.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAFElEQVR4nGN0yzNiwA2Y8MiNYGkAIi0A+uIAXFoAAAAASUVORK5CYII=','base64')});
+    await page.locator('#toggle-profile-settings').click();await page.locator('#profile-avatar-file').setInputFiles({name:'avatar.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAFElEQVR4nGN0yzNiwA2Y8MiNYGkAIi0A+uIAXFoAAAAASUVORK5CYII=','base64')});
     await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('Foto enviada'));
     await page.locator('#profile-form button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('#profile-message').textContent.includes('atualizado'));
     assert.equal(await page.locator('#profile-summary h2').textContent(),'Jogador de teste');assert.equal(await page.locator('#profile-summary img').count(),1);assert.equal(await page.locator('#account-name img').count(),1);assert.equal(await page.locator('#account-name img').getAttribute('src'),await page.locator('#profile-summary img').getAttribute('src'));
     const qa=process.env.CRITPLAY_QA_DIR;if(qa){fs.mkdirSync(qa,{recursive:true});await page.screenshot({path:path.join(qa,'profile-desktop.png'),fullPage:true});}
-    await page.locator('[data-view=admin]').click();await page.locator('.account-card').first().waitFor();
+    await page.locator('#close-profile-settings').click();await page.locator('[data-view=admin]').click();await page.locator('.account-card').first().waitFor();
     await page.locator('#preview-cleanup').click();await page.waitForFunction(()=>document.querySelector('#cleanup-message').textContent.includes('24 horas'));assert(await page.locator('#run-cleanup').isDisabled());
     const saveAccount=page.locator('.account-card').filter({hasText:'@ui_admin'}).getByRole('button',{name:'Salvar permissões'});assert(await saveAccount.isDisabled());
     page.once('dialog',dialog=>dialog.accept());await page.locator('#bulk-form button').click();await page.getByText('Configure RAWG_API_KEY antes de iniciar a importação.',{exact:true}).waitFor();
@@ -76,19 +76,19 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).click();await page.locator('#edit-game').click();await page.locator('#game-title').fill('Jogo editado no navegador');await page.locator('#game-submit').click();
     await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo editado no navegador',exact:true}).waitFor();
     await page.setViewportSize({width:390,height:844});await page.locator('[data-view=profile]').click();await page.locator('#profile-summary h2').waitFor();await page.locator('#toggle-profile-settings').click();
-    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Perfil possui overflow horizontal no celular');
+    assert(await page.locator('#profile-settings-dialog').isVisible());assert(await page.evaluate(()=>{const d=document.querySelector('#profile-settings-dialog').getBoundingClientRect();return d.width<=innerWidth+1&&d.height<=innerHeight+1;}),'Modal extrapola a tela no celular');await page.keyboard.press('Escape');assert(await page.locator('#toggle-profile-settings').evaluate(n=>n===document.activeElement));await page.locator('#toggle-profile-settings').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Perfil possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'profile-mobile.png'),fullPage:true});
     await page.locator('#profile-visibility').selectOption('FRIENDS');await page.locator('#profile-discoverable').check();
-    await page.locator('.review-head .text-button').click();
+    await page.locator('#close-profile-settings').click();await page.locator('.review-head .text-button').click();
     const privacyDraftRefresh=page.waitForResponse(response=>response.url().endsWith('/api/profile')&&response.status()===200);
     await page.locator('#diary-form button[type=submit]').click();await privacyDraftRefresh;await page.waitForFunction(()=>!document.querySelector('#profile-visibility').disabled);
     await page.locator('#close-detail').click();assert.equal(await page.locator('#profile-visibility').inputValue(),'FRIENDS');assert(await page.locator('#profile-discoverable').isChecked(),'Atualizar resenha apagou o rascunho de privacidade');
-    await page.locator('#privacy-form button[type=submit]').click();await page.getByText('Privacidade atualizada.',{exact:true}).waitFor();
+    await page.locator('#toggle-profile-settings').click();await page.locator('#privacy-form button[type=submit]').click();await page.getByText('Privacidade atualizada.',{exact:true}).waitFor();
     await page.setViewportSize({width:1440,height:1000});
-    await page.locator('#account-logout').click();await page.locator('#account-login').waitFor();
-    await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();
+    await page.locator('#close-profile-settings').click();await page.locator('#account-logout').click();await page.locator('#account-login').waitFor();
+    await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#register-email').fill('browser_user@example.test');await page.locator('#auth-submit').click();
     await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());assert(await page.locator('#admin-nav').isHidden());
-    await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);
+    await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);assert.equal(await page.evaluate(async()=>(await(await fetch('/api/profile')).json()).user.email),'browser_user@example.test');
     await page.locator('[data-view=profile]').click();await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
     await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();
     await page.locator('#people-results').getByText('@ui_admin',{exact:true}).waitFor();await page.locator('#people-results button').click();
@@ -118,7 +118,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     page.once('dialog',dialog=>dialog.accept('Uma denúncia fictícia de perfil para validar o fluxo.'));await page.getByRole('button',{name:'Denunciar perfil',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia enviada'));
     page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Bloquear',exact:true}).click();await page.locator('#public-profile-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Usuários bloqueados',exact:true}).waitFor();await page.getByRole('button',{name:'Desbloquear',exact:true}).waitFor();
     assert.equal(await page.locator('#people-results button').count(),0);await page.getByRole('button',{name:'Desbloquear',exact:true}).click();await page.locator('#people-results button').waitFor();
-    await adminPage.locator('[data-view=admin]').click();await adminPage.getByText('Uma denúncia fictícia de perfil para validar o fluxo.',{exact:true}).waitFor();adminPage.once('dialog',dialog=>dialog.accept());await adminPage.getByRole('button',{name:'Resolver',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia analisada'));const managedCard=adminPage.locator('.account-card').filter({hasText:'@browser_user'});await managedCard.waitFor();
+    await adminPage.locator('#close-profile-settings').click();await adminPage.locator('[data-view=admin]').click();await adminPage.getByText('Uma denúncia fictícia de perfil para validar o fluxo.',{exact:true}).waitFor();adminPage.once('dialog',dialog=>dialog.accept());await adminPage.getByRole('button',{name:'Resolver',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia analisada'));const managedCard=adminPage.locator('.account-card').filter({hasText:'@browser_user'});await managedCard.waitFor();
     await managedCard.locator('select').selectOption('ADMIN');adminPage.once('dialog',dialog=>dialog.accept());await managedCard.getByRole('button',{name:'Salvar permissões',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Permissões atualizadas'));
     await page.locator('[data-view=profile]').click();await page.locator('#account-login').waitFor();
     await page.locator('#account-login').click();await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();await page.locator('#admin-nav').waitFor();

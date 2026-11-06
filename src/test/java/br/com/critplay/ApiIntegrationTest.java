@@ -84,6 +84,27 @@ class ApiIntegrationTest {
                 .map(HttpCookie::getValue).findFirst().orElse("");
         }
     }
+    @Test void registrationEmailIsValidatedUniqueAndPrivate() throws Exception {
+        var session=new Session();session.refreshCsrf();
+        String name="mail_"+UUID.randomUUID().toString().substring(0,8), email=name+"@example.test";
+        var body=new java.util.LinkedHashMap<String,Object>(Map.of("username",name,"displayName","Pessoa teste","password","EmailTestPassword42!","email","invalid"));
+        assertEquals(400,session.send("POST","/api/auth/register",mapper.writeValueAsString(body)).statusCode());
+        body.put("email",email.toUpperCase(java.util.Locale.ROOT));
+        var created=session.send("POST","/api/auth/register",mapper.writeValueAsString(body));assertEquals(201,created.statusCode());
+        assertFalse(created.body().contains(email));assertFalse(created.body().contains("email"));
+        session.login(name,"EmailTestPassword42!");assertEquals(email,session.json("/api/profile").path("user").path("email").asText());
+        assertFalse(session.json("/api/auth/me").path("user").has("email"));
+        var another=new Session();another.refreshCsrf();body.put("username",name+"_2");body.put("email",email);
+        assertEquals(409,another.send("POST","/api/auth/register",mapper.writeValueAsString(body)).statusCode());
+    }
+    @Test void accountEmailAdministrationRequiresAdminAndCsrf() throws Exception {
+        var ordinary=user();assertEquals(403,ordinary.send("GET","/api/admin/email/status",null).statusCode());
+        assertEquals(403,ordinary.send("POST","/api/admin/email/retry","{}").statusCode());
+        var admin=new Session();admin.login("test_admin","AdminTestPassword42!");
+        assertEquals(200,admin.send("GET","/api/admin/email/status",null).statusCode());
+        assertEquals(403,admin.send("POST","/api/admin/email/retry","{}",false,"application/json").statusCode());
+        assertEquals(200,admin.send("POST","/api/admin/email/retry","{}").statusCode());
+    }
     Session user() throws Exception {
         var session=new Session();session.refreshCsrf();
         String username="user_"+UUID.randomUUID().toString().replace("-","").substring(0,10);

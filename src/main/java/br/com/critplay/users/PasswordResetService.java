@@ -15,9 +15,11 @@ public class PasswordResetService {
     private static final org.slf4j.Logger LOG=org.slf4j.LoggerFactory.getLogger(PasswordResetService.class);
     private final UserRepository users;private final PasswordResetRepository tokens;private final PasswordEncoder encoder;
     private final ResetMailer mail;private final String baseUrl;private final SecureRandom random=new SecureRandom();
+    private final AccountNotifications notifications;
     public PasswordResetService(UserRepository users,PasswordResetRepository tokens,PasswordEncoder encoder,ResetMailer mail,
-        @Value("${app.recovery.base-url}") String baseUrl) {
+        @Value("${app.recovery.base-url}") String baseUrl,AccountNotifications notifications) {
         this.users=users;this.tokens=tokens;this.encoder=encoder;this.mail=mail;this.baseUrl=baseUrl.replaceAll("/$","");
+        this.notifications=notifications;
         var uri=java.net.URI.create(this.baseUrl);
         if(uri.getHost()==null||(!"http".equals(uri.getScheme())&&!"https".equals(uri.getScheme()))||uri.getRawQuery()!=null||uri.getRawFragment()!=null)
             throw new IllegalArgumentException("APP_BASE_URL inválida.");
@@ -36,7 +38,7 @@ public class PasswordResetService {
         catch(ServiceUnavailableException ex) {
             tokens.revokeUserTokens(user.getId());
             // Mesmo erro de transporte mantém a resposta genérica e não expõe a existência da conta.
-            LOG.warn("Falha no envio de recuperação de senha. Confira a configuração SMTP.");
+            LOG.warn("Falha no envio de recuperação de senha. Confira o provedor de e-mail.");
         }
     }
     @Transactional public void reset(String token,String password) {
@@ -46,6 +48,7 @@ public class PasswordResetService {
         var user=users.findById(saved.getUserId()).orElseThrow(()->new BadRequestException("Link inválido ou expirado."));
         if(!user.isEnabled())throw new BadRequestException("Link inválido ou expirado.");
         user.changePassword(encoder.encode(password));users.save(user);saved.consume();tokens.save(saved);tokens.revokeUserTokens(user.getId());
+        notifications.queue(user.getEmail(),user.getUsername(),AccountNotifications.Kind.PASSWORD_CHANGED);
     }
     public static String hash(String token) {
         try {return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8)));}

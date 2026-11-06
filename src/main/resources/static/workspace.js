@@ -208,11 +208,20 @@ function openResetFromLink() {
 openResetFromLink();
 
 function closeProfileSettings(){
-  $('#profile-settings').hidden=true;$('#toggle-profile-settings').setAttribute('aria-expanded','false');$('#toggle-profile-settings').textContent='Editar perfil';
+  $('#profile-settings-dialog').close();
 }
 $('#toggle-profile-settings').addEventListener('click',()=>{
-  const show=$('#profile-settings').hidden;$('#profile-settings').hidden=!show;
-  $('#toggle-profile-settings').setAttribute('aria-expanded',String(show));$('#toggle-profile-settings').textContent=show?'Fechar configurações':'Editar perfil';
+  if(!state.profile||workspaceBusy)return;
+  const dialog=$('#profile-settings-dialog');
+  if(!dialog.open)dialog.showModal();
+  dialog.scrollTop=0;$('#profile-settings-title').focus();
+  $('#toggle-profile-settings').setAttribute('aria-expanded','true');
+});
+$('#close-profile-settings').addEventListener('click',()=>{if(!workspaceBusy)closeProfileSettings();});
+$('#profile-settings-dialog').addEventListener('cancel',event=>{if(workspaceBusy)event.preventDefault();});
+$('#profile-settings-dialog').addEventListener('close',()=>{
+  $('#toggle-profile-settings').setAttribute('aria-expanded','false');
+  for(const id of ['profile-current-password','old-password','new-password','confirm-password'])$('#'+id).value='';
 });
 
 $('#profile-overview').addEventListener('click',()=>setView('profile'));
