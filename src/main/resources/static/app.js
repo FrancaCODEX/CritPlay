@@ -101,6 +101,7 @@ function render() {
   $('.hero').hidden=state.view!=='catalog';$('.journey').hidden=state.view!=='catalog';scheduleHero();
   $('#feed-section').hidden=state.view!=='feed';
   $('#admin-section').hidden=state.view!=='admin';$('#people-section').hidden=state.view!=='people';$('#profile-section').hidden=!isProfileView();$('#lists-section').hidden=state.view!=='lists';
+  if(typeof syncMobileLayout==='function')syncMobileLayout();
   if(personal) {if(state.view==='feed')refreshFeed();else if(state.view==='people')refreshPeople();else if(state.view==='admin')refreshAdmin();else refreshWorkspace(state.view);return;}
   let games = state.games.filter(game => state.view === 'catalog' ||
     (state.view === 'library' ? state.diary.has(game.id) : state.view==='wishlist'?state.diary.get(game.id)?.wishlist:state.diary.get(game.id)?.favorite));
@@ -218,7 +219,7 @@ function setView(view) {
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view || button.dataset.view==='profile'&&isProfileView(view);
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   if(isProfileView(view)&&view!=='profile')refreshWorkspace('profile');
-  render(); (view==='feed'?$('#feed-section'):isProfileView(view)?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(); (view==='catalog'&&matchMedia('(max-width:680px)').matches?$('#mobile-discovery'):view==='feed'?$('#feed-section'):matchMedia('(max-width:680px)').matches&&isProfileView(view)&&view!=='profile'?$('#profile-navigation'):isProfileView(view)?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game, editing = false) {
   if (state.saving || state.quickSaving.has(game.id)) return;
@@ -242,7 +243,7 @@ async function openDetail(game, editing = false) {
   $('#favorite').checked = !!entry?.favorite;
   $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
   $('#edit-game').hidden=state.user?.role!=='ADMIN';
-  $('#game-list-controls').hidden=!state.user;
+  $('#game-list-controls').hidden=!state.user;$('#list-add-message').textContent='';
   updateListPicker();renderConsoleLinks(game);
   $('#remove-entry').hidden = !entry;
   $('#form-message').textContent = '';

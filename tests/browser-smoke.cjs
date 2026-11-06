@@ -1,3 +1,4 @@
+async function boundedContext(browser,options){const context=await browser.newContext(options);context.setDefaultTimeout(30000);context.setDefaultNavigationTimeout(30000);return context;}
 // Node/Playwright são necessários só para esta verificação, não para usar o CritPlay.
 const {chromium}=require('playwright');
 const {spawn}=require('node:child_process');
@@ -15,11 +16,11 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     let ready=false;
     for(let i=0;i<300;i++){try{const r=await fetch(base+'/api/games');if(r.ok&&(await r.json()).length>=12){ready=true;break;}}catch{}if(app.exitCode!==null)throw new Error('Java encerrado: '+logs.slice(-2000));await pause(300);}
     assert(ready,'Java não iniciou: '+logs.slice(-6000));
-    browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});
+    browser=await chromium.launch({headless:true});const context=await boundedContext(browser,{viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     await context.route('**/api/admin/steam/resolve',route=>route.fulfill({json:{status:'FOUND',appId:777456,message:'Steam App ID encontrado.'}}));
     const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base);await page.locator('.card').first().waitFor();
+    console.log('Starting '+"tests/browser-smoke.cjs");await page.goto(base);await page.locator('.card').first().waitFor();
     const firstHero=await page.locator('#hero-title').textContent();await page.locator('#hero-next').click();assert.notEqual(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-prev').click();assert.equal(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-pause').click();assert.equal(await page.locator('#hero-pause').getAttribute('aria-pressed'),'true');
     await page.locator('#account-login').click();await page.locator('#username').fill('ui_admin');await page.locator('#password').fill('BrowserAdminPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#add-game').waitFor({state:'visible'});assert((await page.title()).startsWith('CritPlay'));assert.equal(await page.locator('.topbar .brand').textContent(),'CRITPLAYBETA');
@@ -75,7 +76,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('[data-view=catalog]').click();
     await page.getByRole('button',{name:'Abrir Jogo criado no navegador',exact:true}).click();await page.locator('#edit-game').click();await page.locator('#game-title').fill('Jogo editado no navegador');await page.locator('#game-submit').click();
     await page.locator('#admin-dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Abrir Jogo editado no navegador',exact:true}).waitFor();
-    await page.setViewportSize({width:390,height:844});await page.locator('[data-view=profile]').click();await page.locator('#profile-summary h2').waitFor();await page.locator('#toggle-profile-settings').click();
+    await page.setViewportSize({width:390,height:844});await page.locator('[data-mobile-view=profile]').click();await page.locator('#profile-summary h2').waitFor();await page.locator('#toggle-profile-settings').click();
     assert(await page.locator('#profile-settings-dialog').isVisible());assert(await page.evaluate(()=>{const d=document.querySelector('#profile-settings-dialog').getBoundingClientRect();return d.width<=innerWidth+1&&d.height<=innerHeight+1;}),'Modal extrapola a tela no celular');await page.keyboard.press('Escape');assert(await page.locator('#toggle-profile-settings').evaluate(n=>n===document.activeElement));await page.locator('#toggle-profile-settings').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Perfil possui overflow horizontal no celular');
     if(qa)await page.screenshot({path:path.join(qa,'profile-mobile.png'),fullPage:true});
     await page.locator('#profile-visibility').selectOption('FRIENDS');await page.locator('#profile-discoverable').check();
@@ -96,7 +97,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.getByRole('button',{name:'Seguir',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Deixar de seguir',exact:true}).waitFor();
     assert.equal(await page.locator('#public-profile-content .review-card').count(),0);
     await page.getByRole('button',{name:'Adicionar amigo',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Cancelar pedido',exact:true}).waitFor();await page.locator('#close-public-profile').click();
-    const secondContext=await browser.newContext({viewport:{width:1440,height:1000}});
+    const secondContext=await boundedContext(browser,{viewport:{width:1440,height:1000}});
     await secondContext.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const adminPage=await secondContext.newPage();adminPage.on('pageerror',error=>errors.push(error.message));await adminPage.goto(base);
     await adminPage.locator('#account-login').click();await adminPage.locator('#username').fill('ui_admin');await adminPage.locator('#password').fill('BrowserAdminPassword42!');await adminPage.locator('#auth-submit').click();await adminPage.locator('#add-game').waitFor();
@@ -110,18 +111,18 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     if(qa)await page.screenshot({path:path.join(qa,'community-mobile.png'),fullPage:true});
     await adminPage.locator('[data-view=profile]').click();await adminPage.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Jogador de teste');await adminPage.locator('#toggle-profile-settings').click();await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
     const sharedSettings=await adminPage.evaluate(async()=>(await(await fetch('/api/profile')).json()).user);assert.equal(sharedSettings.visibility,'PUBLIC');assert.equal(sharedSettings.discoverable,true);
-    const visitor=await browser.newContext();await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+    const visitor=await boundedContext(browser,);await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
     await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     await visitor.close();
-    await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();await page.locator('#people-results button').click();
+    await page.locator('[data-mobile-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();await page.locator('#people-results button').click();
     page.once('dialog',dialog=>dialog.accept('Uma denúncia fictícia de perfil para validar o fluxo.'));await page.getByRole('button',{name:'Denunciar perfil',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia enviada'));
     page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Bloquear',exact:true}).click();await page.locator('#public-profile-dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Usuários bloqueados',exact:true}).waitFor();await page.getByRole('button',{name:'Desbloquear',exact:true}).waitFor();
     assert.equal(await page.locator('#people-results button').count(),0);await page.getByRole('button',{name:'Desbloquear',exact:true}).click();await page.locator('#people-results button').waitFor();
     await adminPage.locator('#close-profile-settings').click();await adminPage.locator('[data-view=admin]').click();await adminPage.getByText('Uma denúncia fictícia de perfil para validar o fluxo.',{exact:true}).waitFor();adminPage.once('dialog',dialog=>dialog.accept());await adminPage.getByRole('button',{name:'Resolver',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Denúncia analisada'));const managedCard=adminPage.locator('.account-card').filter({hasText:'@browser_user'});await managedCard.waitFor();
     await managedCard.locator('select').selectOption('ADMIN');adminPage.once('dialog',dialog=>dialog.accept());await managedCard.getByRole('button',{name:'Salvar permissões',exact:true}).click();await adminPage.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Permissões atualizadas'));
-    await page.locator('[data-view=profile]').click();await page.locator('#account-login').waitFor();
-    await page.locator('#account-login').click();await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();await page.locator('#admin-nav').waitFor();
+    await page.locator('[data-mobile-view=profile]').click();await page.locator('#account-login').waitFor();
+    await page.locator('#account-login').click();await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();await page.locator('#auth-dialog').waitFor({state:'hidden'});await page.locator('#mobile-menu-toggle').click();await page.locator('#admin-nav').waitFor();
     if(qa)await adminPage.screenshot({path:path.join(qa,'administration-desktop.png'),fullPage:true});
     await secondContext.close();
     assert.deepEqual(errors,[],'Erros JavaScript no navegador');

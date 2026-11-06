@@ -97,9 +97,9 @@ async function removeListGame(id,gameId) {
   catch(error){toast(error.message);}finally{workspaceBusy=false;}
 }
 $('#add-to-list').addEventListener('click',async()=>{
-  if(workspaceBusy||!state.selected||!$('#game-list-select').value)return;workspaceBusy=true;$('#add-to-list').disabled=true;
-  try{await api(`/api/lists/${$('#game-list-select').value}/games/${state.selected.id}`,{method:'PUT'});state.lists=await api('/api/lists');toast('Jogo adicionado à lista.');}
-  catch(error){toast(error.message);}finally{workspaceBusy=false;updateListPicker();}
+  if(workspaceBusy||!state.selected||!$('#game-list-select').value)return;workspaceBusy=true;$('#add-to-list').disabled=true;$('#list-add-message').textContent='Adicionando jogo…';
+  try{await api(`/api/lists/${$('#game-list-select').value}/games/${state.selected.id}`,{method:'PUT'});state.lists=await api('/api/lists');$('#list-add-message').textContent='Jogo adicionado à lista.';toast('Jogo adicionado à lista.');}
+  catch(error){$('#list-add-message').textContent=error.message;toast(error.message);}finally{workspaceBusy=false;updateListPicker();}
 });
 $('#account-name').addEventListener('click',()=>setView('profile'));
 $('#profile-form').addEventListener('input',()=>{state.profileDirty=true;});

@@ -1,3 +1,4 @@
+async function boundedContext(browser,options){const context=await browser.newContext(options);context.setDefaultTimeout(30000);context.setDefaultNavigationTimeout(30000);return context;}
 // Deterministic interaction checks for reviews and card shortcuts (no Java server required).
 const {chromium}=require('playwright');
 const http=require('node:http');const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');
@@ -12,7 +13,7 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base=`http://127.0.0.1:${server.address().port}`;let browser;
   try{
-    browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},hasTouch:true});
+    browser=await chromium.launch({headless:true});const context=await boundedContext(browser,{viewport:{width:1440,height:1000},hasTouch:true});
     const game={id:1,title:'Jogo de teste',genre:'RPG',releaseYear:2026,platforms:'PC',description:'Uma aventura para testar.'};
     let entry=null,failSave=false,authenticated=true,averageOverride,delayGames=true,delayReviews=false,failReviews=false,privateSharedProfile=false;
     await context.route('**/*',async route=>{
@@ -39,7 +40,7 @@ const root=path.resolve(__dirname,'../src/main/resources/static');
     const page=await context.newPage();
     async function assertHalfStar(index){await page.waitForFunction(index=>{const star=document.querySelectorAll('.picker-star')[index];const box=star.querySelector('.picker-star-fill').getBoundingClientRect(),shape=star.querySelector('.picker-star-empty svg').getBoundingClientRect(),filled=star.querySelector('.picker-star-fill svg').getBoundingClientRect();return Math.abs(box.right-(shape.x+shape.width/2))<.15&&Math.abs(filled.width-shape.width)<.15&&Math.abs(filled.x-shape.x)<.15;},index);}
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base);await page.locator('#account-name .avatar-initials').waitFor();assert.equal(await page.locator('#account-name img').count(),0);assert.equal(await page.locator('#account-name').getAttribute('aria-label'),'Abrir perfil de Tester');await page.locator('#games[aria-busy=true] .skeleton-game').first().waitFor();assert.equal(await page.locator('#games .skeleton-game').count(),8);await page.locator('.card').waitFor();assert.equal(await page.locator('#games').getAttribute('aria-busy'),null);delayGames=false;
+    console.log('Starting '+"tests/reviews-ui.cjs");await page.goto(base);await page.locator('#account-name .avatar-initials').waitFor();assert.equal(await page.locator('#account-name img').count(),0);assert.equal(await page.locator('#account-name').getAttribute('aria-label'),'Abrir perfil de Tester');await page.locator('#games[aria-busy=true] .skeleton-game').first().waitFor();assert.equal(await page.locator('#games .skeleton-game').count(),8);await page.locator('.card').waitFor();assert.equal(await page.locator('#games').getAttribute('aria-busy'),null);delayGames=false;
     await page.locator('.game-card').hover();await page.waitForTimeout(250);
     assert.notEqual(await page.locator('.game-card').evaluate(n=>getComputedStyle(n).transform),'none');
     await page.getByRole('button',{name:'Adicionar a favoritos: Jogo de teste',exact:true}).click();
