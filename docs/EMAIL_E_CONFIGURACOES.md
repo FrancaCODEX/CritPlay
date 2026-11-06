@@ -8,7 +8,7 @@ O site pode continuar em https://critplay.vercel.app. O domínio do site e a con
 
 1. Crie a conta e ative a verificação em duas etapas na [Conta Google](https://myaccount.google.com/security).
 2. Gere uma [senha de app](https://myaccount.google.com/apppasswords) chamada CritPlay. Essa opção depende das políticas da conta. Use essa senha, nunca a senha normal de login.
-3. Na Vercel, projeto CritPlay → Settings → Environment Variables, configure os valores abaixo no ambiente **Production**. Marque senhas e chaves como sensíveis. Não as publique no GitHub nem neste chat.
+3. Na Vercel, projeto CritPlay → Settings → Environment Variables, configure os valores abaixo no ambiente **Production**. Salve senhas e chaves como tipo Secret (ou Sensitive, em interfaces antigas). Não as publique no GitHub nem neste chat.
 4. Após revisar e integrar o PR, faça deploy com essas variáveis. Se as adicionar depois do deploy, faça Redeploy para aplicá-las. Cache de build não substitui a atualização das variáveis.
 
 | Variável | Valor |
@@ -24,6 +24,8 @@ O site pode continuar em https://critplay.vercel.app. O domínio do site e a con
 | MAIL_PASSWORD | senha de app gerada pelo Google |
 | MAIL_AUTH | true |
 | MAIL_STARTTLS | true |
+
+A Vercel permite SMTP de saída, exceto na porta 25. O código aguarda o envio na requisição, pois trabalho em background pode ser suspenso após a resposta. [Orientação oficial sobre SMTP](https://vercel.com/kb/guide/serverless-functions-and-smtp).
 
 As credenciais ficam apenas no backend. Não altere DB_URL, DB_USERNAME ou DB_PASSWORD para configurar e-mail. Não adicione prefixos de variáveis públicas às credenciais. Em Preview, deixe os envios desativados ou use um remetente de teste separado; não compartilhe segredos nem o banco de produção com previews não confiáveis.
 
