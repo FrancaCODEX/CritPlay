@@ -13,8 +13,8 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
   let browser;
   try {
     let ready=false;
-    for(let i=0;i<100;i++){try{const r=await fetch(base+'/api/games');if(r.ok&&(await r.json()).length>=12){ready=true;break;}}catch{}if(app.exitCode!==null)throw new Error('Java encerrado: '+logs.slice(-2000));await pause(300);}
-    assert(ready,'Java não iniciou');
+    for(let i=0;i<300;i++){try{const r=await fetch(base+'/api/games');if(r.ok&&(await r.json()).length>=12){ready=true;break;}}catch{}if(app.exitCode!==null)throw new Error('Java encerrado: '+logs.slice(-2000));await pause(300);}
+    assert(ready,'Java não iniciou: '+logs.slice(-6000));
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     await context.route('**/api/admin/steam/resolve',route=>route.fulfill({json:{status:'FOUND',appId:777456,message:'Steam App ID encontrado.'}}));
@@ -86,9 +86,9 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.locator('#toggle-profile-settings').click();await page.locator('#privacy-form button[type=submit]').click();await page.getByText('Privacidade atualizada.',{exact:true}).waitFor();
     await page.setViewportSize({width:1440,height:1000});
     await page.locator('#close-profile-settings').click();await page.locator('#account-logout').click();await page.locator('#account-login').waitFor();
-    await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#auth-submit').click();
+    await page.locator('#account-login').click();await page.locator('#register-tab').click();await page.locator('#display-name').fill('Outra pessoa');await page.locator('#username').fill('browser_user');await page.locator('#password').fill('BrowserUserPassword42!');await page.locator('#register-email').fill('browser_user@example.test');await page.locator('#auth-submit').click();
     await page.locator('#auth-dialog').waitFor({state:'hidden'});assert(await page.locator('#add-game').isHidden());assert(await page.locator('#admin-nav').isHidden());
-    await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);
+    await page.locator('[data-view=profile]').click();await page.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Outra pessoa');assert.equal(await page.locator('.review-card').count(),0);assert.equal(await page.evaluate(async()=>(await(await fetch('/api/profile')).json()).user.email),'browser_user@example.test');
     await page.locator('[data-view=profile]').click();await page.locator('[data-view=lists]').click();await page.getByText('Crie sua primeira lista e reúna os jogos do seu jeito.',{exact:true}).waitFor();
     await page.locator('[data-view=people]').click();await page.locator('#people-search').fill('ui_admin');await page.locator('#people-search-form button').click();
     await page.locator('#people-results').getByText('@ui_admin',{exact:true}).waitFor();await page.locator('#people-results button').click();

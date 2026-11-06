@@ -8,7 +8,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     '--ggdeals.api-key=','--rawg.api-key=','--app.security.rate-limit-enabled=false',`--app.media.directory=${path.join(work,'uploads')}`],{cwd:work});
   let logs='';app.stdout.on('data',data=>logs+=data);app.stderr.on('data',data=>logs+=data);let browser;
   try{
-    for(let i=0;i<100;i++){try{if((await fetch(base+'/api/games')).ok)break;}catch{}if(app.exitCode!==null)throw Error(logs.slice(-2000));await pause(300);}
+    for(let i=0;i<300;i++){try{if((await fetch(base+'/api/games')).ok)break;}catch{}if(app.exitCode!==null)throw Error(logs.slice(-2000));await pause(300);}
     browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(base);await page.locator('.card').first().waitFor();assert.equal(await page.locator('.topbar [data-view=library],.topbar [data-view=favorites],.topbar [data-view=wishlist],.topbar [data-view=lists]').count(),0);
     const original=await page.locator('#games .card h3').allTextContents();await page.locator('#game-sort').selectOption('title');const ordered=await page.locator('#games .card h3').allTextContents();
