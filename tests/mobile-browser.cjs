@@ -1,0 +1,29 @@
+const {chromium}=require('playwright');
+const {spawn}=require('node:child_process');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const assert=require('node:assert/strict');const net=require('node:net');
+const pause=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{
+ const work=fs.mkdtempSync(path.join(os.tmpdir(),'critplay-mobile-'));const socket=net.createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));const port=socket.address().port;await new Promise(r=>socket.close(r));const base='http://127.0.0.1:'+port;
+ const app=spawn('java',['-jar',path.resolve(__dirname,'../target/critplay-0.5.3.jar'),'--server.port='+port,'--app.admin.username=mobile_admin','--app.admin.password=MobilePassword42!','--app.security.rate-limit-enabled=false','--ggdeals.api-key='],{cwd:work});let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);let browser;
+ try{
+  let ready=false;for(let i=0;i<300;i++){try{if((await fetch(base+'/api/health')).ok){ready=true;break;}}catch{}if(app.exitCode!==null)throw Error(logs.slice(-4000));await pause(300);}assert(ready,logs.slice(-4000));
+  browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base);assert.equal((await context.request.get(base+'/mobile.js')).status(),200);await page.locator('.game-card').first().waitFor();
+  for(const width of [320,390,430]){
+   await page.setViewportSize({width,height:844});assert(await page.locator('#mobile-navigation').isVisible());assert(await page.locator('#mobile-discovery').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Overflow at '+width);
+   assert.equal(await page.locator('#search').count(),1);assert(await page.locator('#mobile-search-slot #search').isVisible(),JSON.stringify(await page.evaluate(()=>({errors:[],parent:document.querySelector('#search').parentElement.outerHTML,slot:document.querySelector('#mobile-search-slot').outerHTML,intro:document.querySelector('#mobile-discovery').hidden,rect:document.querySelector('#search').getBoundingClientRect().toJSON()}))));
+   assert(await page.locator('#mobile-navigation button').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().height>=44)));
+  }
+  await page.locator('[data-mobile-view=library]').click();await page.locator('#auth-dialog').waitFor();await page.locator('#username').fill('mobile_admin');await page.locator('#password').fill('MobilePassword42!');await page.locator('#auth-submit').click();await page.locator('#auth-dialog').waitFor({state:'hidden'});
+  await page.locator('#mobile-genres [data-genre=RPG]').click();await page.waitForFunction(()=>document.querySelector('#genre').value==='RPG');await page.waitForFunction(()=>[...document.querySelectorAll('.card-meta')].every(n=>n.textContent.startsWith('RPG')));
+  await page.locator('#mobile-genres [data-genre=""]').click();await page.locator('#search').fill('Hades');await page.waitForFunction(()=>document.querySelectorAll('.game-card').length===1);await page.locator('#search').fill('');await page.waitForFunction(()=>document.querySelectorAll('.game-card').length>=12);
+  const qa=process.env.CRITPLAY_QA_DIR;if(qa){fs.mkdirSync(qa,{recursive:true});await page.screenshot({path:path.join(qa,'mobile-purple-catalog.png'),fullPage:true});}
+  await page.locator('[data-mobile-view=library]').click();await page.locator('#library-status').waitFor();assert.equal(await page.locator('[data-mobile-view=library]').getAttribute('aria-current'),'page');assert(await page.locator('#games-workspace #search').isVisible());
+  await page.locator('[data-mobile-view=profile]').click();await page.locator('#profile-summary h2').waitFor();await page.locator('#toggle-profile-settings').click();await page.locator('#profile-settings-dialog').waitFor();assert(await page.locator('#mobile-navigation').isHidden());await page.keyboard.press('Escape');
+  await page.locator('[data-mobile-view=people]').click();await page.locator('#people-section').waitFor();await page.locator('#mobile-menu-toggle').click();await page.locator('[data-view=feed]').click();await page.locator('#feed-section').waitFor();assert.equal(await page.locator('[data-mobile-view=people]').getAttribute('aria-current'),'page');
+  await page.locator('#mobile-menu-toggle').click();await page.locator('#admin-nav').click();await page.locator('#admin-section').waitFor();await page.locator('#mobile-menu-toggle').click();await page.keyboard.press('Escape');assert.equal(await page.locator('#mobile-menu-toggle').getAttribute('aria-expanded'),'false');
+  await page.locator('[data-mobile-view=catalog]').click();await page.setViewportSize({width:1440,height:1000});assert(await page.locator('#mobile-navigation').isHidden());assert(await page.locator('#games-workspace #search').isVisible());assert(await page.locator('.topbar nav').isVisible());
+  await page.setViewportSize({width:390,height:844});assert(await page.locator('#mobile-search-slot #search').isVisible());assert.equal(await page.locator('#search').count(),1);assert.deepEqual(errors,[]);
+  console.log('Mobile browser passed: 320/390/430px, bottom navigation, login, filters/search, library, profile dialog, community/feed, admin menu, Escape, resize and single search state.');
+ }finally{if(browser)await browser.close();app.kill('SIGTERM');await pause(500);if(app.exitCode===null)app.kill('SIGKILL');}
+})().catch(e=>{console.error(e);process.exitCode=1;});

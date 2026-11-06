@@ -47,5 +47,6 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/reviews-ui.cjs
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/browser-smoke.cjs
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/community-browser.cjs
+          NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/mobile-browser.cjs
       - name: Construir imagem de produção
         run: docker build -t critplay:ci .
