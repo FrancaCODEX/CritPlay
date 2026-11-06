@@ -243,7 +243,7 @@ async function openDetail(game, editing = false) {
   $('#favorite').checked = !!entry?.favorite;
   $('#diary-wishlist').checked=entry?!!entry.wishlist:true;
   $('#edit-game').hidden=state.user?.role!=='ADMIN';
-  $('#game-list-controls').hidden=!state.user;
+  $('#game-list-controls').hidden=!state.user;$('#list-add-message').textContent='';
   updateListPicker();renderConsoleLinks(game);
   $('#remove-entry').hidden = !entry;
   $('#form-message').textContent = '';
