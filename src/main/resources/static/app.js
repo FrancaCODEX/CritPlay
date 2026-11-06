@@ -219,7 +219,7 @@ function setView(view) {
   document.querySelectorAll('.nav').forEach(button => { const active = button.dataset.view === view || button.dataset.view==='profile'&&isProfileView(view);
     button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   if(isProfileView(view)&&view!=='profile')refreshWorkspace('profile');
-  render(); (view==='catalog'&&matchMedia('(max-width:680px)').matches?$('#mobile-discovery'):view==='feed'?$('#feed-section'):isProfileView(view)?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(); (view==='catalog'&&matchMedia('(max-width:680px)').matches?$('#mobile-discovery'):view==='feed'?$('#feed-section'):matchMedia('(max-width:680px)').matches&&isProfileView(view)&&view!=='profile'?$('#profile-navigation'):isProfileView(view)?$('#profile-section'):view==='lists'?$('#lists-section'):view==='people'?$('#people-section'):view==='admin'?$('#admin-section'):$('.workspace')).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function openDetail(game, editing = false) {
   if (state.saving || state.quickSaving.has(game.id)) return;

@@ -261,3 +261,5 @@ img.cover-loading{background:linear-gradient(100deg,#292333,#3b304b,#292333);bac
  .list-heading{flex-wrap:wrap}.list-heading>div:first-child{min-width:0}.list-heading h3{overflow-wrap:anywhere}
  .toast{bottom:calc(92px + env(safe-area-inset-bottom));z-index:40}
 }
+
+@media(max-width:680px){#profile-navigation{scroll-margin-top:16px}}

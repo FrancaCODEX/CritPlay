@@ -11,3 +11,5 @@ Capas usam duas colunas, cartões roxos, texto legível e ações de toque com 4
 A suíte tests/mobile-browser.cjs verifica 320, 390 e 430 px, ausência de rolagem horizontal, navegação, login, busca/gênero, biblioteca, edição do perfil, menu administrativo, Escape e mudança para desktop sem duplicar a busca. Integra o CI junto aos fluxos existentes. As capturas automáticas com fontes externas bloqueadas podem mostrar capas de fallback; a aplicação mantém a cadeia de imagens real já existente.
 
 Não há alteração de banco, migração, credenciais, serviços ou plano pago nesta etapa. O MVP deve ser revisado no preview antes de integrar à main. Melhorias futuras: testar em aparelhos iOS/Android reais, refinar a tela de detalhes e coletar feedback sobre os tamanhos e o menu de opções.
+
+Ao abrir uma coleção no celular, a navegação rola para as opções do perfil e seu conteúdo, em vez de voltar ao banner. O teste de Listas verifica que Criar lista entra na área visível antes do clique, sem depender da rolagem automática do Playwright.
