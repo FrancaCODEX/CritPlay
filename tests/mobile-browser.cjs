@@ -1,3 +1,4 @@
+async function boundedContext(browser,options){const context=await browser.newContext(options);context.setDefaultTimeout(30000);context.setDefaultNavigationTimeout(30000);return context;}
 const {chromium}=require('playwright');
 const {spawn}=require('node:child_process');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const assert=require('node:assert/strict');const net=require('node:net');
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
@@ -6,9 +7,9 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
  const app=spawn('java',['-jar',path.resolve(__dirname,'../target/critplay-0.5.3.jar'),'--server.port='+port,'--app.admin.username=mobile_admin','--app.admin.password=MobilePassword42!','--app.security.rate-limit-enabled=false','--ggdeals.api-key='],{cwd:work});let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);let browser;
  try{
   let ready=false;for(let i=0;i<300;i++){try{if((await fetch(base+'/api/health')).ok){ready=true;break;}}catch{}if(app.exitCode!==null)throw Error(logs.slice(-4000));await pause(300);}assert(ready,logs.slice(-4000));
-  browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  browser=await chromium.launch({headless:true});const context=await boundedContext(browser,{viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
-  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base);assert.equal((await context.request.get(base+'/mobile.js')).status(),200);await page.locator('.game-card').first().waitFor();
+  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));console.log('Starting '+"tests/mobile-browser.cjs");await page.goto(base);assert.equal((await context.request.get(base+'/mobile.js')).status(),200);await page.locator('.game-card').first().waitFor();
   for(const width of [320,390,430]){
    await page.setViewportSize({width,height:844});assert(await page.locator('#mobile-navigation').isVisible());assert(await page.locator('#mobile-discovery').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Overflow at '+width);
    assert.equal(await page.locator('#search').count(),1);assert.equal(await page.locator('#game-sort').count(),1);assert(await page.locator('#mobile-search-slot #search').isVisible(),JSON.stringify(await page.evaluate(()=>({errors:[],parent:document.querySelector('#search').parentElement.outerHTML,slot:document.querySelector('#mobile-search-slot').outerHTML,intro:document.querySelector('#mobile-discovery').hidden,rect:document.querySelector('#search').getBoundingClientRect().toJSON()}))));

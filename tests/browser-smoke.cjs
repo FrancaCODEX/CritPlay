@@ -1,3 +1,4 @@
+async function boundedContext(browser,options){const context=await browser.newContext(options);context.setDefaultTimeout(30000);context.setDefaultNavigationTimeout(30000);return context;}
 // Node/Playwright são necessários só para esta verificação, não para usar o CritPlay.
 const {chromium}=require('playwright');
 const {spawn}=require('node:child_process');
@@ -15,11 +16,11 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     let ready=false;
     for(let i=0;i<300;i++){try{const r=await fetch(base+'/api/games');if(r.ok&&(await r.json()).length>=12){ready=true;break;}}catch{}if(app.exitCode!==null)throw new Error('Java encerrado: '+logs.slice(-2000));await pause(300);}
     assert(ready,'Java não iniciou: '+logs.slice(-6000));
-    browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}});
+    browser=await chromium.launch({headless:true});const context=await boundedContext(browser,{viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     await context.route('**/api/admin/steam/resolve',route=>route.fulfill({json:{status:'FOUND',appId:777456,message:'Steam App ID encontrado.'}}));
     const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base);await page.locator('.card').first().waitFor();
+    console.log('Starting '+"tests/browser-smoke.cjs");await page.goto(base);await page.locator('.card').first().waitFor();
     const firstHero=await page.locator('#hero-title').textContent();await page.locator('#hero-next').click();assert.notEqual(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-prev').click();assert.equal(await page.locator('#hero-title').textContent(),firstHero);await page.locator('#hero-pause').click();assert.equal(await page.locator('#hero-pause').getAttribute('aria-pressed'),'true');
     await page.locator('#account-login').click();await page.locator('#username').fill('ui_admin');await page.locator('#password').fill('BrowserAdminPassword42!');await page.locator('#auth-submit').click();
     await page.locator('#add-game').waitFor({state:'visible'});assert((await page.title()).startsWith('CritPlay'));assert.equal(await page.locator('.topbar .brand').textContent(),'CRITPLAYBETA');
@@ -96,7 +97,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     await page.getByRole('button',{name:'Seguir',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Deixar de seguir',exact:true}).waitFor();
     assert.equal(await page.locator('#public-profile-content .review-card').count(),0);
     await page.getByRole('button',{name:'Adicionar amigo',exact:true}).click();await page.locator('#public-profile-content').getByRole('button',{name:'Cancelar pedido',exact:true}).waitFor();await page.locator('#close-public-profile').click();
-    const secondContext=await browser.newContext({viewport:{width:1440,height:1000}});
+    const secondContext=await boundedContext(browser,{viewport:{width:1440,height:1000}});
     await secondContext.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const adminPage=await secondContext.newPage();adminPage.on('pageerror',error=>errors.push(error.message));await adminPage.goto(base);
     await adminPage.locator('#account-login').click();await adminPage.locator('#username').fill('ui_admin');await adminPage.locator('#password').fill('BrowserAdminPassword42!');await adminPage.locator('#auth-submit').click();await adminPage.locator('#add-game').waitFor();
@@ -110,7 +111,7 @@ async function port(){const s=net.createServer();await new Promise(r=>s.listen(0
     if(qa)await page.screenshot({path:path.join(qa,'community-mobile.png'),fullPage:true});
     await adminPage.locator('[data-view=profile]').click();await adminPage.waitForFunction(()=>document.querySelector('#profile-summary h2')?.textContent==='Jogador de teste');await adminPage.locator('#toggle-profile-settings').click();await adminPage.locator('#profile-visibility').selectOption('PUBLIC');await adminPage.locator('#privacy-form button[type=submit]').click();await adminPage.getByText('Privacidade atualizada.',{exact:true}).waitFor();
     const sharedSettings=await adminPage.evaluate(async()=>(await(await fetch('/api/profile')).json()).user);assert.equal(sharedSettings.visibility,'PUBLIC');assert.equal(sharedSettings.discoverable,true);
-    const visitor=await browser.newContext();await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+    const visitor=await boundedContext(browser,);await visitor.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const visitorPage=await visitor.newPage();visitorPage.on('pageerror',error=>errors.push(error.message));await visitorPage.goto(base+'/#profile=ui_admin');
     await visitorPage.locator('#public-profile-content').getByText('Uma jornada que valeu cada descoberta.',{exact:true}).waitFor();
     await visitor.close();
