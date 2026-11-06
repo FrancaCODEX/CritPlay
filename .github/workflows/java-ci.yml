@@ -43,7 +43,8 @@ jobs:
       - name: Verificar interface no navegador
         run: |
           npm install --prefix "$RUNNER_TEMP/critplay-ui" playwright@1.58.2 --no-audit --no-fund
-          node "$RUNNER_TEMP/critplay-ui/node_modules/playwright/cli.js" install --with-deps chromium
+          # ubuntu-24.04 already has Chromium native libraries; avoid optional font downloads.
+          node "$RUNNER_TEMP/critplay-ui/node_modules/playwright/cli.js" install chromium
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/reviews-ui.cjs
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/browser-smoke.cjs
           NODE_PATH="$RUNNER_TEMP/critplay-ui/node_modules" node tests/community-browser.cjs
