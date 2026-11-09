@@ -1,0 +1,280 @@
+/*
+ * CritPlay — camada de marca "neon launcher".
+ * Carregada depois de styles.css: só reveste visual e movimento,
+ * sem renomear classes usadas pelo JavaScript ou pelos testes.
+ * Efeitos inspirados em componentes do 21st.dev (aurora, spotlight card,
+ * borda animada, shimmer button, texto em gradiente, reveal), portados para CSS puro.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap');
+
+:root {
+  --bg: #120f1c;
+  --panel: #1a1428;
+  --accent: #c4a1ff;
+  --border: #3a2d50;
+  --neon: #a855f7;
+  --neon-2: #d946ef;
+  --neon-3: #7c3aed;
+  --glow: 0 0 24px #a855f755, 0 0 2px #c4a1ff;
+  --glass: #170f26b8;
+  --font-display: 'Chakra Petch', 'Space Grotesk', system-ui, sans-serif;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* ---------- Fundo aurora ---------- */
+body { background: var(--bg); position: relative; }
+body::before {
+  content: "";
+  position: fixed; inset: -20vmax; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40vmax 30vmax at 15% 10%, #7c3aed38, transparent 60%),
+    radial-gradient(35vmax 28vmax at 85% 20%, #d946ef26, transparent 60%),
+    radial-gradient(45vmax 35vmax at 50% 100%, #a855f71f, transparent 60%);
+  filter: blur(20px);
+  animation: cp-aurora 22s ease-in-out infinite alternate;
+}
+body::after {
+  /* grade sutil de "launcher" */
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: linear-gradient(#ffffff06 1px, transparent 1px), linear-gradient(90deg, #ffffff06 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+}
+@keyframes cp-aurora {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(3vmax, 2vmax, 0) rotate(8deg); }
+  100% { transform: translate3d(-3vmax, 4vmax, 0) rotate(-6deg); }
+}
+
+/* ---------- Topbar em vidro ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--glass) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid transparent !important;
+  border-image: linear-gradient(90deg, transparent, #a855f766, transparent) 1;
+}
+
+/* Marca com gradiente animado */
+.brand {
+  font-family: var(--font-display); letter-spacing: .04em;
+  background: linear-gradient(90deg, #fff 0%, #fff 40%, var(--accent) 55%, var(--neon-2) 75%, #fff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent !important;
+  animation: cp-text-shine 7s linear infinite;
+  filter: drop-shadow(0 0 10px #a855f755);
+}
+.brand span { color: transparent !important; }
+.brand small {
+  -webkit-text-fill-color: var(--accent); color: var(--accent);
+  border-color: #a855f766 !important; box-shadow: inset 0 0 8px #a855f733;
+}
+@keyframes cp-text-shine { to { background-position: -250% 0; } }
+
+/* Navegação com sublinhado neon */
+.topbar .nav { position: relative; transition: color .2s ease; }
+.topbar .nav:hover { color: #fff; }
+.topbar .nav.active { color: #fff; text-shadow: 0 0 12px #c4a1ff88; }
+.topbar .nav.active::after {
+  background: linear-gradient(90deg, var(--neon), var(--neon-2)) !important;
+  box-shadow: 0 0 12px var(--neon);
+}
+
+/* ---------- Tipografia ---------- */
+h1, h2, .section-heading h2, .hero h1, .hero h2 { font-family: var(--font-display); letter-spacing: .01em; }
+.eyebrow {
+  color: var(--accent);
+  text-shadow: 0 0 10px #a855f766;
+}
+.hero h1, .hero h2 {
+  background: linear-gradient(180deg, #fff 30%, #d8c4ff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 24px #a855f74d);
+}
+
+/* ---------- Botões ---------- */
+button, .primary, .secondary { transition: transform .18s var(--ease-out), box-shadow .25s ease, border-color .25s ease, background-color .25s ease; }
+.primary {
+  position: relative; overflow: hidden; isolation: isolate;
+  background: linear-gradient(135deg, #d8c4ff, var(--accent) 45%, #a77bff) !important;
+  color: #1a0b33 !important; font-weight: 700;
+  box-shadow: 0 0 0 1px #ffffff22 inset, 0 6px 22px -6px #a855f7aa;
+}
+.primary::after {
+  /* shimmer */
+  content: ""; position: absolute; inset: -40% auto -40% -60%; width: 40%; z-index: -1;
+  background: linear-gradient(100deg, transparent, #ffffffa0, transparent);
+  transform: skewX(-20deg);
+  animation: cp-shimmer 3.6s ease-in-out infinite;
+}
+.primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 0 1px #ffffff33 inset, 0 10px 30px -6px #a855f7; }
+.primary:active:not(:disabled), .secondary:active:not(:disabled) { transform: translateY(0) scale(.97); }
+@keyframes cp-shimmer { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+
+.secondary {
+  background: #1d1530aa !important;
+  border: 1px solid #4b3a66 !important;
+  backdrop-filter: blur(6px);
+}
+.secondary:hover:not(:disabled) {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px #c4a1ff44, 0 0 18px -4px #a855f7aa;
+  transform: translateY(-1px);
+}
+:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: 3px; box-shadow: 0 0 0 5px #a855f733; }
+
+/* ---------- Campos ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea {
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px #a855f733, 0 0 22px -6px #a855f7;
+  outline: none;
+}
+
+/* ---------- Hero ---------- */
+.hero { border-bottom: 1px solid #a855f722; }
+.hero::before {
+  /* brilho neon na base do carrossel */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; z-index: 2;
+  background: linear-gradient(90deg, transparent, var(--neon), var(--neon-2), transparent);
+  box-shadow: 0 0 18px var(--neon);
+  opacity: .8;
+}
+.hero-dot.active::after { box-shadow: 0 0 10px var(--neon); }
+.hero-arrow {
+  background: #1d1530cc !important; border: 1px solid #4b3a66 !important; backdrop-filter: blur(8px);
+}
+.hero-arrow:hover { border-color: var(--accent) !important; box-shadow: 0 0 18px -2px var(--neon); }
+.hero-meta > :first-child { box-shadow: 0 0 12px -2px #a855f7aa; }
+
+/* ---------- Cards de jogos: spotlight + borda animada + tilt ---------- */
+@property --cp-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+.game-card {
+  --mx: 50%; --my: 50%; --rx: 0deg; --ry: 0deg;
+  border-radius: 14px;
+}
+.game-card .cover {
+  position: relative; overflow: hidden; border-radius: 12px;
+  transform: perspective(800px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform .35s var(--ease-out), box-shadow .35s ease;
+  box-shadow: 0 0 0 1px #ffffff10, 0 10px 30px -14px #000;
+}
+.game-card .cover::after {
+  /* spotlight seguindo o cursor */
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(260px circle at var(--mx) var(--my), #ffffff2e, transparent 45%);
+  opacity: 0; transition: opacity .3s ease;
+}
+.game-card .cover::before {
+  /* borda neon girando */
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--cp-angle), transparent 0 55%, var(--neon) 70%, var(--neon-2) 80%, transparent 95%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity .3s ease;
+  animation: cp-spin 3.2s linear infinite;
+}
+.game-card:hover .cover, .game-card:focus-within .cover {
+  box-shadow: 0 0 0 1px #c4a1ff55, 0 18px 40px -12px #a855f7aa;
+}
+.game-card:hover .cover::after, .game-card:hover .cover::before,
+.game-card:focus-within .cover::before { opacity: 1; }
+.game-card .cover img { transition: transform .6s var(--ease-out), filter .4s ease; }
+.game-card:hover .cover img { transform: scale(1.06); filter: saturate(1.15) brightness(1.05); }
+.game-card .card-info h3 { transition: color .2s ease; }
+.game-card:hover .card-info h3 { color: var(--accent); }
+@keyframes cp-spin { to { --cp-angle: 360deg; } }
+
+/* Capa sem imagem: arte gerada em gradiente */
+.image-fallback {
+  font-family: var(--font-display);
+  background:
+    radial-gradient(120% 80% at 0% 0%, #7c3aed66, transparent 60%),
+    radial-gradient(100% 80% at 100% 100%, #d946ef40, transparent 60%),
+    linear-gradient(160deg, #24163a, #150e22) !important;
+  text-shadow: 0 0 18px #a855f7aa;
+}
+
+.card-action {
+  backdrop-filter: blur(8px);
+  background: #120f1ccc !important; border: 1px solid #4b3a66 !important;
+}
+.card-action:hover:not(:disabled), .card-action[aria-pressed="true"] {
+  border-color: var(--accent) !important; color: var(--accent); box-shadow: 0 0 14px -2px var(--neon);
+}
+.status-badge, .badge { backdrop-filter: blur(6px); box-shadow: 0 0 12px -4px var(--neon); }
+
+/* ---------- Superfícies (painéis, diálogos, perfis) ---------- */
+.surface, .journey, .profile-summary, dialog, .people-grid > *, .lists-grid > *, .review-grid > * {
+  --mx: 50%; --my: 50%;
+  border-color: #3f2f58 !important;
+  background-image: radial-gradient(500px circle at var(--mx) var(--my), #a855f714, transparent 40%), linear-gradient(180deg, #ffffff05, transparent) !important;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s var(--ease-out);
+}
+.journey:hover, .people-grid > *:hover, .lists-grid > *:hover, .review-grid > *:hover {
+  border-color: #6d4fa0 !important;
+  box-shadow: 0 0 0 1px #a855f722, 0 14px 40px -18px #a855f7;
+}
+.journey-icon { filter: drop-shadow(0 0 10px var(--neon)); animation: cp-float 4s ease-in-out infinite; display: inline-block; }
+@keyframes cp-float { 50% { transform: translateY(-4px) rotate(8deg); } }
+
+dialog { box-shadow: 0 0 0 1px #a855f733, 0 30px 80px -20px #000, 0 0 60px -20px #a855f7 !important; }
+dialog[open] { animation: cp-pop .35s var(--ease-out); }
+dialog::backdrop { background: #07050ccc; backdrop-filter: blur(6px); }
+@keyframes cp-pop { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+
+.toast { box-shadow: 0 0 0 1px #a855f755, 0 10px 30px -10px #a855f7; backdrop-filter: blur(10px); }
+
+/* ---------- Navegação mobile ---------- */
+.mobile-navigation {
+  background: var(--glass) !important;
+  backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-top: 1px solid #a855f733 !important;
+}
+.mobile-navigation [aria-current="page"] .mobile-nav-icon {
+  box-shadow: 0 0 16px -2px var(--neon); background: #a855f733 !important;
+}
+.mobile-genres button[aria-pressed="true"], .mobile-genres .active {
+  box-shadow: 0 0 16px -4px var(--neon);
+}
+
+/* ---------- Revelação ao rolar ---------- */
+.cp-reveal { animation: cp-rise .6s var(--ease-out) both; animation-delay: var(--cp-delay, 0ms); }
+@keyframes cp-rise { from { opacity: 0; transform: translateY(18px); } }
+
+/* ---------- Rodapé ---------- */
+.site-footer { border-top: 1px solid transparent !important; border-image: linear-gradient(90deg, transparent, #a855f755, transparent) 1; }
+.site-footer a { transition: color .2s ease, text-shadow .2s ease; }
+.site-footer a:hover { color: var(--accent); text-shadow: 0 0 10px #a855f7; }
+
+/* Barra de rolagem */
+* { scrollbar-color: #4b3a66 transparent; }
+::selection { background: #a855f766; color: #fff; }
+
+/* ---------- Responsividade ---------- */
+@media (max-width: 1100px) {
+  .topbar { position: sticky; }
+}
+@media (max-width: 680px) {
+  body::after { background-size: 32px 32px; }
+  .hero h1, .hero h2 { filter: drop-shadow(0 2px 14px #a855f74d); }
+  /* em toque não há cursor: sem tilt, mantém brilho ao focar */
+  .game-card .cover { transform: none; }
+  .game-card .cover::after { display: none; }
+  .primary:hover:not(:disabled), .secondary:hover:not(:disabled) { transform: none; }
+}
+@media (hover: none) {
+  .game-card .cover { transform: none !important; }
+}
+
+/* ---------- Movimento reduzido ---------- */
+@media (prefers-reduced-motion: reduce) {
+  body::before, .brand, .primary::after, .game-card .cover::before, .journey-icon { animation: none !important; }
+  .cp-reveal, dialog[open] { animation: none !important; }
+  .game-card .cover { transform: none !important; }
+}
