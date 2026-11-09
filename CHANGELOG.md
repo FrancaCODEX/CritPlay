@@ -4,6 +4,12 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Deploy no Render Free
+
+- `render.yaml` (Blueprint) para o mesmo Dockerfile no Render Free, região Virginia (perto do Neon us-east-1), health check em `/api/health`, profile `prod` e segredos pedidos no painel (`sync: false`).
+- JVM ajustada para 512 MB (heap 65%, GC serial, JIT nível 1, metaspace/code cache limitados): localmente sobe em ~11 s com ~250 MB de RSS. E-mail via Resend, pois o Free bloqueia SMTP.
+- Motivo: a Vercel Hobby suspendeu o projeto ao exceder 4 h de CPU ativa; cold starts da JVM consumiam ~7 s de CPU por requisição.
+
 ### Rebranding visual "neon launcher"
 
 - Nova camada `brand.css`, carregada após `styles.css`: mantém nome e paleta roxa, com fundo aurora animado, grade sutil, topbar em vidro, marca com gradiente animado, tipografia display Chakra Petch, botões com shimmer e brilho neon, campos com foco luminoso, diálogos com entrada animada e navegação mobile em vidro.

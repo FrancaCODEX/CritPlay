@@ -1,0 +1,61 @@
+# Render Blueprint — CritPlay no plano Free (Docker + Neon PostgreSQL).
+# Valores marcados com sync: false são pedidos no painel ao criar o Blueprint
+# e nunca ficam no repositório.
+services:
+  - type: web
+    name: critplay
+    runtime: docker
+    plan: free
+    # Virginia fica na mesma região AWS do Neon (us-east-1): menor latência ao banco.
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # 512 MB no Free: heap limitado, GC serial e JIT de nível 1 para
+      # reduzir memória e CPU de inicialização (acordar mais rápido).
+      - key: JAVA_TOOL_OPTIONS
+        value: >-
+          -XX:MaxRAMPercentage=65 -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+          -Xss512k -XX:ReservedCodeCacheSize=48m -XX:MaxMetaspaceSize=160m
+          -XX:+ExitOnOutOfMemoryError -Djava.awt.headless=true
+      - key: DB_POOL_SIZE
+        value: "3"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: DEMO_DATA_ENABLED
+        value: "false"
+      # SMTP (25/465/587) é bloqueado no Free: e-mail via Resend por HTTPS.
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: RECOVERY_ENABLED
+        value: "false"
+      - key: EMAIL_NOTIFICATIONS_ENABLED
+        value: "false"
+      # jdbc:postgresql://HOST/critplay?sslmode=verify-full
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # https://critplay.onrender.com (ou o nome que o Render atribuir), sem barra final
+      - key: APP_BASE_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RAWG_API_KEY
+        sync: false
+      - key: GGDEALS_API_KEY
+        sync: false
+      - key: CRITPLAY_ADMIN_USERNAME
+        sync: false
+      - key: CRITPLAY_ADMIN_PASSWORD
+        sync: false
+      - key: CRITPLAY_ADMIN_NAME
+        sync: false
