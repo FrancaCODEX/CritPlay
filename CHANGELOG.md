@@ -4,6 +4,13 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Rebranding visual "neon launcher"
+
+- Nova camada `brand.css`, carregada após `styles.css`: mantém nome e paleta roxa, com fundo aurora animado, grade sutil, topbar em vidro, marca com gradiente animado, tipografia display Chakra Petch, botões com shimmer e brilho neon, campos com foco luminoso, diálogos com entrada animada e navegação mobile em vidro.
+- Cards de jogos com spotlight seguindo o cursor, borda neon girando, leve inclinação 3D e capas sem imagem com arte em gradiente; efeitos inspirados em componentes do 21st.dev, portados para CSS/JS puro, sem React, Tailwind ou build Node.
+- `motion.js` adiciona spotlight/tilt (somente com ponteiro fino) e revelação escalonada dos cards ao rolar. Somente efeitos visuais, sem alterar o DOM, dados ou eventos das telas.
+- Respeita `prefers-reduced-motion` e dispositivos de toque (sem tilt). Os novos arquivos estáticos foram liberados em `SecurityConfig`.
+
 ### Refatoração de perfis, comunidade e moderação
 
 - `SocialService` passa a coordenar casos de uso; autorização/descoberta e validação de pares ficam em `SocialAccessService`, SQL de relações em `SocialGraphRepository` e projeção pública em `PublicProfileService`. Travas, regras de privacidade/bloqueio/suspensão, mensagens, paginação e contratos JSON são preservados.
