@@ -571,6 +571,43 @@ class ApiIntegrationTest {
         var reader=user();owner.send("PUT","/api/blocks/"+accountName(reader),null);
         assertEquals(404,reader.send("GET","/api/people/"+name,null).statusCode());
     }
+    @Test void followSuggestionsRankFollowersAndRespectDiscoveryBlocksAndCollectionPrivacy() throws Exception {
+        assertEquals(401,new Session().send("GET","/api/people/suggestions",null).statusCode());
+        var me=user();String myName=accountName(me);
+        assertEquals(200,me.send("PUT","/api/diary/1","{\"status\":\"COMPLETED\",\"favorite\":true,\"wishlist\":false}").statusCode());
+        var fan=user();String fanName=accountName(fan);
+        var hidden=user();String hiddenName=accountName(hidden);
+        var blocked=user();String blockedName=accountName(blocked);
+        var closed=user();String closedName=accountName(closed);
+        for(var follower:List.of(fan,hidden,blocked,closed))
+            assertEquals(200,follower.send("PUT","/api/people/"+myName+"/follow",null).statusCode());
+        assertEquals(200,fan.send("PUT","/api/diary/1","{\"status\":\"PLAYING\",\"favorite\":true,\"wishlist\":false}").statusCode());
+        closed.send("PUT","/api/diary/1","{\"status\":\"PLAYING\",\"favorite\":true,\"wishlist\":false}");
+        // user() cria perfis privados; o fã compartilha a biblioteca, o "closed" é público mas a esconde.
+        assertEquals(200,fan.send("PUT","/api/profile/privacy",
+            "{\"visibility\":\"PUBLIC\",\"discoverable\":true,\"libraryPublic\":true,\"favoritesPublic\":true,\"wishlistPublic\":true,\"listsPublic\":true}").statusCode());
+        assertEquals(200,closed.send("PUT","/api/profile/privacy",
+            "{\"visibility\":\"PUBLIC\",\"discoverable\":true,\"libraryPublic\":false,\"favoritesPublic\":false,\"wishlistPublic\":true,\"listsPublic\":true}").statusCode());
+        assertEquals(200,hidden.send("PUT","/api/profile/privacy",privacy("PUBLIC",false)).statusCode());
+        assertEquals(200,me.send("PUT","/api/blocks/"+blockedName,null).statusCode());
+
+        var suggestions=me.json("/api/people/suggestions");
+        var byName=new java.util.HashMap<String,JsonNode>();
+        for(var item:suggestions)byName.put(item.path("username").asText(),item);
+        assertTrue(suggestions.size()<=8);
+        assertTrue(byName.containsKey(fanName));
+        assertEquals("Segue você",byName.get(fanName).path("reason").asText());
+        assertEquals(1,byName.get(fanName).path("sharedGames").asInt());
+        assertTrue(byName.containsKey(closedName));
+        assertEquals(0,byName.get(closedName).path("sharedGames").asInt());
+        assertFalse(byName.containsKey(hiddenName));
+        assertFalse(byName.containsKey(blockedName));
+        assertFalse(byName.containsKey(myName));
+        for(var item:suggestions){assertFalse(item.has("email"));assertFalse(item.has("passwordHash"));}
+
+        assertEquals(200,me.send("PUT","/api/people/"+fanName+"/follow",null).statusCode());
+        for(var item:me.json("/api/people/suggestions"))assertNotEquals(fanName,item.path("username").asText());
+    }
     @Test void registrationStartsPublicWithShareableCollections() throws Exception {
         var session=new Session();session.refreshCsrf();String name="public_"+UUID.randomUUID().toString().replace("-", "").substring(0,12);
         assertEquals(201,session.send("POST","/api/auth/register",mapper.writeValueAsString(Map.of("username",name,"displayName","Novo jogador","password","UserTestPassword42!"))).statusCode());

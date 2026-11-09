@@ -33,7 +33,20 @@
     card.style.setProperty('--ry', '0deg');
   };
 
-  document.addEventListener('pointermove', trackPointer, { passive: true });
+  // No máximo um cálculo por quadro, mesmo com mouses de alta taxa de eventos.
+  let pendingPointer = null;
+  const onPointerMove = (event) => {
+    if (!finePointer.matches) return;
+    const scheduled = pendingPointer !== null;
+    pendingPointer = event;
+    if (scheduled) return;
+    requestAnimationFrame(() => {
+      const latest = pendingPointer;
+      pendingPointer = null;
+      trackPointer(latest);
+    });
+  };
+  document.addEventListener('pointermove', onPointerMove, { passive: true });
   document.addEventListener('pointerout', resetTilt, { passive: true });
 
   // Revelação escalonada dos cards quando entram na tela.

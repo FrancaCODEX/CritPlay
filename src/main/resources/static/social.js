@@ -8,9 +8,9 @@ function identityCard(user,onOpen) {
   const info=el('div');info.append(el('strong',null,user.displayName),el('p','muted','@'+user.username),el('p','price-note',visibilityLabels[user.visibility]));card.append(avatar,info);return card;
 }
 function resetSocial() {
-  privacyDirty=false;++publicSequence;publicUsername=null;closeFollowList();$('#profile-social').replaceChildren();
+  privacyDirty=false;++publicSequence;$('#people-suggestions-section').hidden=true;publicUsername=null;closeFollowList();$('#profile-social').replaceChildren();
   $('#public-profile-dialog').close();
-  for(const id of ['people-results','social-connections','public-profile-content'])$('#'+id).replaceChildren();
+  for(const id of ['people-results','people-suggestions','social-connections','public-profile-content'])$('#'+id).replaceChildren();
   $('#people-search-form').reset();$('#privacy-form').reset();$('#privacy-message').textContent='';$('#people-message').textContent='';
 }
 function renderPrivacy(user){if(privacyDirty)return;$('#profile-visibility').value=user.visibility;$('#profile-discoverable').checked=user.discoverable;for(const key of ['library','favorites','wishlist','lists'])$('#privacy-'+key).checked=user.collectionPrivacy?.[key]??false;}
@@ -31,8 +31,33 @@ async function searchPeople(sequence) {
   if(sequence!==state.workspaceSequence||state.view!=='people')return;
   $('#people-results').replaceChildren(...people.map(identityCard));$('#people-message').textContent=people.length?`${people.length} perfil(is) encontrado(s)`:'Nenhum perfil encontrado. A pessoa pode ter desativado a busca.';
 }
+function suggestionCard(user){
+  const card=el('div','surface suggestion-card');card.dataset.username=user.username;
+  const profile=identityCard(user);profile.querySelector('.price-note')?.remove();
+  const reason=el('p','suggestion-reason',user.reason);
+  const follow=button('Seguir','primary suggestion-follow',async()=>{
+    follow.disabled=true;follow.textContent='Seguindo…';
+    try{await api('/api/people/'+encodeURIComponent(user.username)+'/follow',{method:'PUT'});
+      card.classList.add('suggestion-leaving');toast('Agora você segue '+user.displayName+'.');
+      setTimeout(()=>{card.remove();if(!$('#people-suggestions').children.length)refreshSuggestions();},320);
+      refreshConnections().catch(()=>{});
+    }catch(error){follow.disabled=false;follow.textContent='Seguir';toast(error.message);}
+  });
+  follow.type='button';follow.setAttribute('aria-label','Seguir '+user.displayName);
+  card.append(profile,reason,follow);return card;
+}
+async function refreshSuggestions(sequence=state.workspaceSequence){
+  const section=$('#people-suggestions-section');
+  try{
+    const people=await api('/api/people/suggestions');
+    if(sequence!==state.workspaceSequence||state.view!=='people')return;
+    $('#people-suggestions').replaceChildren(...people.map(suggestionCard));section.hidden=!people.length;
+  }catch{section.hidden=true;}
+}
+$('#refresh-suggestions').addEventListener('click',()=>refreshSuggestions());
 async function refreshPeople(){
   const sequence=++state.workspaceSequence;
+  refreshSuggestions(sequence);
   try{await Promise.all([searchPeople(sequence),refreshConnections(sequence)]);}catch(error){if(sequence===state.workspaceSequence)$('#people-message').textContent=error.message;}
 }
 $('#people-search-form').addEventListener('submit',event=>{event.preventDefault();refreshPeople();});

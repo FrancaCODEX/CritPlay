@@ -18,6 +18,8 @@ public class UserService {
     public UserView register(RegisterRequest request) {
         String username = normalize(request.username());
         validatePassword(request.password());
+        // "suggestions" colide com GET /api/people/suggestions.
+        if ("suggestions".equalsIgnoreCase(username)) throw new ConflictException("Este nome de usuário já está em uso.");
         if (repository.existsByUsername(username)) throw new ConflictException("Este nome de usuário já está em uso.");
         // A API pública nunca recebe nem decide um papel de administrador.
         var user = new AppUser(username, request.displayName().strip(), encoder.encode(request.password()), Role.USER);

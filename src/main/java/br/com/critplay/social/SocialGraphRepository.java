@@ -46,6 +46,47 @@ public class SocialGraphRepository {
             """, (row, index) -> PersonIdentity.read(row), term, term, viewer, viewer);
     }
 
+    public record Suggestion(PersonIdentity person, int mutualFollows, int sharedGames, int sharedFavorites,
+                             boolean followsYou) {}
+
+    /**
+     * People the viewer may want to follow. Only discoverable, active, unblocked accounts that the viewer
+     * neither follows nor has a friendship row with. Signals respect privacy: shared games count only for
+     * public profiles with a public library (favorites need public favorites), and "followed by people you
+     * follow" counts only through intermediaries whose profile is public.
+     */
+    public List<Suggestion> suggestions(long viewer, int limit) {
+        return db.query("""
+            SELECT s.* FROM (
+              SELECT u.id,u.username,u.display_name,u.avatar_url,u.visibility,
+                (SELECT COUNT(*) FROM user_follows mine
+                   JOIN app_users middle ON middle.id=mine.followed_id AND middle.enabled=TRUE AND middle.visibility='PUBLIC'
+                   JOIN user_follows theirs ON theirs.follower_id=mine.followed_id
+                 WHERE mine.follower_id=? AND theirs.followed_id=u.id) AS mutual_follows,
+                CASE WHEN u.visibility='PUBLIC' AND u.library_public=TRUE THEN
+                  (SELECT COUNT(*) FROM diary_entries a JOIN diary_entries b ON b.game_id=a.game_id
+                   WHERE a.user_id=? AND b.user_id=u.id) ELSE 0 END AS shared_games,
+                CASE WHEN u.visibility='PUBLIC' AND u.favorites_public=TRUE THEN
+                  (SELECT COUNT(*) FROM diary_entries a JOIN diary_entries b ON b.game_id=a.game_id
+                   WHERE a.user_id=? AND b.user_id=u.id AND a.favorite=TRUE AND b.favorite=TRUE) ELSE 0 END AS shared_favorites,
+                (SELECT COUNT(*) FROM user_follows back WHERE back.follower_id=u.id AND back.followed_id=?) AS follows_you,
+                (SELECT COUNT(*) FROM user_follows popular WHERE popular.followed_id=u.id) AS followers
+              FROM app_users u
+              WHERE u.enabled=TRUE AND u.discoverable=TRUE AND u.id<>?
+                AND NOT EXISTS (SELECT 1 FROM user_follows f WHERE f.follower_id=? AND f.followed_id=u.id)
+                AND NOT EXISTS (SELECT 1 FROM user_blocks b
+                  WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocked_id=? AND b.blocker_id=u.id))
+                AND NOT EXISTS (SELECT 1 FROM friendships fr
+                  WHERE (fr.first_id=? AND fr.second_id=u.id) OR (fr.second_id=? AND fr.first_id=u.id))
+            ) s
+            ORDER BY (s.follows_you*5 + s.mutual_follows*3 + s.shared_favorites*2 + s.shared_games) DESC,
+                     s.followers DESC, s.id
+            LIMIT ?
+            """, (row, index) -> new Suggestion(PersonIdentity.read(row), row.getInt("mutual_follows"),
+                row.getInt("shared_games"), row.getInt("shared_favorites"), row.getInt("follows_you") > 0),
+            viewer, viewer, viewer, viewer, viewer, viewer, viewer, viewer, viewer, viewer, limit);
+    }
+
     public boolean areFriends(long first, long second) {
         return count("SELECT COUNT(*) FROM friendships WHERE first_id=? AND second_id=? AND status='ACCEPTED'",
             Math.min(first, second), Math.max(first, second)) > 0;
