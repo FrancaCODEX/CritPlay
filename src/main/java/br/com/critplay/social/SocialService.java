@@ -40,6 +40,36 @@ public class SocialService {
         return graph.search(viewerId, "%" + literal + "%").stream().map(PersonIdentity::toMap).toList();
     }
 
+    private static final int SUGGESTION_LIMIT = 8;
+
+    public List<Map<String, Object>> suggestions(String viewer) {
+        long viewerId = users.require(viewer).getId();
+        return graph.suggestions(viewerId, SUGGESTION_LIMIT).stream().map(suggestion -> {
+            var result = new java.util.LinkedHashMap<String, Object>(suggestion.person().toMap());
+            result.put("reason", suggestionReason(suggestion));
+            result.put("mutualFollows", suggestion.mutualFollows());
+            result.put("sharedGames", suggestion.sharedGames());
+            result.put("followsYou", suggestion.followsYou());
+            return (Map<String, Object>) result;
+        }).toList();
+    }
+
+    private static String suggestionReason(SocialGraphRepository.Suggestion suggestion) {
+        if (suggestion.followsYou()) return "Segue você";
+        if (suggestion.mutualFollows() > 0) {
+            return suggestion.mutualFollows() == 1 ? "Seguido por 1 pessoa que você segue"
+                : "Seguido por " + suggestion.mutualFollows() + " pessoas que você segue";
+        }
+        if (suggestion.sharedFavorites() > 0) {
+            return suggestion.sharedFavorites() == 1 ? "1 favorito em comum"
+                : suggestion.sharedFavorites() + " favoritos em comum";
+        }
+        if (suggestion.sharedGames() > 0) {
+            return suggestion.sharedGames() == 1 ? "1 jogo em comum" : suggestion.sharedGames() + " jogos em comum";
+        }
+        return "Sugestão da comunidade";
+    }
+
     public Map<String, Object> profile(String viewer, String targetName) {
         return profiles.get(viewer, targetName);
     }

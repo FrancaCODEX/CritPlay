@@ -21,6 +21,11 @@ public class SocialController {
         return service.search(actor.getName(), q);
     }
 
+    @GetMapping("/api/people/suggestions")
+    public List<Map<String, Object>> suggestions(Principal actor) {
+        return service.suggestions(actor.getName());
+    }
+
     @GetMapping("/api/people/{username}")
     public Map<String, Object> profile(Principal actor, @PathVariable String username) {
         return service.profile(viewer(actor), username);

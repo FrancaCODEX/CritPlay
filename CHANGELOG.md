@@ -4,6 +4,19 @@ Toda alteração no projeto deve ser registrada neste arquivo, incluindo funcion
 
 ## Não lançado
 
+### Comunidade: quem seguir
+
+- `GET /api/people/suggestions` (autenticado) sugere até 8 pessoas para seguir, com motivo exibido: "Segue você", "Seguido por N pessoas que você segue", favoritos ou jogos em comum, ou sugestão geral por popularidade.
+- Respeita as regras existentes: só contas ativas e descobríveis, sem quem você já segue, sem bloqueios em qualquer direção e sem pedidos/amizades existentes. Jogos e favoritos em comum só contam para perfis públicos com a coleção correspondente compartilhada; "seguido por quem você segue" só conta intermediários com perfil público. Nome de usuário `suggestions` reservado para não colidir com a rota.
+- Painel "Quem seguir" na Comunidade com botão Seguir, remoção animada do card e recarga quando a lista acaba; no celular vira carrossel horizontal.
+- Teste de integração cobre anônimo (401), ranking de quem segue você, descoberta desativada, bloqueio, privacidade da biblioteca e saída da lista após seguir.
+
+### Desempenho das animações
+
+- Com CPU 4× mais lenta, a página parada subiu de ~15 para ~57 quadros/s e deixou de ter quadros lentos ao rolar ou mover o mouse.
+- Fundo aurora sem `filter: blur` (camada isolada animando só `transform`); borda neon gira apenas no card em hover/foco; brilho da marca e shimmer dos botões passam uma vez (carga/hover) via `transform`, sem animar `left`; `backdrop-filter` mantido só na topbar, navegação mobile e fundo de diálogos; cards fora da tela usam `content-visibility`.
+- `motion.js` processa no máximo um movimento de ponteiro por quadro.
+
 ### Deploy no Render Free
 
 - `render.yaml` (Blueprint) para o mesmo Dockerfile no Render Free, região Virginia (perto do Neon us-east-1), health check em `/api/health`, profile `prod` e segredos pedidos no painel (`sync: false`).

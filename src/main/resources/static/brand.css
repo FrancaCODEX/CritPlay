@@ -30,8 +30,9 @@ body::before {
     radial-gradient(40vmax 30vmax at 15% 10%, #7c3aed38, transparent 60%),
     radial-gradient(35vmax 28vmax at 85% 20%, #d946ef26, transparent 60%),
     radial-gradient(45vmax 35vmax at 50% 100%, #a855f71f, transparent 60%);
-  filter: blur(20px);
-  animation: cp-aurora 22s ease-in-out infinite alternate;
+  will-change: transform;
+  contain: strict;
+  animation: cp-aurora 30s ease-in-out infinite alternate;
 }
 body::after {
   /* grade sutil de "launcher" */
@@ -62,9 +63,11 @@ body::after {
   background: linear-gradient(90deg, #fff 0%, #fff 40%, var(--accent) 55%, var(--neon-2) 75%, #fff 100%);
   background-size: 250% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent !important;
-  animation: cp-text-shine 7s linear infinite;
-  filter: drop-shadow(0 0 10px #a855f755);
+  animation: cp-text-shine 2.4s ease-out 1;
+  text-shadow: 0 0 18px #a855f733;
 }
+.brand:hover { animation: cp-text-shine 2.4s ease-out 1; animation-name: cp-text-shine-again; }
+@keyframes cp-text-shine-again { from { background-position: 0 0; } to { background-position: -250% 0; } }
 .brand span { color: transparent !important; }
 .brand small {
   -webkit-text-fill-color: var(--accent); color: var(--accent);
@@ -103,19 +106,19 @@ button, .primary, .secondary { transition: transform .18s var(--ease-out), box-s
 }
 .primary::after {
   /* shimmer */
-  content: ""; position: absolute; inset: -40% auto -40% -60%; width: 40%; z-index: -1;
+  content: ""; position: absolute; top: -40%; bottom: -40%; left: 0; width: 40%; z-index: -1;
   background: linear-gradient(100deg, transparent, #ffffffa0, transparent);
-  transform: skewX(-20deg);
-  animation: cp-shimmer 3.6s ease-in-out infinite;
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
 }
+.primary:hover:not(:disabled)::after, .primary:focus-visible::after { animation: cp-shimmer .9s ease-out 1; }
 .primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 0 1px #ffffff33 inset, 0 10px 30px -6px #a855f7; }
 .primary:active:not(:disabled), .secondary:active:not(:disabled) { transform: translateY(0) scale(.97); }
-@keyframes cp-shimmer { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+@keyframes cp-shimmer { from { transform: translateX(-150%) skewX(-20deg); } to { transform: translateX(350%) skewX(-20deg); } }
 
 .secondary {
   background: #1d1530aa !important;
   border: 1px solid #4b3a66 !important;
-  backdrop-filter: blur(6px);
 }
 .secondary:hover:not(:disabled) {
   border-color: var(--accent) !important;
@@ -145,7 +148,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, select:focu
 }
 .hero-dot.active::after { box-shadow: 0 0 10px var(--neon); }
 .hero-arrow {
-  background: #1d1530cc !important; border: 1px solid #4b3a66 !important; backdrop-filter: blur(8px);
+  background: #1d1530e6 !important; border: 1px solid #4b3a66 !important;
 }
 .hero-arrow:hover { border-color: var(--accent) !important; box-shadow: 0 0 18px -2px var(--neon); }
 .hero-meta > :first-child { box-shadow: 0 0 12px -2px #a855f7aa; }
@@ -154,6 +157,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, select:focu
 @property --cp-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 
 .game-card {
+  content-visibility: auto; contain-intrinsic-size: auto 360px;
   --mx: 50%; --my: 50%; --rx: 0deg; --ry: 0deg;
   border-radius: 14px;
 }
@@ -177,8 +181,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, select:focu
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   opacity: 0; transition: opacity .3s ease;
-  animation: cp-spin 3.2s linear infinite;
 }
+.game-card:hover .cover::before, .game-card:focus-within .cover::before { animation: cp-spin 3.2s linear infinite; }
 .game-card:hover .cover, .game-card:focus-within .cover {
   box-shadow: 0 0 0 1px #c4a1ff55, 0 18px 40px -12px #a855f7aa;
 }
@@ -201,13 +205,12 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, select:focu
 }
 
 .card-action {
-  backdrop-filter: blur(8px);
-  background: #120f1ccc !important; border: 1px solid #4b3a66 !important;
+  background: #120f1ce6 !important; border: 1px solid #4b3a66 !important;
 }
 .card-action:hover:not(:disabled), .card-action[aria-pressed="true"] {
   border-color: var(--accent) !important; color: var(--accent); box-shadow: 0 0 14px -2px var(--neon);
 }
-.status-badge, .badge { backdrop-filter: blur(6px); box-shadow: 0 0 12px -4px var(--neon); }
+.status-badge, .badge { box-shadow: 0 0 12px -4px var(--neon); }
 
 /* ---------- Superfícies (painéis, diálogos, perfis) ---------- */
 .surface, .journey, .profile-summary, dialog, .people-grid > *, .lists-grid > *, .review-grid > * {
@@ -220,7 +223,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, select:focu
   border-color: #6d4fa0 !important;
   box-shadow: 0 0 0 1px #a855f722, 0 14px 40px -18px #a855f7;
 }
-.journey-icon { filter: drop-shadow(0 0 10px var(--neon)); animation: cp-float 4s ease-in-out infinite; display: inline-block; }
+.journey-icon { text-shadow: 0 0 10px var(--neon); animation: cp-float 4s ease-in-out infinite; display: inline-block; will-change: transform; }
 @keyframes cp-float { 50% { transform: translateY(-4px) rotate(8deg); } }
 
 dialog { box-shadow: 0 0 0 1px #a855f733, 0 30px 80px -20px #000, 0 0 60px -20px #a855f7 !important; }
@@ -228,7 +231,7 @@ dialog[open] { animation: cp-pop .35s var(--ease-out); }
 dialog::backdrop { background: #07050ccc; backdrop-filter: blur(6px); }
 @keyframes cp-pop { from { opacity: 0; transform: translateY(14px) scale(.97); } }
 
-.toast { box-shadow: 0 0 0 1px #a855f755, 0 10px 30px -10px #a855f7; backdrop-filter: blur(10px); }
+.toast { box-shadow: 0 0 0 1px #a855f755, 0 10px 30px -10px #a855f7; }
 
 /* ---------- Navegação mobile ---------- */
 .mobile-navigation {
@@ -277,4 +280,29 @@ dialog::backdrop { background: #07050ccc; backdrop-filter: blur(6px); }
   body::before, .brand, .primary::after, .game-card .cover::before, .journey-icon { animation: none !important; }
   .cp-reveal, dialog[open] { animation: none !important; }
   .game-card .cover { transform: none !important; }
+}
+
+/* ---------- Comunidade: quem seguir ---------- */
+.suggestions-panel { margin: 18px 0 26px; }
+.suggestions-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.suggestions-heading h3 { font-family: var(--font-display); margin: 0; }
+.suggestions-grid {
+  display: grid; gap: 14px; margin-top: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+.suggestion-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px;
+  border: 1px solid #3f2f58; transition: opacity .3s ease, transform .3s var(--ease-out), border-color .25s ease, box-shadow .25s ease;
+}
+.suggestion-card .person-card { border: 0 !important; padding: 0; background: transparent !important; box-shadow: none !important; text-align: left; }
+.suggestion-reason {
+  margin: 0; font-size: 12px; color: var(--accent);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.suggestion-reason::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 8px var(--neon); flex: none; }
+.suggestion-follow { width: 100%; margin-left: 0 !important; }
+.suggestion-leaving { opacity: 0; transform: scale(.94); }
+@media (max-width: 680px) {
+  .suggestions-grid { grid-auto-flow: column; grid-auto-columns: 78%; grid-template-columns: none; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .suggestion-card { scroll-snap-align: start; }
 }
